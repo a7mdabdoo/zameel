@@ -1,0 +1,17 @@
+// مطور 1
+// فيجما: محفظتي - ذاكر وعلّم
+
+import 'package:flutter/material.dart';
+
+class WalletScreen extends StatelessWidget {
+  const WalletScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: Center(
+        child: Text('محفظتي - ذاكر وعلّم'),
+      ),
+    );
+  }
+}
