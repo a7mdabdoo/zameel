@@ -2,30 +2,37 @@
 // فيجما: الخطة الأسبوعية - ذاكر وعلّم
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/state/app_state.dart';
 
-class WeeklyPlanScreen extends StatefulWidget {
+class WeeklyPlanScreen extends ConsumerStatefulWidget {
   const WeeklyPlanScreen({super.key});
 
   @override
-  State<WeeklyPlanScreen> createState() => _WeeklyPlanScreenState();
+  ConsumerState<WeeklyPlanScreen> createState() => _WeeklyPlanScreenState();
 }
 
-class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
+class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
   int _selectedDayIndex = 0;
   final List<String> _days = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
 
   @override
   Widget build(BuildContext context) {
+    final plannerState = ref.watch(plannerProvider);
+    final currentDay = _days[_selectedDayIndex];
+    final dayBlocks = plannerState.studyBlocks.where((b) => b.day == currentDay).toList();
+    final dayLectures = plannerState.lectureSchedule.where((l) => l.day == currentDay).toList();
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).cardTheme.color,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'الخطة الأسبوعية 📅',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
         ),
         actions: [
           IconButton(
@@ -49,7 +56,7 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
             // Days horizontal selector
             Container(
               height: 56,
-              color: AppColors.surface,
+              color: Theme.of(context).cardTheme.color,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -89,15 +96,15 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
               child: Row(
                 children: [
                   Expanded(
-                    child: _buildMiniStatCard('جلسات اليوم', '3 جلسات', AppColors.primary),
+                    child: _buildMiniStatCard('جلسات اليوم', '${dayBlocks.length} جلسات', AppColors.primary),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _buildMiniStatCard('ساعات المذاكرة', '2.5 ساعة', AppColors.deepSage),
+                    child: _buildMiniStatCard('محاضرات رسمية', '${dayLectures.length} محاضرات', AppColors.deepSage),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _buildMiniStatCard('أوقات الفراغ', '3 ساعات', AppColors.pointsAmber),
+                    child: _buildMiniStatCard('إنجاز الأسبوع', '${(plannerState.progressPercentage * 100).round()}%', AppColors.pointsAmber),
                   ),
                 ],
               ),
@@ -110,37 +117,37 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 children: [
-                  _buildPlanBlock(
-                    title: 'محاضرة: تنظيم الحواسب (Computer Org)',
-                    time: '08:30 ص – 10:00 ص',
-                    location: 'مدرج 2',
-                    ribbonColor: AppColors.courseDustPlum,
-                    type: 'محاضرة رسمية',
-                  ),
-                  _buildPlanBlock(
-                    title: 'مذاكرة: هياكل البيانات (Data Structures)',
-                    time: '11:00 ص – 11:45 ص',
-                    location: 'المكتبة • الأشجار الثنائية',
-                    ribbonColor: AppColors.courseSage,
-                    type: 'مذاكرة ذكية',
-                    isInteractive: true,
-                  ),
-                  _buildPlanBlock(
-                    title: 'جلسة بنك الوقت: مع عمر خالد',
-                    time: '01:30 م – 02:30 م',
-                    location: 'معمل 3 • الجبر الخطي',
-                    ribbonColor: AppColors.courseClay,
-                    type: 'جلسة أقران',
-                    isTimeBank: true,
-                  ),
-                  _buildPlanBlock(
-                    title: 'مذاكرة: قواعد البيانات (Databases)',
-                    time: '04:00 م – 04:45 م',
-                    location: 'المنزل • تمارين SQL',
-                    ribbonColor: AppColors.courseSand,
-                    type: 'مذاكرة ذكية',
-                    isInteractive: true,
-                  ),
+                  // Lectures
+                  ...dayLectures.map((lec) {
+                    return _buildPlanBlock(
+                      title: 'محاضرة: ${lec.courseName}',
+                      time: '${lec.startTime} – ${lec.endTime}',
+                      location: lec.room,
+                      ribbonColor: lec.color,
+                      type: 'محاضرة رسمية',
+                    );
+                  }),
+
+                  // Study Blocks generated by Greedy Planner Algorithm
+                  ...dayBlocks.map((block) {
+                    return _buildPlanBlock(
+                      title: 'مذاكرة: ${block.courseName}',
+                      time: '${block.startTime} – ${block.endTime}',
+                      location: '${block.room} • ${block.topic}',
+                      ribbonColor: block.ribbonColor,
+                      type: block.isCompleted ? 'مكتملة ✓' : 'مذاكرة ذكية',
+                      isInteractive: true,
+                    );
+                  }),
+
+                  if (dayLectures.isEmpty && dayBlocks.isEmpty)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32.0),
+                        child: Text('يوم راحة أو لا توجد مواعيد مسجلة'),
+                      ),
+                    ),
+
                   const SizedBox(height: 70), // space for FAB
                 ],
               ),
@@ -155,7 +162,7 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.hairline),
       ),
@@ -176,12 +183,11 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
     required Color ribbonColor,
     required String type,
     bool isInteractive = false,
-    bool isTimeBank = false,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.hairline),
         boxShadow: [
@@ -195,11 +201,7 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
         onTap: () {
-          if (isTimeBank) {
-            context.push('/session-learner');
-          } else {
-            context.push('/study-block-details');
-          }
+          context.push('/study-block-details');
         },
         child: ClipRRect(
           borderRadius: BorderRadius.circular(14),
@@ -233,15 +235,25 @@ class _WeeklyPlanScreenState extends State<WeeklyPlanScreen> {
                         const SizedBox(height: 6),
                         Text(
                           title,
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                         ),
                         const SizedBox(height: 4),
                         Row(
                           children: [
                             const Icon(Icons.location_on_outlined, size: 13, color: AppColors.textTertiary),
                             const SizedBox(width: 4),
-                            Text(location, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
-                            const Spacer(),
+                            Expanded(
+                              child: Text(
+                                location,
+                                style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                             const Icon(Icons.arrow_back_ios_rounded, size: 12, color: AppColors.textTertiary),
                           ],
                         ),

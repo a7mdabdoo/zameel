@@ -1,20 +1,22 @@
 // مطور 1
-// فيجما: التقييم وتحويل الرصيد - ذاكر وعلّم
+// فيجما: التقييم وتحويل الرصيد - ذاكر وعلّم (المعاملة الذرية Firestore Transaction)
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/state/app_state.dart';
 
-class RatingScreen extends StatefulWidget {
+class RatingScreen extends ConsumerStatefulWidget {
   const RatingScreen({super.key});
 
   @override
-  State<RatingScreen> createState() => _RatingScreenState();
+  ConsumerState<RatingScreen> createState() => _RatingScreenState();
 }
 
-class _RatingScreenState extends State<RatingScreen> {
+class _RatingScreenState extends ConsumerState<RatingScreen> {
   int _rating = 5;
   final _commentController = TextEditingController(text: 'شرح ممتاز جداً ومبسط، ساعدني في فهم الفضاءات المتجهة بسهولة!');
   bool _isSubmitting = false;
@@ -31,7 +33,7 @@ class _RatingScreenState extends State<RatingScreen> {
     try {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
-        // Atomic transaction: خصم 1 عملة وقت من رصيد المتعلّم وتحويلها
+        // المعاملة الذرية (Atomic Firestore Transaction) لنقل عملة الوقت دون تعارض
         final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
         await FirebaseFirestore.instance.runTransaction((transaction) async {
           final snapshot = await transaction.get(userDocRef);
@@ -57,9 +59,16 @@ class _RatingScreenState extends State<RatingScreen> {
       }
     } catch (_) {}
 
+    // تحديث الحالة المحلية في Riverpod
+    ref.read(timeBankProvider.notifier).completeAndRateSession(
+          sessionId: 'sess_1',
+          rating: _rating,
+          reviewComment: _commentController.text,
+        );
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم تحويل عملة الوقت وإرسال التقييم بنجاح! شكراً لك 🎉')),
+        const SnackBar(content: Text('تم تحويل عملة الوقت بنجاح وإرسال التقييم! شكراً لك 🎉')),
       );
       context.go('/wallet');
     }
@@ -68,14 +77,14 @@ class _RatingScreenState extends State<RatingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         automaticallyImplyLeading: false,
-        title: const Text(
+        title: Text(
           'تقييم الجلسة وتحويل الرصيد ⭐',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
         ),
         centerTitle: true,
       ),
@@ -100,10 +109,10 @@ class _RatingScreenState extends State<RatingScreen> {
 
               const SizedBox(height: 16),
 
-              const Text(
+              Text(
                 'اكتملت جلسة الشرح بنجاح!',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
               ),
               const SizedBox(height: 6),
               const Text(
@@ -137,9 +146,9 @@ class _RatingScreenState extends State<RatingScreen> {
               const SizedBox(height: 20),
 
               // Comment
-              const Text(
+              Text(
                 'كلمة شكر أو ملاحظات للزميل',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface),
               ),
               const SizedBox(height: 8),
               TextFormField(
@@ -147,7 +156,7 @@ class _RatingScreenState extends State<RatingScreen> {
                 maxLines: 3,
                 decoration: InputDecoration(
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: Theme.of(context).cardTheme.color,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
                 ),
@@ -159,18 +168,18 @@ class _RatingScreenState extends State<RatingScreen> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardTheme.color,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: AppColors.hairline),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.swap_horizontal_circle_outlined, color: AppColors.primary, size: 22),
-                    SizedBox(width: 10),
+                    const Icon(Icons.swap_horizontal_circle_outlined, color: AppColors.primary, size: 22),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'سيتم خصم 1 عملة وقت من رصيدك وإضافتها إلى محفظة عمر خالد تقديراً لجهده.',
-                        style: TextStyle(fontSize: 12, color: AppColors.textPrimary, height: 1.4),
+                        'سيتم خصم 1 عملة وقت من رصيدك وإضافتها إلى محفظة عمر خالد تقديراً لجهده الأكاديمي.',
+                        style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface, height: 1.4),
                       ),
                     ),
                   ],

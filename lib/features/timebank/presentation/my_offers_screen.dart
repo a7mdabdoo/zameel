@@ -2,29 +2,34 @@
 // فيجما: بنك الوقت: عروضي - ذاكر وعلّم
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/state/app_state.dart';
 
-class MyOffersScreen extends StatefulWidget {
+class MyOffersScreen extends ConsumerStatefulWidget {
   const MyOffersScreen({super.key});
 
   @override
-  State<MyOffersScreen> createState() => _MyOffersScreenState();
+  ConsumerState<MyOffersScreen> createState() => _MyOffersScreenState();
 }
 
-class _MyOffersScreenState extends State<MyOffersScreen> {
+class _MyOffersScreenState extends ConsumerState<MyOffersScreen> {
   int _selectedTab = 0; // 0: عروضي, 1: جلساتي, 2: أحتاج مساعدة
 
   @override
   Widget build(BuildContext context) {
+    final timeBankState = ref.watch(timeBankProvider);
+    final offers = timeBankState.offers;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).cardTheme.color,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'بنك الوقت الأكاديمي ⏱️',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
         ),
       ),
       floatingActionButton: _selectedTab == 0
@@ -43,13 +48,13 @@ class _MyOffersScreenState extends State<MyOffersScreen> {
           children: [
             // Tabs Bar
             Container(
-              color: AppColors.surface,
+              color: Theme.of(context).cardTheme.color,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: [
-                  _buildTabItem(0, 'عروضي (1)'),
+                  _buildTabItem(0, 'عروضي (${offers.length})'),
                   const SizedBox(width: 8),
-                  _buildTabItem(1, 'جلساتي'),
+                  _buildTabItem(1, 'جلساتي (${timeBankState.sessions.length})'),
                   const SizedBox(width: 8),
                   _buildTabItem(2, 'طلب مساعدة'),
                 ],
@@ -60,7 +65,7 @@ class _MyOffersScreenState extends State<MyOffersScreen> {
 
             Expanded(
               child: _selectedTab == 0
-                  ? _buildMyOffersList()
+                  ? _buildMyOffersList(offers)
                   : _selectedTab == 1
                       ? _buildRedirectToSessions()
                       : _buildRedirectToNeedHelp(),
@@ -104,7 +109,7 @@ class _MyOffersScreenState extends State<MyOffersScreen> {
     );
   }
 
-  Widget _buildMyOffersList() {
+  Widget _buildMyOffersList(List<dynamic> offers) {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       children: [
@@ -132,64 +137,74 @@ class _MyOffersScreenState extends State<MyOffersScreen> {
 
         const SizedBox(height: 16),
 
-        // Active offer card
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: const Border(
-              right: BorderSide(color: AppColors.courseTeal, width: 6),
+        // Active offers list
+        ...offers.map((offer) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardTheme.color,
+              borderRadius: BorderRadius.circular(16),
+              border: Border(
+                right: BorderSide(color: offer.courseColor as Color, width: 6),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: AppColors.sage.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.sage.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'متاح للحجز',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.deepSage),
+                      ),
                     ),
-                    child: const Text(
-                      'متاح للحجز',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.deepSage),
+                    Text(
+                      offer.courseName as String,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                     ),
-                  ),
-                  const Text(
-                    'البرمجة الكائنية (OOP - CS201)',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'الموضوع: مفاهيم الوراثة وتعدد الأشكال (Inheritance & Polymorphism) وحل شيت المعمل.',
-                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 12),
-              const Row(
-                children: [
-                  Icon(Icons.calendar_today_outlined, size: 14, color: AppColors.textTertiary),
-                  SizedBox(width: 6),
-                  Text('الأربعاء • 12:00 ظهراً (60 دقيقة)', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                  Spacer(),
-                  Text('+1 عملة وقت', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.pointsAmber)),
-                ],
-              ),
-            ],
-          ),
-        ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  offer.topic as String,
+                  style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_today_outlined, size: 14, color: AppColors.textTertiary),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${offer.day} • ${offer.time} (${offer.durationMinutes} دقيقة)',
+                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    ),
+                    const Spacer(),
+                    const Text('+1 عملة وقت', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.pointsAmber)),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }),
 
         const SizedBox(height: 80),
       ],

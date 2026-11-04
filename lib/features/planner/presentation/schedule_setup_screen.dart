@@ -2,18 +2,21 @@
 // فيجما: إعداد الجدول - ذاكر وعلّم
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/models/app_models.dart';
+import '../../../core/state/app_state.dart';
 
-class ScheduleSetupScreen extends StatefulWidget {
+class ScheduleSetupScreen extends ConsumerStatefulWidget {
   const ScheduleSetupScreen({super.key});
 
   @override
-  State<ScheduleSetupScreen> createState() => _ScheduleSetupScreenState();
+  ConsumerState<ScheduleSetupScreen> createState() => _ScheduleSetupScreenState();
 }
 
-class _ScheduleSetupScreenState extends State<ScheduleSetupScreen> {
+class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
   String _selectedDay = 'السبت';
   CourseSeed _selectedCourse = AppConstants.seedCourses[0];
   String _room = 'قاعة 3';
@@ -21,20 +24,40 @@ class _ScheduleSetupScreenState extends State<ScheduleSetupScreen> {
 
   final List<String> _days = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
 
+  void _saveSchedule() {
+    final newLecture = ScheduleItemModel(
+      id: 'lec_${DateTime.now().millisecondsSinceEpoch}',
+      courseName: _selectedCourse.name,
+      courseCode: _selectedCourse.code,
+      day: _selectedDay,
+      startTime: '10:00 ص',
+      endTime: '11:30 ص',
+      room: _room,
+      color: _selectedCourse.color,
+    );
+
+    ref.read(plannerProvider.notifier).addLecture(newLecture);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تمت إضافة المحاضرة وإعادة ضبط خطة المذاكرة الذكية بالخوارزمية ✅')),
+    );
+    context.pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close_rounded, color: AppColors.textPrimary),
+          icon: Icon(Icons.close_rounded, color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => context.pop(),
         ),
-        title: const Text(
+        title: Text(
           'إعداد وتخصيص الجدول ⚙️',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
         ),
         centerTitle: true,
       ),
@@ -44,9 +67,9 @@ class _ScheduleSetupScreenState extends State<ScheduleSetupScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
+              Text(
                 'إضافة محاضرة أو وقت انشغال',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
               ),
               const SizedBox(height: 4),
               const Text(
@@ -56,12 +79,12 @@ class _ScheduleSetupScreenState extends State<ScheduleSetupScreen> {
               const SizedBox(height: 20),
 
               // Day selector
-              const Text('اليوم', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+              Text('اليوم', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardTheme.color,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppColors.hairline),
                 ),
@@ -80,12 +103,12 @@ class _ScheduleSetupScreenState extends State<ScheduleSetupScreen> {
               const SizedBox(height: 16),
 
               // Course selector
-              const Text('المادة الدراسية', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+              Text('المادة الدراسية', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardTheme.color,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppColors.hairline),
                 ),
@@ -115,7 +138,7 @@ class _ScheduleSetupScreenState extends State<ScheduleSetupScreen> {
               const SizedBox(height: 16),
 
               // Room / Location
-              const Text('المكان / القاعة', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+              Text('المكان / القاعة', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
               const SizedBox(height: 8),
               TextFormField(
                 initialValue: _room,
@@ -123,7 +146,7 @@ class _ScheduleSetupScreenState extends State<ScheduleSetupScreen> {
                 decoration: InputDecoration(
                   hintText: 'قاعة 3 أو معمل الحاسب',
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: Theme.of(context).cardTheme.color,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
                 ),
@@ -136,7 +159,7 @@ class _ScheduleSetupScreenState extends State<ScheduleSetupScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('${_maxDailyHours.toInt()} ساعات', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
-                  const Text('الحد الأقصى للمذاكرة اليومية', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                  Text('الحد الأقصى للمذاكرة اليومية', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
                 ],
               ),
               Slider(
@@ -154,12 +177,7 @@ class _ScheduleSetupScreenState extends State<ScheduleSetupScreen> {
               SizedBox(
                 height: 52,
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('تم حفظ الموعد وتحديث الخطة الذكية بنجاح ✅')),
-                    );
-                    context.pop();
-                  },
+                  onPressed: _saveSchedule,
                   icon: const Icon(Icons.check, color: Colors.white),
                   label: const Text(
                     'حفظ المحاضرة والجدول',

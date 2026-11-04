@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/data/auth_service.dart';
+import '../../../core/state/app_state.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -15,11 +16,13 @@ class ProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _ProfileScreenState extends ConsumerState<ProfileScreen> {
-  bool _darkMode = false;
   bool _notifications = true;
 
   @override
   Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeModeProvider);
+    final isDark = themeMode == ThemeMode.dark;
+
     final userProfileAsync = ref.watch(userProfileStreamProvider);
     final userDoc = userProfileAsync.value?.data();
     final userName = userDoc?['name'] as String? ?? 'أحمد محمود';
@@ -134,12 +137,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       title: const Text('الوضع الليلي (Dark Theme)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                       subtitle: const Text('تبديل مظهر الشاشات للألوان الداكنة', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                       secondary: const Icon(Icons.dark_mode_outlined, color: AppColors.primary),
-                      value: _darkMode,
+                      value: isDark,
                       activeTrackColor: AppColors.primary,
                       onChanged: (val) {
-                        setState(() => _darkMode = val);
+                        ref.read(themeModeProvider.notifier).toggleTheme(val);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(val ? 'تم تفعيل الوضع الداكن' : 'تم تفعيل الوضع الفاتح')),
+                          SnackBar(content: Text(val ? 'تم تفعيل الوضع الداكن بنجاح 🌙' : 'تم تفعيل الوضع الفاتح بنجاح ☀️')),
                         );
                       },
                     ),

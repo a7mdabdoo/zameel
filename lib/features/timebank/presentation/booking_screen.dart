@@ -2,26 +2,31 @@
 // فيجما: حجز جلسة - ذاكر وعلّم
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/state/app_state.dart';
 
-class BookingScreen extends StatelessWidget {
+class BookingScreen extends ConsumerWidget {
   const BookingScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final timeBankState = ref.watch(timeBankProvider);
+    final coins = timeBankState.activeTimeCoins;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_forward_ios_rounded, color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => context.pop(),
         ),
-        title: const Text(
+        title: Text(
           'تأكيد حجز الجلسة ✍️',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
         ),
         centerTitle: true,
       ),
@@ -35,7 +40,7 @@ class BookingScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardTheme.color,
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(color: AppColors.hairline),
                 ),
@@ -47,19 +52,19 @@ class BookingScreen extends StatelessWidget {
                       child: const Text('ع.خ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary)),
                     ),
                     const SizedBox(width: 14),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('عمر خالد', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                          SizedBox(height: 2),
-                          Text('الفرقة الثانية • كلية الحاسبات والذكاء الاصطناعي', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-                          SizedBox(height: 4),
-                          Row(
+                          Text('عمر خالد', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
+                          const SizedBox(height: 2),
+                          const Text('الفرقة الثانية • كلية الحاسبات والذكاء الاصطناعي', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                          const SizedBox(height: 4),
+                          const Row(
                             children: [
                               Icon(Icons.star_rounded, size: 16, color: AppColors.pointsAmber),
                               SizedBox(width: 4),
-                              Text('4.9 (14 جلسة ناجحة)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                              Text('4.9 (14 جلسة ناجحة)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary)),
                             ],
                           ),
                         ],
@@ -75,19 +80,19 @@ class BookingScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardTheme.color,
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(color: AppColors.hairline),
                 ),
                 child: Column(
                   children: [
-                    _buildDetailRow(Icons.menu_book_rounded, 'المادة', 'الجبر الخطي (Linear Algebra)'),
+                    _buildDetailRow(context, Icons.menu_book_rounded, 'المادة', 'الجبر الخطي (Linear Algebra)'),
                     const Divider(height: 20, color: AppColors.hairline),
-                    _buildDetailRow(Icons.topic_outlined, 'الموضوع', 'الفضاءات المتجهة والتحويلات الخطية'),
+                    _buildDetailRow(context, Icons.topic_outlined, 'الموضوع', 'الفضاءات المتجهة والتحويلات الخطية'),
                     const Divider(height: 20, color: AppColors.hairline),
-                    _buildDetailRow(Icons.calendar_today_outlined, 'الموعد', 'اليوم • 1:30 ظهراً (60 دقيقة)'),
+                    _buildDetailRow(context, Icons.calendar_today_outlined, 'الموعد', 'اليوم • 1:30 ظهراً (60 دقيقة)'),
                     const Divider(height: 20, color: AppColors.hairline),
-                    _buildDetailRow(Icons.location_on_outlined, 'المكان', 'معمل 3 • مبنى الكلية'),
+                    _buildDetailRow(context, Icons.location_on_outlined, 'المكان', 'معمل 3 • مبنى الكلية'),
                   ],
                 ),
               ),
@@ -113,13 +118,19 @@ class BookingScreen extends StatelessWidget {
                       child: const Icon(Icons.monetization_on_rounded, size: 20, color: Colors.white),
                     ),
                     const SizedBox(width: 14),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('تكلفة الجلسة: 1 عملة وقت', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Color(0xFF664700))),
-                          SizedBox(height: 2),
-                          Text('يتم حجز العملة كأمانة، وتتحول لحساب الزميل بعد تأكيد إتمام الجلسة.', style: TextStyle(fontSize: 12, color: Color(0xFF855D00))),
+                          Text(
+                            'تكلفة الحجز: 1 عملة وقت (رصيدك الحالي: $coins عملات)',
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF664700)),
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'يتم حجز العملة كأمانة، وتتحول لحساب الزميل فور تأكيد إتمام الجلسة.',
+                            style: TextStyle(fontSize: 11, color: Color(0xFF855D00)),
+                          ),
                         ],
                       ),
                     ),
@@ -133,12 +144,25 @@ class BookingScreen extends StatelessWidget {
               SizedBox(
                 height: 52,
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('تم إرسال طلب الجلسة إلى عمر خالد بنجاح 🚀')),
-                    );
-                    context.push('/my-sessions');
-                  },
+                  onPressed: coins <= 0
+                      ? null
+                      : () {
+                          // تفعيل الحجز الفعلي في منظومة Riverpod
+                          ref.read(timeBankProvider.notifier).bookSession(
+                                teacherName: 'عمر خالد',
+                                teacherInitials: 'ع.خ',
+                                courseName: 'الجبر الخطي',
+                                courseCode: 'MATH201',
+                                topic: 'الفضاءات المتجهة والتحويلات الخطية',
+                                time: '1:30 ظهراً',
+                                location: 'معمل 3 • الكلية',
+                              );
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('تم تأكيد حجز الجلسة بنجاح مع عمر خالد! 🚀')),
+                          );
+                          context.push('/my-sessions');
+                        },
                   icon: const Icon(Icons.send_rounded, color: Colors.white, size: 18),
                   label: const Text(
                     'أرسل طلب الجلسة',
@@ -157,14 +181,14 @@ class BookingScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String label, String value) {
+  Widget _buildDetailRow(BuildContext context, IconData icon, String label, String value) {
     return Row(
       children: [
         Icon(icon, size: 20, color: AppColors.primary),
         const SizedBox(width: 12),
         Text(label, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
         const Spacer(),
-        Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+        Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
       ],
     );
   }
