@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "510450945277",
+    "project_id": "zameel-1d4f6",
+    "storage_bucket": "zameel-1d4f6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:510450945277:android:42248ac7fe8364b4758294",
+        "android_client_info": {
+          "package_name": "com.college.app.zakir_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDYmRxk2dPKTEoa07AzfAALBjA3EVfzAqo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

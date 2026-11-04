@@ -2,15 +2,214 @@
 // فيجما: بنك الوقت: عروضي - ذاكر وعلّم
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../../../core/theme/app_colors.dart';
 
-class MyOffersScreen extends StatelessWidget {
+class MyOffersScreen extends StatefulWidget {
   const MyOffersScreen({super.key});
 
   @override
+  State<MyOffersScreen> createState() => _MyOffersScreenState();
+}
+
+class _MyOffersScreenState extends State<MyOffersScreen> {
+  int _selectedTab = 0; // 0: عروضي, 1: جلساتي, 2: أحتاج مساعدة
+
+  @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Text('بنك الوقت: عروضي - ذاكر وعلّم'),
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.surface,
+        elevation: 0,
+        title: const Text(
+          'بنك الوقت الأكاديمي ⏱️',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+        ),
+      ),
+      floatingActionButton: _selectedTab == 0
+          ? FloatingActionButton.extended(
+              onPressed: () => context.push('/create-offer'),
+              backgroundColor: AppColors.primary,
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: const Text(
+                'أضف عرضاً للشرح',
+                style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+            )
+          : null,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Tabs Bar
+            Container(
+              color: AppColors.surface,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                children: [
+                  _buildTabItem(0, 'عروضي (1)'),
+                  const SizedBox(width: 8),
+                  _buildTabItem(1, 'جلساتي'),
+                  const SizedBox(width: 8),
+                  _buildTabItem(2, 'طلب مساعدة'),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            Expanded(
+              child: _selectedTab == 0
+                  ? _buildMyOffersList()
+                  : _selectedTab == 1
+                      ? _buildRedirectToSessions()
+                      : _buildRedirectToNeedHelp(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTabItem(int index, String title) {
+    final isSelected = _selectedTab == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          if (index == 1) {
+            context.push('/my-sessions');
+          } else if (index == 2) {
+            context.push('/need-help');
+          } else {
+            setState(() => _selectedTab = index);
+          }
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.primary : AppColors.surfaceAlt,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              color: isSelected ? Colors.white : AppColors.textSecondary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMyOffersList() {
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      children: [
+        // Balance info
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.primaryContainer.withValues(alpha: 0.35),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+          ),
+          child: const Row(
+            children: [
+              Icon(Icons.volunteer_activism_rounded, color: AppColors.primary, size: 24),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'عندما يشترك زميل في عرضك وتشرح له، تكسب 1 عملة وقت في محفظتك تلقائياً!',
+                  style: TextStyle(fontSize: 12, color: AppColors.primary, height: 1.4),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // Active offer card
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: const Border(
+              right: BorderSide(color: AppColors.courseTeal, width: 6),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.sage.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'متاح للحجز',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.deepSage),
+                    ),
+                  ),
+                  const Text(
+                    'البرمجة الكائنية (OOP - CS201)',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'الموضوع: مفاهيم الوراثة وتعدد الأشكال (Inheritance & Polymorphism) وحل شيت المعمل.',
+                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              ),
+              const SizedBox(height: 12),
+              const Row(
+                children: [
+                  Icon(Icons.calendar_today_outlined, size: 14, color: AppColors.textTertiary),
+                  SizedBox(width: 6),
+                  Text('الأربعاء • 12:00 ظهراً (60 دقيقة)', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                  Spacer(),
+                  Text('+1 عملة وقت', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.pointsAmber)),
+                ],
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 80),
+      ],
+    );
+  }
+
+  Widget _buildRedirectToSessions() {
+    return Center(
+      child: ElevatedButton(
+        onPressed: () => context.push('/my-sessions'),
+        child: const Text('الانتقال إلى جلساتي'),
+      ),
+    );
+  }
+
+  Widget _buildRedirectToNeedHelp() {
+    return Center(
+      child: ElevatedButton(
+        onPressed: () => context.push('/need-help'),
+        child: const Text('الانتقال إلى طلب مساعدة'),
       ),
     );
   }
