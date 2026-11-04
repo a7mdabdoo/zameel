@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../theme/app_colors.dart';
+import '../constants/app_constants.dart';
 import '../algorithms/planner_algorithm.dart';
 import '../algorithms/matching_algorithm.dart';
 import '../models/app_models.dart';
@@ -194,7 +195,7 @@ class TimeBankNotifier extends Notifier<TimeBankState> {
   @override
   TimeBankState build() {
     return TimeBankState(
-      activeTimeCoins: 3,
+      activeTimeCoins: AppConstants.welcomeCoins,
       offers: [
         const TimeBankOfferModel(
           id: 'offer_1',
@@ -268,7 +269,7 @@ class TimeBankNotifier extends Notifier<TimeBankState> {
           id: 'tx_3',
           title: 'مكافأة التسجيل الترحيبية في زَميل',
           date: 'منذ يومين',
-          amount: 3,
+          amount: AppConstants.welcomeCoins,
           isNegative: false,
           icon: Icons.card_giftcard_rounded,
         ),

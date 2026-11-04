@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/constants/app_constants.dart';
 import '../data/auth_service.dart';
 
 class SignUpScreen extends ConsumerStatefulWidget {
@@ -92,9 +93,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'أنشئ حسابك واحصل على 3 عملات وقت ترحيبية لبدء التعلّم التشاركي',
-                  style: TextStyle(
+                Text(
+                  'أنشئ حسابك واحصل على ${AppConstants.welcomeCoins} عملات وقت ترحيبية لبدء التعلّم التشاركي',
+                  style: const TextStyle(
                     fontSize: 14,
                     color: AppColors.textSecondary,
                   ),
@@ -243,16 +244,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 12),
 
-                // Bypass button for prototype preview
-                TextButton(
-                  onPressed: () => context.push('/onboarding-profile'),
-                  child: const Text(
-                    'تخطي إلى التهيئة مباشرة (عرض سريع)',
-                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                  ),
-                ),
 
                 const SizedBox(height: 20),
                 Row(

@@ -16,20 +16,20 @@ class CourseSeed {
 }
 
 class AppConstants {
-  // App Identity (Can be changed anytime)
-  static const String appName = 'ذاكر وعلّم';
-  static const String appSlogan = 'تعلّم من زميلك.. وعلّم غيرك';
+  // App Identity
+  static const String appName = 'زَميل';
+  static const String appSlogan = 'ذاكر بخطة، وعلّم زميلك، وتعلّم من غيرك';
 
   // Faculty and Year (2nd Year CS & AI)
   static const String faculty = 'كلية الحاسبات والذكاء الاصطناعي';
   static const String academicYear = 'الفرقة الثانية';
 
-  // Points & Time Rules
-  static const int welcomeBonusPoints = 2; // هدية البداية: نقطتان
-  static const int minutesPerPoint = 30;   // 1 نقطة = 30 دقيقة
-  static const int maxDailyStudyHours = 3;  // أقصى ساعات مذاكرة يومية
+  // Points & Time Rules (Answer to Question 1 & 2)
+  static const int welcomeCoins = 2; // هدية البداية: 2 عملات وقت
+  static const int sessionCostCoins = 1; // تكلفة كل جلسة: 1 عملة وقت ثابتة
+  static const int maxDailyStudyHours = 3; // أقصى ساعات مذاكرة يومية
   static const int studyBlockDurationMin = 45; // مدة كتلة المذاكرة
-  static const int breakDurationMin = 10;      // مدة الاستراحة بعد الكتلة
+  static const int breakDurationMin = 10; // مدة الاستراحة بعد الكتلة
 
   // Seed Courses for 2nd Year CS & AI
   static const List<CourseSeed> seedCourses = [
