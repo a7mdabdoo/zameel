@@ -1,8 +1,11 @@
 // مطور 1
-// التوجيه العام والربط بين جميع شاشات التطبيق
+// التوجيه العام والربط بين جميع شاشات التطبيق مع حراسة المصادقة (Auth Guard)
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../features/auth/data/auth_service.dart';
 
 // شاشات مطور 2
 import '../../features/auth/presentation/welcome_screen.dart';
@@ -34,120 +37,164 @@ import '../../features/home/main_navigation_shell.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
-final appRouter = GoRouter(
-  navigatorKey: _rootNavigatorKey,
-  initialLocation: '/welcome',
-  routes: [
-    GoRoute(
-      path: '/welcome',
-      builder: (context, state) => const WelcomeScreen(),
-    ),
-    GoRoute(
-      path: '/login',
-      builder: (context, state) => const LoginScreen(),
-    ),
-    GoRoute(
-      path: '/signup',
-      builder: (context, state) => const SignUpScreen(),
-    ),
-    GoRoute(
-      path: '/onboarding-profile',
-      builder: (context, state) => const OnboardingProfileScreen(),
-    ),
-    GoRoute(
-      path: '/onboarding-courses',
-      builder: (context, state) => const OnboardingCoursesScreen(),
-    ),
-    GoRoute(
-      path: '/onboarding-rate',
-      builder: (context, state) => const OnboardingRateScreen(),
-    ),
-    GoRoute(
-      path: '/study-block-details',
-      builder: (context, state) => const StudyBlockDetailsScreen(),
-    ),
-    GoRoute(
-      path: '/schedule-setup',
-      builder: (context, state) => const ScheduleSetupScreen(),
-    ),
-    GoRoute(
-      path: '/need-help',
-      builder: (context, state) => const NeedHelpScreen(),
-    ),
-    GoRoute(
-      path: '/candidates',
-      builder: (context, state) => const CandidatesScreen(),
-    ),
-    GoRoute(
-      path: '/booking',
-      builder: (context, state) => const BookingScreen(),
-    ),
-    GoRoute(
-      path: '/create-offer',
-      builder: (context, state) => const CreateOfferScreen(),
-    ),
-    GoRoute(
-      path: '/my-sessions',
-      builder: (context, state) => const MySessionsScreen(),
-    ),
-    GoRoute(
-      path: '/session-teacher',
-      builder: (context, state) => const SessionDetailsTeacherScreen(),
-    ),
-    GoRoute(
-      path: '/session-learner',
-      builder: (context, state) => const SessionDetailsLearnerScreen(),
-    ),
-    GoRoute(
-      path: '/session-rating',
-      builder: (context, state) => const RatingScreen(),
-    ),
-    StatefulShellRoute.indexedStack(
-      builder: (context, state, navigationShell) {
-        return MainNavigationShell(navigationShell: navigationShell);
-      },
-      branches: [
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/today',
-              builder: (context, state) => const TodayScreen(),
-            ),
-          ],
-        ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/plan',
-              builder: (context, state) => const WeeklyPlanScreen(),
-            ),
-          ],
-        ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/timebank',
-              builder: (context, state) => const MyOffersScreen(),
-            ),
-          ],
-        ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/wallet',
-              builder: (context, state) => const WalletScreen(),
-            ),
-          ],
-        ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/profile',
-              builder: (context, state) => const ProfileScreen(),
-            ),
-          ],
-        ),
-      ],
-    ),
-  ],
-);
+/// مستمع لتغييرات حالة المصادقة لتحديث مسارات GoRouter تلقائياً
+class RouterNotifier extends ChangeNotifier {
+  RouterNotifier(Ref ref) {
+    ref.listen(authStateProvider, (previous, next) {
+      notifyListeners();
+    });
+  }
+}
+
+final routerNotifierProvider = Provider<RouterNotifier>((ref) {
+  return RouterNotifier(ref);
+});
+
+final routerProvider = Provider<GoRouter>((ref) {
+  final notifier = ref.watch(routerNotifierProvider);
+
+  return GoRouter(
+    navigatorKey: _rootNavigatorKey,
+    initialLocation: '/welcome',
+    refreshListenable: notifier,
+    redirect: (context, state) {
+      final authAsync = ref.read(authStateProvider);
+      final isLoggedIn = authAsync.asData?.value != null;
+      final location = state.uri.path;
+
+      final isAuthFlow = location == '/welcome' ||
+          location == '/login' ||
+          location == '/signup';
+
+      // لا نقوم بالتحويل أثناء قيد التحميل الأولي
+      if (authAsync.isLoading) {
+        return null;
+      }
+
+      // إذا لم يكن مسجلاً، يُسمح له فقط بشاشات الدخول والترحيب
+      if (!isLoggedIn) {
+        return isAuthFlow ? null : '/welcome';
+      }
+
+      // إذا كان مسجلاً وحاول فتح شاشة ترحيب أو تسجيل دخول، نوجهه إلى الرئيسية
+      if (isAuthFlow) {
+        return '/today';
+      }
+
+      return null;
+    },
+    routes: [
+      GoRoute(
+        path: '/welcome',
+        builder: (context, state) => const WelcomeScreen(),
+      ),
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/signup',
+        builder: (context, state) => const SignUpScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding-profile',
+        builder: (context, state) => const OnboardingProfileScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding-courses',
+        builder: (context, state) => const OnboardingCoursesScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding-rate',
+        builder: (context, state) => const OnboardingRateScreen(),
+      ),
+      GoRoute(
+        path: '/study-block-details',
+        builder: (context, state) => const StudyBlockDetailsScreen(),
+      ),
+      GoRoute(
+        path: '/schedule-setup',
+        builder: (context, state) => const ScheduleSetupScreen(),
+      ),
+      GoRoute(
+        path: '/need-help',
+        builder: (context, state) => const NeedHelpScreen(),
+      ),
+      GoRoute(
+        path: '/candidates',
+        builder: (context, state) => const CandidatesScreen(),
+      ),
+      GoRoute(
+        path: '/booking',
+        builder: (context, state) => const BookingScreen(),
+      ),
+      GoRoute(
+        path: '/create-offer',
+        builder: (context, state) => const CreateOfferScreen(),
+      ),
+      GoRoute(
+        path: '/my-sessions',
+        builder: (context, state) => const MySessionsScreen(),
+      ),
+      GoRoute(
+        path: '/session-teacher',
+        builder: (context, state) => const SessionDetailsTeacherScreen(),
+      ),
+      GoRoute(
+        path: '/session-learner',
+        builder: (context, state) => const SessionDetailsLearnerScreen(),
+      ),
+      GoRoute(
+        path: '/session-rating',
+        builder: (context, state) => const RatingScreen(),
+      ),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return MainNavigationShell(navigationShell: navigationShell);
+        },
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/today',
+                builder: (context, state) => const TodayScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/plan',
+                builder: (context, state) => const WeeklyPlanScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/timebank',
+                builder: (context, state) => const MyOffersScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/wallet',
+                builder: (context, state) => const WalletScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/profile',
+                builder: (context, state) => const ProfileScreen(),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ],
+  );
+});

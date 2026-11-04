@@ -1,14 +1,16 @@
+// مطور 1
+// نظام الثيم والألوان المعتمد لـ «زَميل» (Material 3 + خطوط مدمجة أوفلاين)
+
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 class AppTheme {
-  static ThemeData light() {
-    final fontName = GoogleFonts.ibmPlexSansArabic().fontFamily;
+  static const String fontFamily = 'IBMPlexSansArabic';
 
+  static ThemeData light() {
     return ThemeData(
       useMaterial3: true,
-      fontFamily: fontName,
+      fontFamily: fontFamily,
       brightness: Brightness.light,
       scaffoldBackgroundColor: AppColors.background,
       colorScheme: const ColorScheme.light(
@@ -38,6 +40,7 @@ class AppTheme {
             borderRadius: BorderRadius.circular(16),
           ),
           textStyle: const TextStyle(
+            fontFamily: fontFamily,
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),
@@ -68,11 +71,9 @@ class AppTheme {
   }
 
   static ThemeData dark() {
-    final fontName = GoogleFonts.ibmPlexSansArabic().fontFamily;
-
     return ThemeData(
       useMaterial3: true,
-      fontFamily: fontName,
+      fontFamily: fontFamily,
       brightness: Brightness.dark,
       scaffoldBackgroundColor: AppColors.darkBackground,
       colorScheme: const ColorScheme.dark(
@@ -102,6 +103,7 @@ class AppTheme {
             borderRadius: BorderRadius.circular(16),
           ),
           textStyle: const TextStyle(
+            fontFamily: fontFamily,
             fontSize: 16,
             fontWeight: FontWeight.w600,
           ),

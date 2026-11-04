@@ -1,0 +1,101 @@
+{
+  "@@locale": "ar",
+  "appName": "زَميل",
+  "appSlogan": "ذاكر بخطة، وعلّم زميلك، وتعلّم من غيرك",
+  "appSubSlogan": "خطة مذاكرة ذكية، وبنك وقت يربطك بزملائك في كلية الحاسبات. مجاني بالكامل.",
+
+  "startNow": "ابدأ الآن",
+  "alreadyHaveAccount": "لدي حساب بالفعل",
+  "welcomeBonusTitle": "رصيد معرفي",
+  "timeBankConcept": "نظام بنك الساعات الأكاديمي",
+  "timeBankSubConcept": "كل ساعة شرح تمنحك ساعة تعلّم مجانية",
+  "ratioOneToOne": "1:1",
+
+  "loginTitle": "مرحباً بعودتك 👋",
+  "loginSubtitle": "سجّل دخولك للوصول إلى خطتك الدراسية وجلسات بنك الوقت",
+  "emailLabel": "البريد الجامعي أو الإلكتروني",
+  "emailHint": "student@fci.edu.eg",
+  "passwordLabel": "كلمة المرور",
+  "passwordHint": "••••••••",
+  "forgotPassword": "نسيت كلمة المرور؟",
+  "loginAction": "تسجيل الدخول",
+  "noAccount": "ليس لديك حساب؟",
+  "createAccountAction": "أنشئ حساباً الآن",
+
+  "signupTitle": "انضم إلى زَميل 🎓",
+  "signupSubtitle": "أنشئ حسابك واحصل على نقطتي وقت ترحيبيتين لبدء التعلّم التشاركي",
+  "fullNameLabel": "الاسم بالكامل",
+  "fullNameHint": "أحمد محمود",
+  "confirmPasswordLabel": "تأكيد كلمة المرور",
+  "signupSubmit": "إنشاء الحساب ومتابعة التهيئة",
+
+  "onboardingStep1": "الخطوة 1 من 3",
+  "onboardingStep2": "الخطوة 2 من 3",
+  "onboardingStep3": "الخطوة 3 من 3",
+  "academicDataTitle": "بياناتك الأكاديمية 🏫",
+  "academicDataSubtitle": "لتخصيص المواد ومطابقة مواعيدك مع زملاء دفعتك",
+  "facultyLabel": "الكلية",
+  "yearLabel": "السنة الدراسية",
+  "departmentLabel": "القسم الأكاديمي",
+  "nextCourses": "التالي: اختيار المواد",
+
+  "selectCoursesTitle": "اختر مواد الفصل الدراسي 📚",
+  "selectCoursesSubtitle": "تم تحديد مواد مقترحة لطلاب الفرقة الثانية",
+  "nextRatings": "التالي: تقييم مستواك",
+
+  "rateLevelTitle": "قيّم مستواك في المواد 🎯",
+  "rateLevelSubtitle": "لتوجيه خوارزمية التوافق الذكي لبنك الوقت بين المتعلمين والشارحين",
+  "levelNeedHelp": "أحتاج مساعدة",
+  "levelMedium": "متوسط",
+  "levelReadyToTeach": "مستعد للشرح",
+  "startJourney": "ابدأ رحلتك في زَميل",
+
+  "navToday": "اليوم",
+  "navPlan": "الخطة",
+  "navTimeBank": "بنك الوقت",
+  "navWallet": "المحفظة",
+  "navProfile": "حسابي",
+
+  "goodMorning": "صباح الخير يا {name} 👋",
+  "@goodMorning": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "timeCoinsChip": "{count} نقاط وقت",
+  "@timeCoinsChip": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "nextUpCardTitle": "جلسة تركيز فردية",
+  "nextUpBadge": "التالي",
+  "todayTimelineTitle": "جدول اليوم ({count} عناصر)",
+  "@todayTimelineTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "weeklyGoalRate": "معدل إنجاز الأسبوع",
+  "completedSessionsCount": "أنجزت {done} من {total} جلسات هذا الأسبوع",
+  "@completedSessionsCount": {
+    "placeholders": {
+      "done": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+
+  "emptyStateTitle": "لا توجد عناصر حالياً",
+  "emptyStateSubtitle": "ستظهر العناصر هنا فور إضافتها أو تحديث خطتك",
+  "errorStateTitle": "حدث خطأ غير متوقع",
+  "errorStateSubtitle": "تعذر تحميل البيانات، يرجى التحقق من اتصالك والمحاولة مجدداً",
+  "retryAction": "إعادة المحاولة",
+  "offlineBanner": "أنت في وضع عدم الاتصال • البيانات المعروضة مخزنة محلياً",
+  "loadingText": "جاري التحميل..."
+}

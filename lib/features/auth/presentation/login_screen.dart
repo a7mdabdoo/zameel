@@ -256,24 +256,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 12),
 
-                // زر استكشاف سريع (للتجربة والعرض في المناقشة مباشرة)
-                OutlinedButton(
-                  onPressed: () => context.go('/today'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    side: const BorderSide(color: AppColors.hairline),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  child: const Text(
-                    'دخول تجريبي سريع (عرض اللجنة)',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                  ),
-                ),
 
                 const SizedBox(height: 32),
 
