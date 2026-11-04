@@ -2,17 +2,19 @@
 // فيجما: تفاصيل جلسة المذاكرة - ذاكر وعلّم
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/state/app_state.dart';
 
-class StudyBlockDetailsScreen extends StatefulWidget {
+class StudyBlockDetailsScreen extends ConsumerStatefulWidget {
   const StudyBlockDetailsScreen({super.key});
 
   @override
-  State<StudyBlockDetailsScreen> createState() => _StudyBlockDetailsScreenState();
+  ConsumerState<StudyBlockDetailsScreen> createState() => _StudyBlockDetailsScreenState();
 }
 
-class _StudyBlockDetailsScreenState extends State<StudyBlockDetailsScreen> {
+class _StudyBlockDetailsScreenState extends ConsumerState<StudyBlockDetailsScreen> {
   bool _isRunning = false;
   final int _secondsLeft = 45 * 60; // 45 دقيقة
 
@@ -22,17 +24,17 @@ class _StudyBlockDetailsScreenState extends State<StudyBlockDetailsScreen> {
     final seconds = (_secondsLeft % 60).toString().padLeft(2, '0');
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_forward_ios_rounded, color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => context.pop(),
         ),
-        title: const Text(
+        title: Text(
           'جلسة مذاكرة مركزة',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
         ),
         centerTitle: true,
       ),
@@ -46,7 +48,7 @@ class _StudyBlockDetailsScreenState extends State<StudyBlockDetailsScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardTheme.color,
                   borderRadius: BorderRadius.circular(16),
                   border: const Border(
                     right: BorderSide(color: AppColors.courseSage, width: 6),
@@ -76,9 +78,9 @@ class _StudyBlockDetailsScreenState extends State<StudyBlockDetailsScreen> {
                             style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.deepSage),
                           ),
                         ),
-                        const Text(
+                        Text(
                           'هياكل البيانات (Data Structures)',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
                         ),
                       ],
                     ),
@@ -105,7 +107,7 @@ class _StudyBlockDetailsScreenState extends State<StudyBlockDetailsScreen> {
                   height: 200,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white,
+                    color: Theme.of(context).cardTheme.color,
                     border: Border.all(color: AppColors.primary, width: 6),
                     boxShadow: [
                       BoxShadow(
@@ -163,11 +165,13 @@ class _StudyBlockDetailsScreenState extends State<StudyBlockDetailsScreen> {
               const SizedBox(height: 40),
 
               // Action buttons (حسب دليل Stitch والجدول 3)
-              // تمت -> back
               SizedBox(
                 height: 50,
                 child: ElevatedButton.icon(
                   onPressed: () {
+                    // تحديث الحالة في Riverpod
+                    ref.read(plannerProvider.notifier).markBlockCompleted('block_1');
+
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('أحسنت! تم تسجيل إتمام جلسة المذاكرة بنجاح 🎉')),
                     );
@@ -192,6 +196,7 @@ class _StudyBlockDetailsScreenState extends State<StudyBlockDetailsScreen> {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () {
+                        ref.read(plannerProvider.notifier).rescheduleBlock('block_1');
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('تم تأجيل وإعادة جدولة الجلسة تلقائياً')),
                         );
@@ -210,6 +215,7 @@ class _StudyBlockDetailsScreenState extends State<StudyBlockDetailsScreen> {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () {
+                        ref.read(plannerProvider.notifier).markBlockMissed('block_1');
                         context.pop();
                       },
                       style: OutlinedButton.styleFrom(

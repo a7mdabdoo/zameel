@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/state/app_state.dart';
 import '../../auth/data/auth_service.dart';
 
 class TodayScreen extends ConsumerWidget {
@@ -15,10 +16,20 @@ class TodayScreen extends ConsumerWidget {
     final userProfileAsync = ref.watch(userProfileStreamProvider);
     final userDoc = userProfileAsync.value?.data();
     final userName = userDoc?['name'] as String? ?? 'أحمد';
-    final timeCoins = userDoc?['timeCoins'] as int? ?? 3;
+
+    final plannerState = ref.watch(plannerProvider);
+    final timeBankState = ref.watch(timeBankProvider);
+
+    final timeCoins = timeBankState.activeTimeCoins;
+    final todayBlocks = plannerState.studyBlocks.where((b) => b.day == 'السبت').toList();
+    final nextBlock = todayBlocks.isNotEmpty ? todayBlocks.first : null;
+    final confirmedSession = timeBankState.sessions.isNotEmpty ? timeBankState.sessions.first : null;
+
+    final progressPct = plannerState.progressPercentage;
+    final progressInt = (progressPct * 100).round();
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
@@ -29,7 +40,7 @@ class TodayScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
+                  color: Theme.of(context).cardTheme.color,
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(color: AppColors.hairline),
                   boxShadow: [
@@ -90,10 +101,10 @@ class TodayScreen extends ConsumerWidget {
                       children: [
                         Text(
                           'صباح الخير يا $userName 👋',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -119,196 +130,69 @@ class TodayScreen extends ConsumerWidget {
               const SizedBox(height: 16),
 
               // 2. Next Up Highlight Card (بطاقة الجلسة القادمة)
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: AppColors.hairline),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceAlt,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(Icons.school_outlined, size: 18, color: AppColors.primary),
-                        ),
-                        Row(
-                          children: [
-                            const Text(
-                              'جلسة تركيز فردية',
-                              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: AppColors.sage.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 6,
-                                    height: 6,
-                                    decoration: const BoxDecoration(
-                                      color: AppColors.deepSage,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  const Text(
-                                    'التالي',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.deepSage,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      'مذاكرة هياكل البيانات (Data Structures)',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'الأشجار الثنائية • المدة: 45 دقيقة • تبدأ بعد 25 دقيقة',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Active Action CTA Button -> /study-block-details
-                    SizedBox(
-                      height: 48,
-                      child: ElevatedButton.icon(
-                        onPressed: () => context.push('/study-block-details'),
-                        icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
-                        label: const Text(
-                          'ابدأ الآن',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // 3. Section: Time Bank Peer Exchange Card (جلسة الأقران المحجوزة)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  TextButton(
-                    onPressed: () => context.push('/my-sessions'),
-                    child: const Text(
-                      'عرض كل الجلسات',
-                      style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const Text(
-                    'جلسة تبادل قادمة 🤝',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              // Interactive Peer Session Card -> /session-learner
-              InkWell(
-                borderRadius: BorderRadius.circular(18),
-                onTap: () => context.push('/session-learner'),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
+              if (nextBlock != null)
+                Container(
+                  padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
+                    color: Theme.of(context).cardTheme.color,
+                    borderRadius: BorderRadius.circular(20),
                     border: Border.all(color: AppColors.hairline),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.03),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: AppColors.sage.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(20),
+                              color: AppColors.surfaceAlt,
+                              shape: BoxShape.circle,
                             ),
-                            child: const Text(
-                              'مؤكدة ✓',
-                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.deepSage),
-                            ),
+                            child: const Icon(Icons.school_outlined, size: 18, color: AppColors.primary),
                           ),
                           Row(
                             children: [
-                              const Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    'عمر خالد يشرح لك الجبر الخطي',
-                                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                                  ),
-                                  Text(
-                                    'تبادل وقت أكاديمي معتمد',
-                                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                                  ),
-                                ],
+                              const Text(
+                                'جلسة تركيز فردية',
+                                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
                               ),
-                              const SizedBox(width: 12),
-                              CircleAvatar(
-                                backgroundColor: AppColors.primaryContainer,
-                                radius: 20,
-                                child: const Text(
-                                  'ع.خ',
-                                  style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary, fontSize: 13),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: AppColors.sage.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 6,
+                                      height: 6,
+                                      decoration: const BoxDecoration(
+                                        color: AppColors.deepSage,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    const Text(
+                                      'التالي',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.deepSage,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
@@ -316,38 +200,175 @@ class TodayScreen extends ConsumerWidget {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      const Divider(height: 1, color: AppColors.hairline),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: AppColors.error.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Text(
-                              '-1 عملة وقت',
-                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.error),
+                      Text(
+                        nextBlock.courseName,
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${nextBlock.topic} • المدة: ${nextBlock.durationMinutes} دقيقة • ${nextBlock.startTime}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Active Action CTA Button -> /study-block-details
+                      SizedBox(
+                        height: 48,
+                        child: ElevatedButton.icon(
+                          onPressed: () => context.push('/study-block-details'),
+                          icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
+                          label: const Text(
+                            'ابدأ الآن',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
                             ),
                           ),
-                          const Row(
-                            children: [
-                              Text(
-                                'الخميس • 4:00 م (60 دقيقة)',
-                                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                              ),
-                              SizedBox(width: 4),
-                              Icon(Icons.access_time_rounded, size: 14, color: AppColors.textTertiary),
-                            ],
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
                           ),
-                        ],
+                        ),
                       ),
                     ],
                   ),
                 ),
-              ),
+
+              const SizedBox(height: 20),
+
+              // 3. Section: Time Bank Peer Exchange Card (جلسة الأقران المحجوزة)
+              if (confirmedSession != null) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      onPressed: () => context.push('/my-sessions'),
+                      child: const Text(
+                        'عرض كل الجلسات',
+                        style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    Text(
+                      'جلسة تبادل قادمة 🤝',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                InkWell(
+                  borderRadius: BorderRadius.circular(18),
+                  onTap: () => context.push('/session-learner'),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).cardTheme.color,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: AppColors.hairline),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.sage.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Text(
+                                'مؤكدة ✓',
+                                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.deepSage),
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      '${confirmedSession.teacherName} يشرح لك ${confirmedSession.courseName}',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(context).colorScheme.onSurface,
+                                      ),
+                                    ),
+                                    Text(
+                                      confirmedSession.topic,
+                                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(width: 12),
+                                CircleAvatar(
+                                  backgroundColor: AppColors.primaryContainer,
+                                  radius: 20,
+                                  child: Text(
+                                    confirmedSession.teacherInitials,
+                                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary, fontSize: 13),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        const Divider(height: 1, color: AppColors.hairline),
+                        const SizedBox(height: 10),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.error.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '-${confirmedSession.costCoins} عملة وقت',
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.error),
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                Text(
+                                  '${confirmedSession.day} • ${confirmedSession.time} (${confirmedSession.durationMinutes} دقيقة)',
+                                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(Icons.access_time_rounded, size: 14, color: AppColors.textTertiary),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 20),
 
@@ -362,17 +383,23 @@ class TodayScreen extends ConsumerWidget {
                       style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold),
                     ),
                   ),
-                  const Text(
-                    'جدول اليوم (4 عناصر)',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  Text(
+                    'جدول اليوم (${todayBlocks.length + 1} عناصر)',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
 
+              // Lecture 1
               _buildTimelineItem(
+                context: context,
                 title: 'التفاضل والتكامل (Calculus)',
-                category: 'محاضرة',
+                category: 'محاضرة رسمية',
                 room: 'قاعة 3',
                 time: '9:00 ص – 10:30 ص',
                 ribbonColor: AppColors.courseSlate,
@@ -380,36 +407,21 @@ class TodayScreen extends ConsumerWidget {
                 isDone: true,
                 onTap: () => context.push('/study-block-details'),
               ),
-              _buildTimelineItem(
-                title: 'مذاكرة قواعد البيانات',
-                category: 'نماذج العلاقات ERD',
-                room: 'المكتبة المركزية',
-                time: '11:00 ص – 11:45 ص',
-                ribbonColor: AppColors.courseClay,
-                statusText: 'مكتملة',
-                isDone: true,
-                onTap: () => context.push('/study-block-details'),
-              ),
-              _buildTimelineItem(
-                title: 'مذاكرة هياكل البيانات',
-                category: 'الأشجار الثنائية',
-                room: 'مكتبة الكلية طابق 2',
-                time: '2:00 م – 2:45 م',
-                ribbonColor: AppColors.courseSage,
-                statusText: 'مخطط لها',
-                isDone: false,
-                onTap: () => context.push('/study-block-details'),
-              ),
-              _buildTimelineItem(
-                title: 'مذاكرة التفاضل والتكامل',
-                category: 'حل التمارين الأسبوعية',
-                room: 'المنزل',
-                time: '6:00 م – 6:45 م',
-                ribbonColor: AppColors.courseSlate,
-                statusText: 'مخطط لها',
-                isDone: false,
-                onTap: () => context.push('/study-block-details'),
-              ),
+
+              // Dynamic Blocks from Greedy Algorithm
+              ...todayBlocks.map((block) {
+                return _buildTimelineItem(
+                  context: context,
+                  title: block.courseName,
+                  category: block.topic,
+                  room: block.room,
+                  time: '${block.startTime} – ${block.endTime}',
+                  ribbonColor: block.ribbonColor,
+                  statusText: block.isCompleted ? 'مكتملة' : 'مخطط لها',
+                  isDone: block.isCompleted,
+                  onTap: () => context.push('/study-block-details'),
+                );
+              }),
 
               const SizedBox(height: 16),
 
@@ -417,7 +429,7 @@ class TodayScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardTheme.color,
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(color: AppColors.hairline),
                 ),
@@ -426,40 +438,48 @@ class TodayScreen extends ConsumerWidget {
                     Stack(
                       alignment: Alignment.center,
                       children: [
-                        const SizedBox(
+                        SizedBox(
                           width: 54,
                           height: 54,
                           child: CircularProgressIndicator(
-                            value: 0.58,
+                            value: progressPct,
                             strokeWidth: 6,
                             backgroundColor: AppColors.surfaceAlt,
-                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
+                            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
                           ),
                         ),
-                        const Text(
-                          '58%',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                        Text(
+                          '$progressInt%',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                         ),
                       ],
                     ),
                     const SizedBox(width: 16),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          const Text(
                             'معدل إنجاز الأسبوع',
                             style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
                           ),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Text(
-                            'أنجزت 7 من 12 جلسة هذا الأسبوع',
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                            'أنجزت ${plannerState.completedBlocksCount} من ${plannerState.totalWeeklyTarget} جلسات هذا الأسبوع',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
                           ),
-                          SizedBox(height: 2),
+                          const SizedBox(height: 2),
                           Text(
-                            'متبقي 5 جلسات لتحقيق الهدف الأسبوعي',
-                            style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                            'متبقي ${plannerState.totalWeeklyTarget - plannerState.completedBlocksCount} جلسات لتحقيق الهدف',
+                            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
                           ),
                         ],
                       ),
@@ -477,6 +497,7 @@ class TodayScreen extends ConsumerWidget {
   }
 
   Widget _buildTimelineItem({
+    required BuildContext context,
     required String title,
     required String category,
     required String room,
@@ -489,7 +510,7 @@ class TodayScreen extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.hairline),
         boxShadow: [
@@ -505,7 +526,6 @@ class TodayScreen extends ConsumerWidget {
         child: IntrinsicHeight(
           child: Row(
             children: [
-              // Ribbon edge
               Container(
                 width: 5,
                 color: ribbonColor,
@@ -534,7 +554,11 @@ class TodayScreen extends ConsumerWidget {
                       ),
                       Text(
                         title,
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                       ),
                     ],
                   ),

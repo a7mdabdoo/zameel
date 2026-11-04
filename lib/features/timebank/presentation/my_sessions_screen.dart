@@ -2,33 +2,39 @@
 // فيجما: بنك الوقت: جلساتي - ذاكر وعلّم
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/state/app_state.dart';
 
-class MySessionsScreen extends StatefulWidget {
+class MySessionsScreen extends ConsumerStatefulWidget {
   const MySessionsScreen({super.key});
 
   @override
-  State<MySessionsScreen> createState() => _MySessionsScreenState();
+  ConsumerState<MySessionsScreen> createState() => _MySessionsScreenState();
 }
 
-class _MySessionsScreenState extends State<MySessionsScreen> {
+class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
   int _activeRoleIndex = 0; // 0: كمتعلّم (أستقبل شرح), 1: كشارح (أنا الشارح)
 
   @override
   Widget build(BuildContext context) {
+    final timeBankState = ref.watch(timeBankProvider);
+    final learnerSessions = timeBankState.sessions.where((s) => s.learnerId == 'current_user').toList();
+    final teacherSessions = timeBankState.sessions.where((s) => s.teacherId == 'current_user').toList();
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_forward_ios_rounded, color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => context.pop(),
         ),
-        title: const Text(
+        title: Text(
           'جلساتي المحجوزة 📅',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
         ),
         centerTitle: true,
       ),
@@ -59,7 +65,7 @@ class _MySessionsScreenState extends State<MySessionsScreen> {
                                 : null,
                           ),
                           child: Text(
-                            'جلساتي كمتعلّم (1)',
+                            'جلساتي كمتعلّم (${learnerSessions.length})',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 13,
@@ -83,7 +89,7 @@ class _MySessionsScreenState extends State<MySessionsScreen> {
                                 : null,
                           ),
                           child: Text(
-                            'جلساتي كشارح (1)',
+                            'جلساتي كشارح (${teacherSessions.length})',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 13,
@@ -106,37 +112,57 @@ class _MySessionsScreenState extends State<MySessionsScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
                 children: [
                   if (_activeRoleIndex == 0) ...[
-                    // Learner card -> /session-learner
-                    _buildSessionCard(
-                      partnerName: 'عمر خالد (الشارح)',
-                      partnerInitials: 'ع.خ',
-                      courseName: 'الجبر الخطي (Linear Algebra)',
-                      topic: 'الفضاءات المتجهة والتحويلات الخطية',
-                      time: 'الخميس • 4:00 م (60 دقيقة)',
-                      location: 'معمل 3 • الكلية',
-                      badgeText: 'مؤكدة',
-                      badgeColor: AppColors.deepSage,
-                      costText: '-1 عملة وقت',
-                      costColor: AppColors.error,
-                      actionLabel: 'تفاصيل الجلسة وتأكيد الإتمام',
-                      onAction: () => context.push('/session-learner'),
-                    ),
+                    if (learnerSessions.isEmpty)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(32.0),
+                          child: Text('لا توجد جلسات حجز حالياً كمتعلّم'),
+                        ),
+                      )
+                    else
+                      ...learnerSessions.map((session) {
+                        return _buildSessionCard(
+                          partnerName: '${session.teacherName} (الشارح)',
+                          partnerInitials: session.teacherInitials,
+                          courseName: '${session.courseName} (${session.courseCode})',
+                          topic: session.topic,
+                          time: '${session.day} • ${session.time} (${session.durationMinutes} دقيقة)',
+                          location: session.location,
+                          badgeText: session.status == 'completed' ? 'مكتملة ✓' : 'مؤكدة',
+                          badgeColor: session.status == 'completed' ? AppColors.primary : AppColors.deepSage,
+                          costText: '-${session.costCoins} عملة وقت',
+                          costColor: AppColors.error,
+                          actionLabel: session.status == 'completed'
+                              ? 'تم تقييم الجلسة وتحويل الرصيد'
+                              : 'تفاصيل الجلسة وتأكيد الإتمام',
+                          onAction: () => context.push('/session-learner'),
+                        );
+                      }),
                   ] else ...[
-                    // Teacher card -> /session-teacher
-                    _buildSessionCard(
-                      partnerName: 'زياد ناصح (المتعلّم)',
-                      partnerInitials: 'ز.ن',
-                      courseName: 'البرمجة الكائنية (OOP)',
-                      topic: 'شرح الـ Inheritance والـ Polymorphism',
-                      time: 'الأربعاء • 12:00 ظهراً (60 دقيقة)',
-                      location: 'مكتبة الكلية • الطابق الثاني',
-                      badgeText: 'طلب وارد',
-                      badgeColor: AppColors.primary,
-                      costText: '+1 عملة وقت',
-                      costColor: AppColors.pointsAmber,
-                      actionLabel: 'تفاصيل الجلسة وبدء الشرح',
-                      onAction: () => context.push('/session-teacher'),
-                    ),
+                    if (teacherSessions.isEmpty)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(32.0),
+                          child: Text('لا توجد طلبات جلسات شرح واردة حالياً'),
+                        ),
+                      )
+                    else
+                      ...teacherSessions.map((session) {
+                        return _buildSessionCard(
+                          partnerName: '${session.learnerName} (المتعلّم)',
+                          partnerInitials: session.teacherInitials,
+                          courseName: session.courseName,
+                          topic: session.topic,
+                          time: '${session.day} • ${session.time} (${session.durationMinutes} دقيقة)',
+                          location: session.location,
+                          badgeText: 'طلب وارد',
+                          badgeColor: AppColors.primary,
+                          costText: '+${session.costCoins} عملة وقت',
+                          costColor: AppColors.pointsAmber,
+                          actionLabel: 'تفاصيل الجلسة وبدء الشرح',
+                          onAction: () => context.push('/session-teacher'),
+                        );
+                      }),
                   ],
                 ],
               ),
@@ -165,7 +191,7 @@ class _MySessionsScreenState extends State<MySessionsScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppColors.hairline),
         boxShadow: [
@@ -198,7 +224,10 @@ class _MySessionsScreenState extends State<MySessionsScreen> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      Text(partnerName, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                      Text(
+                        partnerName,
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
+                      ),
                       Text(courseName, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
                     ],
                   ),

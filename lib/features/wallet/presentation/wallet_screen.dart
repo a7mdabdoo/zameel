@@ -5,25 +5,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../auth/data/auth_service.dart';
+import '../../../core/state/app_state.dart';
 
 class WalletScreen extends ConsumerWidget {
   const WalletScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final userProfileAsync = ref.watch(userProfileStreamProvider);
-    final userDoc = userProfileAsync.value?.data();
-    final timeCoins = userDoc?['timeCoins'] as int? ?? 3;
+    final timeBankState = ref.watch(timeBankProvider);
+    final timeCoins = timeBankState.activeTimeCoins;
+    final transactions = timeBankState.transactions;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Theme.of(context).cardTheme.color,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'محفظة الوقت 🪙',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
         ),
       ),
       body: SafeArea(
@@ -137,33 +137,22 @@ class WalletScreen extends ConsumerWidget {
               const SizedBox(height: 28),
 
               // Transactions history
-              const Text(
-                'سجل المعاملات الأخير 📜',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              Text(
+                'سجل المعاملات (${transactions.length} حركات) 📜',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
               ),
               const SizedBox(height: 12),
 
-              _buildTransactionItem(
-                title: 'شرح الجبر الخطي من عمر خالد',
-                date: 'اليوم • 1:30 م',
-                amount: '-1 عملة',
-                isNegative: true,
-                icon: Icons.school_outlined,
-              ),
-              _buildTransactionItem(
-                title: 'شرح البرمجة الكائنية لـ زياد ناصح',
-                date: 'أمس • 4:00 م',
-                amount: '+1 عملة',
-                isNegative: false,
-                icon: Icons.volunteer_activism_outlined,
-              ),
-              _buildTransactionItem(
-                title: 'مكافأة التسجيل الترحيبية في زَميل',
-                date: 'منذ يومين',
-                amount: '+3 عملات',
-                isNegative: false,
-                icon: Icons.card_giftcard_rounded,
-              ),
+              ...transactions.map((tx) {
+                return _buildTransactionItem(
+                  context: context,
+                  title: tx.title,
+                  date: tx.date,
+                  amount: '${tx.isNegative ? '-' : '+'}${tx.amount} عملة',
+                  isNegative: tx.isNegative,
+                  icon: tx.icon,
+                );
+              }),
 
               const SizedBox(height: 20),
             ],
@@ -174,6 +163,7 @@ class WalletScreen extends ConsumerWidget {
   }
 
   Widget _buildTransactionItem({
+    required BuildContext context,
     required String title,
     required String date,
     required String amount,
@@ -184,7 +174,7 @@ class WalletScreen extends ConsumerWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.hairline),
       ),
@@ -209,7 +199,11 @@ class WalletScreen extends ConsumerWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(

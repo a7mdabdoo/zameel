@@ -2,20 +2,23 @@
 // فيجما: إضافة عرض جديد - ذاكر وعلّم
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/models/app_models.dart';
+import '../../../core/state/app_state.dart';
 
-class CreateOfferScreen extends StatefulWidget {
+class CreateOfferScreen extends ConsumerStatefulWidget {
   const CreateOfferScreen({super.key});
 
   @override
-  State<CreateOfferScreen> createState() => _CreateOfferScreenState();
+  ConsumerState<CreateOfferScreen> createState() => _CreateOfferScreenState();
 }
 
-class _CreateOfferScreenState extends State<CreateOfferScreen> {
+class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
   CourseSeed _selectedCourse = AppConstants.seedCourses[0]; // OOP
-  final _topicController = TextEditingController();
+  final _topicController = TextEditingController(text: 'شرح مفهوم الوراثة والـ Polymorphism وحل تمارين عملية');
   String _selectedDay = 'الأحد';
   String _location = 'مكتبة الكلية • قاعة الاستذكار 2';
 
@@ -27,20 +30,46 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
     super.dispose();
   }
 
+  void _publishOffer() {
+    if (_topicController.text.trim().isEmpty) return;
+
+    final newOffer = TimeBankOfferModel(
+      id: 'offer_${DateTime.now().millisecondsSinceEpoch}',
+      teacherId: 'current_user',
+      teacherName: 'أحمد محمود (أنت)',
+      courseId: _selectedCourse.id,
+      courseName: _selectedCourse.name,
+      courseCode: _selectedCourse.code,
+      topic: _topicController.text.trim(),
+      day: _selectedDay,
+      time: '12:00 ظهراً',
+      durationMinutes: 60,
+      location: _location,
+      courseColor: _selectedCourse.color,
+    );
+
+    ref.read(timeBankProvider.notifier).addOffer(newOffer);
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('تم نشر عرض الشرح بنجاح! سيتم إشعارك فور حجز أحد الزملاء 🎉')),
+    );
+    context.pop();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_forward_ios_rounded, color: Theme.of(context).colorScheme.onSurface),
           onPressed: () => context.pop(),
         ),
-        title: const Text(
+        title: Text(
           'أضف عرض شرح جديد 💡',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
         ),
         centerTitle: true,
       ),
@@ -50,9 +79,9 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
+              Text(
                 'علّم زميلك واكسب عملات وقت',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
               ),
               const SizedBox(height: 4),
               const Text(
@@ -62,12 +91,12 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
               const SizedBox(height: 24),
 
               // Course
-              const Text('المادة التي ستقوم بشرحها', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+              Text('المادة التي ستقوم بشرحها', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardTheme.color,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppColors.hairline),
                 ),
@@ -97,7 +126,7 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
               const SizedBox(height: 20),
 
               // Topic
-              const Text('ما الموضوع أو الشابتر الذي ستشرحه؟', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+              Text('ما الموضوع أو الشابتر الذي ستشرحه؟', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _topicController,
@@ -105,7 +134,7 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
                 decoration: InputDecoration(
                   hintText: 'مثال: شرح الـ Polymorphism وحل شيت المعمل',
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: Theme.of(context).cardTheme.color,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
                 ),
@@ -114,12 +143,12 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
               const SizedBox(height: 20),
 
               // Day
-              const Text('اليوم المناسب لك', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+              Text('اليوم المناسب لك', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: Theme.of(context).cardTheme.color,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppColors.hairline),
                 ),
@@ -138,7 +167,7 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
               const SizedBox(height: 20),
 
               // Location
-              const Text('مكان الجلسة المقترح', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+              Text('مكان الجلسة المقترح', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
               const SizedBox(height: 8),
               TextFormField(
                 initialValue: _location,
@@ -146,7 +175,7 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
                 decoration: InputDecoration(
                   hintText: 'قاعة المذاكرة بالكلية',
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: Theme.of(context).cardTheme.color,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
                   enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
                 ),
@@ -158,12 +187,7 @@ class _CreateOfferScreenState extends State<CreateOfferScreen> {
               SizedBox(
                 height: 52,
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('تم نشر عرض الشرح بنجاح! سيتم إشعارك فور حجز أحد الزملاء 🎉')),
-                    );
-                    context.pop();
-                  },
+                  onPressed: _publishOffer,
                   icon: const Icon(Icons.check, color: Colors.white),
                   label: const Text(
                     'نشر العرض في بنك الوقت',
