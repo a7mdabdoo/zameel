@@ -22,9 +22,11 @@ class CreateOfferScreen extends ConsumerStatefulWidget {
 class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
   CourseSeed _selectedCourse = AppConstants.seedCourses[0]; // OOP
   final _topicController = TextEditingController();
+  final _offlineLocationController = TextEditingController(text: 'مكتبة الكلية • قاعة الاستذكار 2');
+  final _meetingLinkController = TextEditingController();
   String _selectedDay = 'الأحد';
   String _selectedTime = '12:00 ظهراً';
-  String _location = 'مكتبة الكلية • قاعة الاستذكار 2';
+  bool _isOnline = false;
   bool _isPublishing = false;
 
   final List<String> _days = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
@@ -33,6 +35,8 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
   @override
   void dispose() {
     _topicController.dispose();
+    _offlineLocationController.dispose();
+    _meetingLinkController.dispose();
     super.dispose();
   }
 
@@ -43,6 +47,27 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
         const SnackBar(content: Text('يرجى كتابة الموضوع الذي ستشرحه لزملائك')),
       );
       return;
+    }
+
+    String finalLocation = '';
+    if (_isOnline) {
+      final link = _meetingLinkController.text.trim();
+      if (link.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('يرجى إدخال رابط الاجتماع (Google Meet أو Zoom)')),
+        );
+        return;
+      }
+      finalLocation = 'أونلاين: $link';
+    } else {
+      final place = _offlineLocationController.text.trim();
+      if (place.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('يرجى كتابة مكان المقابلة في الكلية')),
+        );
+        return;
+      }
+      finalLocation = place;
     }
 
     final user = ref.read(authServiceProvider).currentUser;
@@ -71,7 +96,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
         day: _selectedDay,
         time: _selectedTime,
         durationMinutes: 60,
-        location: _location,
+        location: finalLocation,
         courseColor: _selectedCourse.color,
         isAvailable: true,
         createdAt: DateTime.now(),
@@ -258,20 +283,115 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
 
               const SizedBox(height: 20),
 
-              // Location
-              Text('مكان الجلسة المقترح', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
+              // Meeting Mode: Offline vs Online
+              Text('طريقة اللقاء والشرح', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
               const SizedBox(height: 8),
-              TextFormField(
-                initialValue: _location,
-                onChanged: (val) => _location = val,
-                decoration: InputDecoration(
-                  hintText: 'قاعة المذاكرة بالكلية',
-                  filled: true,
-                  fillColor: Theme.of(context).cardTheme.color,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => setState(() => _isOnline = false),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: !_isOnline ? AppColors.primary.withValues(alpha: 0.12) : Theme.of(context).cardTheme.color,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: !_isOnline ? AppColors.primary : AppColors.hairline,
+                            width: !_isOnline ? 1.5 : 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.account_balance_outlined, size: 18, color: !_isOnline ? AppColors.primary : AppColors.textSecondary),
+                            const SizedBox(width: 8),
+                            Text(
+                              'حضوري بالكلية 🏛️',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: !_isOnline ? AppColors.primary : Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => setState(() => _isOnline = true),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: _isOnline ? AppColors.primary.withValues(alpha: 0.12) : Theme.of(context).cardTheme.color,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _isOnline ? AppColors.primary : AppColors.hairline,
+                            width: _isOnline ? 1.5 : 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.videocam_outlined, size: 18, color: _isOnline ? AppColors.primary : AppColors.textSecondary),
+                            const SizedBox(width: 8),
+                            Text(
+                              'أونلاين عن بُعد 💻',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: _isOnline ? AppColors.primary : Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
+
+              const SizedBox(height: 16),
+
+              if (!_isOnline) ...[
+                Text('مكان المقابلة المقترح في الكلية', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _offlineLocationController,
+                  decoration: InputDecoration(
+                    hintText: 'مثال: مكتبة الكلية • قاعة الاستذكار 2',
+                    prefixIcon: const Icon(Icons.place_outlined, size: 20, color: AppColors.primary),
+                    filled: true,
+                    fillColor: Theme.of(context).cardTheme.color,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
+                  ),
+                ),
+              ] else ...[
+                Text('رابط الاجتماع (Zoom أو Google Meet)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _meetingLinkController,
+                  decoration: InputDecoration(
+                    hintText: 'https://meet.google.com/xyz-abcd-efg أو رابط Zoom',
+                    prefixIcon: const Icon(Icons.link_rounded, size: 20, color: AppColors.primary),
+                    filled: true,
+                    fillColor: Theme.of(context).cardTheme.color,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                const Text(
+                  '💡 سيظهر هذا الرابط لزميلك عند حجز الجلسة ليتمكن من الانضمام إليك بسهولة.',
+                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                ),
+              ],
 
               const SizedBox(height: 36),
 

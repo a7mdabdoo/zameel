@@ -31,6 +31,7 @@ class SessionChatSheet extends ConsumerStatefulWidget {
 class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
+  final List<SessionMessageModel> _localPending = [];
   bool _isSending = false;
 
   final List<String> _quickChips = [
@@ -57,9 +58,6 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
     final profileAsync = ref.read(userProfileStreamProvider);
     final senderName = profileAsync.value?.data()?['name'] as String? ?? user.displayName ?? 'زميل';
 
-    setState(() => _isSending = true);
-    _textController.clear();
-
     final msgId = 'msg_${DateTime.now().millisecondsSinceEpoch}_${user.uid.substring(0, 4)}';
     final message = SessionMessageModel(
       id: msgId,
@@ -68,6 +66,12 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
       text: clean,
       createdAt: DateTime.now(),
     );
+
+    setState(() {
+      _isSending = true;
+      _localPending.add(message);
+    });
+    _textController.clear();
 
     try {
       await ref.read(timeBankRepositoryProvider).sendSessionMessage(widget.session.id, message);
@@ -80,7 +84,15 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
         );
       }
     } catch (e) {
-      debugPrint('Error sending message: $e');
+      debugPrint('Error sending message to firestore: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('⚠️ تم حفظ الرسالة محلياً. لمزامنتها مع زميلك، تأكد من نشر قواعد Firestore في لوحة Firebase Console.'),
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isSending = false);
     }
@@ -91,7 +103,22 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
     final user = ref.watch(authServiceProvider).currentUser;
     final myUid = user?.uid ?? '';
     final messagesAsync = ref.watch(sessionMessagesStreamProvider(widget.session.id));
-    final messages = messagesAsync.value ?? [];
+    final streamMessages = messagesAsync.value ?? [];
+
+    final idSet = streamMessages.map((m) => m.id).toSet();
+    final messages = [...streamMessages];
+    for (final p in _localPending) {
+      if (!idSet.contains(p.id)) {
+        messages.add(p);
+      }
+    }
+    messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+    final effectiveChips = <String>[..._quickChips];
+    final loc = widget.session.location;
+    if (loc.contains('http') || loc.contains('meet') || loc.contains('zoom') || loc.contains('أونلاين')) {
+      effectiveChips.insert(0, '🔗 رابط الاجتماع الأونلاين: $loc');
+    }
 
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
@@ -246,10 +273,10 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemCount: _quickChips.length,
+              itemCount: effectiveChips.length,
               separatorBuilder: (context, index) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
-                final chip = _quickChips[index];
+                final chip = effectiveChips[index];
                 return ActionChip(
                   label: Text(chip, style: const TextStyle(fontSize: 11)),
                   backgroundColor: AppColors.surfaceAlt,

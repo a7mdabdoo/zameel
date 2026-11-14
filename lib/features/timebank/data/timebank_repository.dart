@@ -510,10 +510,13 @@ class TimeBankRepository {
     await firestore.collection('offers').doc(offer.id).set(offer.toMap());
   }
 
+  final Map<String, List<SessionMessageModel>> _localMessages = {};
+
   Stream<List<SessionMessageModel>> streamSessionMessages(String sessionId) {
     final firestore = _firestore;
+    final cached = _localMessages[sessionId] ?? [];
     if (firestore == null || sessionId.isEmpty) {
-      return Stream.value([]);
+      return Stream.value(cached);
     }
     return firestore
         .collection('sessions')
@@ -521,17 +524,32 @@ class TimeBankRepository {
         .collection('messages')
         .snapshots()
         .map((snapshot) {
-      final list = snapshot.docs
+      final remoteList = snapshot.docs
           .map((doc) => SessionMessageModel.fromMap(doc.data(), doc.id))
           .toList();
-      list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-      return list;
+      final idSet = remoteList.map((m) => m.id).toSet();
+      final merged = [...remoteList];
+      for (final localMsg in (_localMessages[sessionId] ?? [])) {
+        if (!idSet.contains(localMsg.id)) {
+          merged.add(localMsg);
+        }
+      }
+      merged.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      return merged;
+    }).handleError((error) {
+      debugPrint('Firestore messages stream error (falling back to local): $error');
+      return _localMessages[sessionId] ?? [];
     });
   }
 
   Future<void> sendSessionMessage(String sessionId, SessionMessageModel message) async {
+    // 1. إضافة الرسالة فوراً في الذاكرة المحلية لتظهر في واجهة المستخدم لحظياً
+    _localMessages.putIfAbsent(sessionId, () => []).add(message);
+
     final firestore = _firestore;
     if (firestore == null || sessionId.isEmpty) return;
+
+    // 2. محاولة الحفظ في فايربيس
     try {
       await firestore
           .collection('sessions')
@@ -541,6 +559,7 @@ class TimeBankRepository {
           .set(message.toMap());
     } catch (e) {
       debugPrint('Send session message error: $e');
+      rethrow;
     }
   }
 
@@ -795,10 +814,6 @@ final peerCandidatesProvider =
 
   final combined = [...directOffers, ...peerProfileOffers];
 
-  if (combined.isNotEmpty) {
-    return combined;
-  }
-
-  // إذا لم يكن هناك أي حساب أو عرض حقيقي بعد، نعرض القائمة الافتراضية
-  return TimeBankRepository.getFallbackOffersFor(targetCourse);
+  // لا نعرض أي عروض افتراضية أو مواعيد وهمية - فقط ما يضيفه الطلاب بأنفسهم
+  return combined;
 });

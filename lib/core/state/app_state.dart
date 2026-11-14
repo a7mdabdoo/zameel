@@ -3,7 +3,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../theme/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../algorithms/planner_algorithm.dart';
 import '../algorithms/matching_algorithm.dart';
@@ -60,44 +59,11 @@ class PlannerState {
 }
 
 class PlannerNotifier extends Notifier<PlannerState> {
-  static final List<ScheduleItemModel> _defaultLectures = [
-    const ScheduleItemModel(
-      id: 'lec_1',
-      courseName: 'التفاضل والتكامل (Calculus)',
-      courseCode: 'MATH202',
-      day: 'السبت',
-      startTime: '09:00 ص',
-      endTime: '10:30 ص',
-      room: 'قاعة 3',
-      color: AppColors.courseSlate,
-    ),
-    const ScheduleItemModel(
-      id: 'lec_2',
-      courseName: 'تنظيم الحواسب (Computer Org)',
-      courseCode: 'CS203',
-      day: 'الأحد',
-      startTime: '08:30 ص',
-      endTime: '10:00 ص',
-      room: 'مدرج 2',
-      color: AppColors.courseDustPlum,
-    ),
-    const ScheduleItemModel(
-      id: 'lec_3',
-      courseName: 'هياكل البيانات (Data Structures)',
-      courseCode: 'CS202',
-      day: 'الاثنين',
-      startTime: '10:00 ص',
-      endTime: '11:30 ص',
-      room: 'معمل الحاسب 1',
-      color: AppColors.courseSage,
-    ),
-  ];
-
-  List<CourseSeed> _currentCourses = List<CourseSeed>.from(AppConstants.seedCourses);
+  List<CourseSeed> _currentCourses = [];
   Map<String, int> _currentRatings = {};
 
   List<CourseStudyInput> _buildInputs(List<CourseSeed>? courses, Map<String, int>? ratings) {
-    if (courses != null) _currentCourses = courses;
+    if (courses != null && courses.isNotEmpty) _currentCourses = courses;
     if (ratings != null) _currentRatings = ratings;
     return _currentCourses.map((course) {
       final rating = _currentRatings[course.id] ?? 2;
@@ -112,16 +78,48 @@ class PlannerNotifier extends Notifier<PlannerState> {
 
   @override
   PlannerState build() {
-    final generatedBlocks = PlannerAlgorithm.generateWeeklyPlan(
-      courseInputs: PlannerAlgorithm.getDefaultSeedInputs(),
-      lectureSchedule: _defaultLectures,
-    );
+    final userProfileAsync = ref.watch(userProfileStreamProvider);
+    final userDoc = userProfileAsync.value?.data();
+
+    // 1. استخراج جدول المحاضرات المدخل من الطالب
+    final rawLectures = userDoc?['lecturesData'] as List<dynamic>?;
+    List<ScheduleItemModel> lectures = [];
+    if (rawLectures != null && rawLectures.isNotEmpty) {
+      lectures = rawLectures
+          .map((m) => ScheduleItemModel.fromMap(Map<String, dynamic>.from(m as Map)))
+          .toList();
+    }
+
+    // 2. استخراج المواد المسجلة من الطالب
+    final rawCourses = userDoc?['coursesData'] as List<dynamic>?;
+    List<CourseSeed> courses = [];
+    if (rawCourses != null && rawCourses.isNotEmpty) {
+      courses = rawCourses
+          .map((m) => CourseSeed.fromMap(Map<String, dynamic>.from(m as Map)))
+          .toList();
+    }
+
+    final ratings = (userDoc?['courseRatings'] as Map<dynamic, dynamic>?)?.map(
+          (k, v) => MapEntry(k.toString(), (v as num).toInt()),
+        ) ??
+        {};
+
+    List<StudyBlockModel> generatedBlocks = [];
+    if (lectures.isNotEmpty || courses.isNotEmpty) {
+      final inputs = _buildInputs(courses.isNotEmpty ? courses : null, ratings);
+      if (inputs.isNotEmpty) {
+        generatedBlocks = PlannerAlgorithm.generateWeeklyPlan(
+          courseInputs: inputs,
+          lectureSchedule: lectures,
+        );
+      }
+    }
 
     return PlannerState(
       studyBlocks: generatedBlocks,
-      lectureSchedule: _defaultLectures,
-      completedBlocksCount: 7,
-      totalWeeklyTarget: generatedBlocks.isNotEmpty ? generatedBlocks.length : 12,
+      lectureSchedule: lectures,
+      completedBlocksCount: 0,
+      totalWeeklyTarget: generatedBlocks.length,
     );
   }
 

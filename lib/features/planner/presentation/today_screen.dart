@@ -28,7 +28,19 @@ class TodayScreen extends ConsumerWidget {
     final plannerState = ref.watch(plannerProvider);
 
     final timeCoins = (userDoc?['timeCoins'] as num?)?.toInt() ?? 2;
-    final todayBlocks = plannerState.studyBlocks.where((b) => b.day == 'السبت').toList();
+
+    const dayNames = {
+      DateTime.saturday: 'السبت',
+      DateTime.sunday: 'الأحد',
+      DateTime.monday: 'الاثنين',
+      DateTime.tuesday: 'الثلاثاء',
+      DateTime.wednesday: 'الأربعاء',
+      DateTime.thursday: 'الخميس',
+      DateTime.friday: 'الجمعة',
+    };
+    final now = DateTime.now();
+    final todayArabic = dayNames[now.weekday] ?? 'السبت';
+    final todayBlocks = plannerState.studyBlocks.where((b) => b.day == todayArabic).toList();
     final nextBlock = todayBlocks.isNotEmpty ? todayBlocks.first : null;
 
     final learnerSessions = ref.watch(learnerSessionsStreamProvider(userId)).value ?? [];
@@ -329,41 +341,51 @@ class TodayScreen extends ConsumerWidget {
                                 style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.deepSage),
                               ),
                             ),
-                            Row(
-                              children: [
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(
-                                      confirmedSession.teacherId == userId
-                                          ? 'أنت تشرح لـ ${confirmedSession.learnerName} ${confirmedSession.courseName}'
-                                          : '${confirmedSession.teacherName} يشرح لك ${confirmedSession.courseName}',
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.bold,
-                                        color: Theme.of(context).colorScheme.onSurface,
-                                      ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          confirmedSession.teacherId == userId
+                                              ? 'أنت تشرح لـ ${confirmedSession.learnerName} ${confirmedSession.courseName}'
+                                              : '${confirmedSession.teacherName} يشرح لك ${confirmedSession.courseName}',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: Theme.of(context).colorScheme.onSurface,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        Text(
+                                          confirmedSession.topic,
+                                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
                                     ),
-                                    Text(
-                                      confirmedSession.topic,
-                                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(width: 12),
-                                CircleAvatar(
-                                  backgroundColor: AppColors.primaryContainer,
-                                  radius: 20,
-                                  child: Text(
-                                    confirmedSession.teacherId == userId
-                                        ? (confirmedSession.learnerName.trim().isNotEmpty
-                                            ? confirmedSession.learnerName.trim().split(' ').map((p) => p.isNotEmpty ? p[0] : '').take(2).join('.')
-                                            : 'ز.م')
-                                        : confirmedSession.teacherInitials,
-                                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary, fontSize: 13),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: 10),
+                                  CircleAvatar(
+                                    backgroundColor: AppColors.primaryContainer,
+                                    radius: 18,
+                                    child: Text(
+                                      confirmedSession.teacherId == userId
+                                          ? (confirmedSession.learnerName.trim().isNotEmpty
+                                              ? confirmedSession.learnerName.trim().split(' ').map((p) => p.isNotEmpty ? p[0] : '').take(2).join('.')
+                                              : 'ز.م')
+                                          : confirmedSession.teacherInitials,
+                                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary, fontSize: 11),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
@@ -415,7 +437,7 @@ class TodayScreen extends ConsumerWidget {
               // 4. Section: Today's Timeline (جدول اليوم)
               Builder(
                 builder: (context) {
-                  final todayLectures = plannerState.lectureSchedule.where((l) => l.day == 'السبت').toList();
+                  final todayLectures = plannerState.lectureSchedule.where((l) => l.day == todayArabic).toList();
                   final totalTodayItems = todayLectures.length + todayBlocks.length;
 
                   return Column(
@@ -442,6 +464,43 @@ class TodayScreen extends ConsumerWidget {
                         ],
                       ),
                       const SizedBox(height: 8),
+
+                      if (totalTodayItems == 0)
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardTheme.color,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: AppColors.hairline),
+                          ),
+                          child: Column(
+                            children: [
+                              const Icon(Icons.calendar_today_outlined, size: 40, color: AppColors.textSecondary),
+                              const SizedBox(height: 12),
+                              const Text(
+                                'لا توجد محاضرات أو مذاكرة مجدولة اليوم',
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 6),
+                              const Text(
+                                'أضف مواعيد محاضراتك وموادك وسيقوم التطبيق بحساب أوقات فراغك وتوليد خطة مذاكرة ذكية لك تلقائياً.',
+                                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 14),
+                              ElevatedButton.icon(
+                                onPressed: () => context.push('/schedule-setup'),
+                                icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
+                                label: const Text('إعداد جدول المحاضرات الآن', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
 
                       // محاضرات اليوم المجدولة يدوياً
                       ...todayLectures.map((lec) {

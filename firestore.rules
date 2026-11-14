@@ -254,9 +254,13 @@ service cloud.firestore {
 
       // محادثة ورسائل تنسيق الجلسة بين الطالبين
       match /messages/{messageId} {
-        allow read, create: if isAuthenticated();
-        allow update, delete: if false;
+        allow read, write: if isAuthenticated();
       }
+    }
+
+    // رسائل ومحادثات تنسيق الجلسات (مجموعة عامة)
+    match /messages/{messageId} {
+      allow read, write: if isAuthenticated();
     }
 
     // ==========================================
