@@ -21,8 +21,10 @@ class CourseStudyInput {
   double calculateInitialPriority() {
     final effectiveRating = selfRating.clamp(1, 5);
     final effectiveDays = daysUntilExam.clamp(1, 120);
-    // الأولوية = (6 - التقييم) × (1 / الأيام للامتحان)
-    return (6.0 - effectiveRating) * (1.0 / effectiveDays);
+    // وزن الساعات المعتمدة: كلما زادت الساعات (مثلاً 3 أو 4 ساعات) زادت الأهمية والأولوية في المذاكرة
+    final hoursWeight = (course.creditHours / 3.0).clamp(0.5, 2.0);
+    // الأولوية = (6 - التقييم) × (1 / الأيام للامتحان) × وزن الساعات
+    return (6.0 - effectiveRating) * (1.0 / effectiveDays) * hoursWeight;
   }
 }
 

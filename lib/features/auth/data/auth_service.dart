@@ -148,6 +148,7 @@ class AuthService {
     String? year,
     List<String>? selectedCourses,
     Map<String, int>? courseRatings,
+    List<Map<String, dynamic>>? coursesData,
     bool? onboardingCompleted,
   }) async {
     final uid = currentUser?.uid;
@@ -159,6 +160,7 @@ class AuthService {
     if (year != null) updates['year'] = year;
     if (selectedCourses != null) updates['selectedCourses'] = selectedCourses;
     if (courseRatings != null) updates['courseRatings'] = courseRatings;
+    if (coursesData != null) updates['coursesData'] = coursesData;
     if (onboardingCompleted != null) updates['onboardingCompleted'] = onboardingCompleted;
 
     await firestore.collection('users').doc(uid).update(updates);

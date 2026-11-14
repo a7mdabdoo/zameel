@@ -6,13 +6,35 @@ class CourseSeed {
   final String name;
   final String code;
   final Color color;
+  final int creditHours; // عدد الساعات المعتمدة للمادة (مثلاً 2 أو 3 أو 4 ساعات)
 
   const CourseSeed({
     required this.id,
     required this.name,
     required this.code,
     required this.color,
+    this.creditHours = 3,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'code': code,
+      'color': color.toARGB32(),
+      'creditHours': creditHours,
+    };
+  }
+
+  factory CourseSeed.fromMap(Map<String, dynamic> map) {
+    return CourseSeed(
+      id: map['id'] as String? ?? '',
+      name: map['name'] as String? ?? '',
+      code: map['code'] as String? ?? '',
+      color: map['color'] != null ? Color(map['color'] as int) : AppColors.courseTeal,
+      creditHours: (map['creditHours'] as num?)?.toInt() ?? 3,
+    );
+  }
 }
 
 class AppConstants {
@@ -78,6 +100,7 @@ class AppConstants {
       name: 'تنظيم الحواسب (Computer Org)',
       code: 'CS203',
       color: AppColors.courseDustPlum,
+      creditHours: 2,
     ),
   ];
 }
