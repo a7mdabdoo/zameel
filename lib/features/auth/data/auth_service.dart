@@ -27,14 +27,18 @@ class AuthService {
   }
 
   Stream<User?> get authStateChanges =>
-      _auth?.authStateChanges() ?? Stream.value(null);
+      _auth?.userChanges() ?? Stream.value(null);
 
   User? get currentUser => _auth?.currentUser;
 
+  // =========================================================================
+  // 1. إنشاء حساب جديد بواسطة (الاسم، اسم المستخدم، البريد، كلمة المرور)
+  // =========================================================================
   Future<UserCredential?> signUp({
     required String email,
     required String password,
     required String name,
+    required String username,
   }) async {
     final auth = _auth;
     final firestore = _firestore;
@@ -45,27 +49,44 @@ class AuthService {
       );
     }
 
+    final cleanEmail = email.trim();
+    if (!AppConstants.isValidEmail(cleanEmail)) {
+      throw FirebaseAuthException(
+        code: 'invalid-email',
+        message: 'يرجى إدخال بريد إلكتروني صالح ومكتمل',
+      );
+    }
+
+    final cleanUsername = username.trim().toLowerCase();
+
+    // إنشاء الحساب في Firebase Auth
     final cred = await auth.createUserWithEmailAndPassword(
-      email: email.trim(),
+      email: cleanEmail,
       password: password,
     );
 
     if (cred.user != null) {
       await cred.user!.updateDisplayName(name.trim());
+
+      // إرسال رسالة التأكيد إلى البريد الإلكتروني فوراً
       try {
         await cred.user!.sendEmailVerification();
       } catch (_) {}
 
-      // إنشاء مستند المستخدم الأولي برصيد ترحيبي (2 عملات وقت)
+      // إنشاء مستند المستخدم الأولي برصيد ترحيبي 2 عملة وتقييم 0
       await firestore.collection('users').doc(cred.user!.uid).set({
         'uid': cred.user!.uid,
         'name': name.trim(),
-        'email': email.trim(),
+        'username': cleanUsername.isEmpty ? cleanEmail.split('@').first : cleanUsername,
+        'email': cleanEmail,
         'timeCoins': AppConstants.welcomeCoins,
         'faculty': AppConstants.faculty,
         'year': AppConstants.academicYear,
         'selectedCourses': <String>[],
         'courseRatings': <String, dynamic>{},
+        'completedSessions': 0,
+        'teacherRating': 0.0,
+        'lastSessionId': null,
         'onboardingCompleted': false,
         'createdAt': FieldValue.serverTimestamp(),
       });
@@ -74,6 +95,9 @@ class AuthService {
     return cred;
   }
 
+  // =========================================================================
+  // 2. تسجيل الدخول بواسطة البريد الإلكتروني وكلمة المرور
+  // =========================================================================
   Future<UserCredential?> signIn({
     required String email,
     required String password,
@@ -92,10 +116,33 @@ class AuthService {
     );
   }
 
+  // =========================================================================
+  // 3. إعادة إرسال رسالة التأكيد وفحص الحالة
+  // =========================================================================
   Future<void> signOut() async {
     await _auth?.signOut();
   }
 
+  Future<void> sendEmailVerification() async {
+    final user = currentUser;
+    if (user != null && !user.emailVerified) {
+      await user.sendEmailVerification();
+    }
+  }
+
+  Future<bool> reloadUserAndCheckVerified() async {
+    final user = currentUser;
+    if (user != null) {
+      await user.reload();
+      await user.getIdToken(true);
+      return _auth?.currentUser?.emailVerified ?? false;
+    }
+    return false;
+  }
+
+  // =========================================================================
+  // 4. تحديث الملف الشخصي وإتمام التهيئة
+  // =========================================================================
   Future<void> updateUserProfile({
     String? faculty,
     String? year,

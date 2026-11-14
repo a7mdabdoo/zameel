@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../data/auth_service.dart';
@@ -45,9 +46,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (mounted) {
         context.go('/today');
       }
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        if (e.code == 'user-not-found') {
+          _errorMessage = 'البريد الإلكتروني غير مسجل، يرجى إنشاء حساب جديد.';
+        } else if (e.code == 'wrong-password') {
+          _errorMessage = 'كلمة المرور غير صحيحة.';
+        } else {
+          _errorMessage = e.message ?? 'فشل تسجيل الدخول. تحقق من البيانات.';
+        }
+      });
     } catch (e) {
       setState(() {
-        _errorMessage = 'فشل تسجيل الدخول. تحقق من البريد وكلمة المرور.';
+        _errorMessage = 'فشل تسجيل الدخول. تحقق من البيانات المدخلة.';
       });
     } finally {
       if (mounted) {
@@ -121,9 +132,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   const SizedBox(height: 20),
                 ],
 
-                // Email field
+                // Email or Username field
                 const Text(
-                  'البريد الجامعي أو الإلكتروني',
+                  'البريد الإلكتروني أو اسم المستخدم',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
@@ -136,9 +147,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   keyboardType: TextInputType.emailAddress,
                   textDirection: TextDirection.ltr,
                   decoration: InputDecoration(
-                    hintText: 'student@fci.edu.eg',
+                    hintText: 'ahmed_dev أو student@gmail.com',
                     hintTextDirection: TextDirection.ltr,
-                    prefixIcon: const Icon(Icons.email_outlined, color: AppColors.textTertiary),
+                    prefixIcon: const Icon(Icons.alternate_email_rounded, color: AppColors.textTertiary),
                     filled: true,
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
@@ -152,10 +163,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'يرجى إدخال البريد الإلكتروني';
-                    }
-                    if (!value.contains('@')) {
-                      return 'صيغة البريد غير صحيحة';
+                      return 'يرجى إدخال البريد الإلكتروني أو اسم المستخدم';
                     }
                     return null;
                   },
@@ -255,8 +263,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                   ),
                 ),
-
-
 
                 const SizedBox(height: 32),
 

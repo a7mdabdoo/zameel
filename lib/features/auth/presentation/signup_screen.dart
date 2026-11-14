@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
@@ -18,6 +19,7 @@ class SignUpScreen extends ConsumerStatefulWidget {
 class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
@@ -28,6 +30,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _usernameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -47,13 +50,24 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
             email: _emailController.text.trim(),
             password: _passwordController.text,
             name: _nameController.text.trim(),
+            username: _usernameController.text.trim(),
           );
       if (mounted) {
-        context.push('/onboarding-profile');
+        context.go('/verify-email');
       }
+    } on FirebaseException catch (e) {
+      setState(() {
+        if (e.code == 'email-already-in-use') {
+          _errorMessage = 'هذا البريد مسجل بالفعل، يرجى تسجيل الدخول.';
+        } else if (e.code == 'weak-password') {
+          _errorMessage = 'كلمة المرور ضعيفة جداً. اختر كلمة مرور أقوى.';
+        } else {
+          _errorMessage = e.message ?? 'حدث خطأ أثناء إنشاء الحساب. تأكد من صحة البيانات.';
+        }
+      });
     } catch (e) {
       setState(() {
-        _errorMessage = 'حدث خطأ أثناء إنشاء الحساب. تأكد من صحة البيانات.';
+        _errorMessage = e.toString().replaceFirst('Exception: ', '');
       });
     } finally {
       if (mounted) {
@@ -142,9 +156,39 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
                 const SizedBox(height: 16),
 
+                // Username (Codeforces / LinkedIn style)
+                const Text(
+                  'اسم المستخدم (Username)',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _usernameController,
+                  textDirection: TextDirection.ltr,
+                  decoration: InputDecoration(
+                    hintText: 'ahmed_dev',
+                    hintTextDirection: TextDirection.ltr,
+                    prefixIcon: const Icon(Icons.alternate_email_rounded, color: AppColors.textTertiary),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) return 'يرجى إدخال اسم المستخدم';
+                    final clean = value.trim();
+                    if (!RegExp(r'^[a-zA-Z0-9_]{3,20}$').hasMatch(clean)) {
+                      return 'الاسم يجب أن يكون بالإنجليزية (3-20 حرفاً أو أرقاماً أو _)';
+                    }
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
                 // Email
                 const Text(
-                  'البريد الجامعي / الإلكتروني',
+                  'البريد الإلكتروني (Gmail أو أي بريد شخصي)',
                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                 ),
                 const SizedBox(height: 8),
@@ -153,7 +197,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   keyboardType: TextInputType.emailAddress,
                   textDirection: TextDirection.ltr,
                   decoration: InputDecoration(
-                    hintText: 'student@fci.edu.eg',
+                    hintText: 'yourname@gmail.com',
                     hintTextDirection: TextDirection.ltr,
                     prefixIcon: const Icon(Icons.email_outlined, color: AppColors.textTertiary),
                     filled: true,
@@ -162,7 +206,12 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
                   ),
                   validator: (value) {
-                    if (value == null || !value.contains('@')) return 'يرجى إدخال بريد صالح';
+                    if (value == null || value.trim().isEmpty) {
+                      return 'يرجى إدخال البريد الإلكتروني';
+                    }
+                    if (!AppConstants.isValidEmail(value)) {
+                      return 'يرجى إدخال بريد إلكتروني صحيح (مثل yourname@gmail.com)';
+                    }
                     return null;
                   },
                 ),
@@ -244,9 +293,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   ),
                 ),
 
-
-
-                const SizedBox(height: 20),
+                const SizedBox(height: 24),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [

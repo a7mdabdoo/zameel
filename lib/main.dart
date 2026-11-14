@@ -9,9 +9,9 @@ import 'core/l10n/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   try {
     await Firebase.initializeApp();
+
   } catch (e) {
     debugPrint('Firebase init warning: $e');
   }

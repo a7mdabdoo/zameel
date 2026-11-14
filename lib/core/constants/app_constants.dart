@@ -31,6 +31,16 @@ class AppConstants {
   static const int studyBlockDurationMin = 45; // مدة كتلة المذاكرة
   static const int breakDurationMin = 10; // مدة الاستراحة بعد الكتلة
 
+  // Email Validation (يدعم Gmail وكافة الإيميلات العادية والشخصية)
+  static bool isValidEmail(String email) {
+    final clean = email.trim();
+    final emailRegex = RegExp(r'^[\w\.\+-_]+@[\w-]+\.[\w-\.]+$');
+    return emailRegex.hasMatch(clean);
+  }
+
+  // للتوافق التام مع أي فحص بالاسم القديم
+  static bool isValidUniversityEmail(String email) => isValidEmail(email);
+
   // Seed Courses for 2nd Year CS & AI
   static const List<CourseSeed> seedCourses = [
     CourseSeed(

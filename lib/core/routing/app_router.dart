@@ -11,6 +11,7 @@ import '../../features/auth/data/auth_service.dart';
 import '../../features/auth/presentation/welcome_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/signup_screen.dart';
+import '../../features/auth/presentation/email_verification_screen.dart';
 import '../../features/onboarding/presentation/onboarding_profile_screen.dart';
 import '../../features/onboarding/presentation/onboarding_courses_screen.dart';
 import '../../features/onboarding/presentation/onboarding_rate_screen.dart';
@@ -37,10 +38,13 @@ import '../../features/home/main_navigation_shell.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
-/// مستمع لتغييرات حالة المصادقة لتحديث مسارات GoRouter تلقائياً
+/// مستمع لتغييرات حالة المصادقة والملف الشخصي لتحديث مسارات GoRouter تلقائياً
 class RouterNotifier extends ChangeNotifier {
   RouterNotifier(Ref ref) {
     ref.listen(authStateProvider, (previous, next) {
+      notifyListeners();
+    });
+    ref.listen(userProfileStreamProvider, (previous, next) {
       notifyListeners();
     });
   }
@@ -59,14 +63,16 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: notifier,
     redirect: (context, state) {
       final authAsync = ref.read(authStateProvider);
-      final isLoggedIn = authAsync.asData?.value != null;
+      final user = authAsync.asData?.value ?? ref.read(authServiceProvider).currentUser;
+      final isLoggedIn = user != null;
+      final isVerified = user?.emailVerified ?? false;
       final location = state.uri.path;
 
       final isAuthFlow = location == '/welcome' ||
           location == '/login' ||
           location == '/signup';
 
-      // لا نقوم بالتحويل أثناء قيد التحميل الأولي
+      // لا نقوم بالتحويل أثناء قيد التحميل الأولي للمصادقة
       if (authAsync.isLoading) {
         return null;
       }
@@ -76,8 +82,31 @@ final routerProvider = Provider<GoRouter>((ref) {
         return isAuthFlow ? null : '/welcome';
       }
 
-      // إذا كان مسجلاً وحاول فتح شاشة ترحيب أو تسجيل دخول، نوجهه إلى الرئيسية
-      if (isAuthFlow) {
+      // إذا كان مسجلاً لكن لم يؤكد بريده بعد، يُلزم بشاشة التأكيد
+      if (!isVerified) {
+        return location == '/verify-email' ? null : '/verify-email';
+      }
+
+      // المستخدم مسجل ومؤكد البريد: نتحقق من إتمام شاشات التهيئة (Onboarding)
+      final profileAsync = ref.read(userProfileStreamProvider);
+      if (profileAsync.isLoading) {
+        return null;
+      }
+
+      final profileDoc = profileAsync.asData?.value;
+      final onboardingCompleted = profileDoc?.data()?['onboardingCompleted'] as bool? ?? false;
+
+      // أ) إذا لم يكمل التهيئة بعد:
+      if (!onboardingCompleted) {
+        final isOnboardingFlow = location.startsWith('/onboarding');
+        if (isOnboardingFlow) {
+          return null;
+        }
+        return '/onboarding-profile';
+      }
+
+      // ب) إذا كان قد أكمل التهيئة مسبقاً وحاول فتح مسارات الدخول أو التهيئة أو التأكيد:
+      if (isAuthFlow || location == '/verify-email' || location.startsWith('/onboarding')) {
         return '/today';
       }
 
@@ -87,6 +116,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/welcome',
         builder: (context, state) => const WelcomeScreen(),
+      ),
+      GoRoute(
+        path: '/verify-email',
+        builder: (context, state) => const EmailVerificationScreen(),
       ),
       GoRoute(
         path: '/login',
