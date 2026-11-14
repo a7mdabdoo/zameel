@@ -158,6 +158,29 @@ class PlannerNotifier extends Notifier<PlannerState> {
       studyBlocks: regenerated,
     );
   }
+
+  /// إعادة حساب الخطة الأسبوعية وفق المواد والتقييمات المحدثة للمستخدم
+  void updateCoursesAndRegeneratePlan(List<CourseSeed> courses, Map<String, int> ratings) {
+    final inputs = courses.map((course) {
+      final rating = ratings[course.id] ?? 2;
+      return CourseStudyInput(
+        course: course,
+        selfRating: rating,
+        daysUntilExam: 21,
+        topics: ['مفاهيم ومسائل ${course.name}'],
+      );
+    }).toList();
+
+    final regenerated = PlannerAlgorithm.generateWeeklyPlan(
+      courseInputs: inputs.isNotEmpty ? inputs : PlannerAlgorithm.getDefaultSeedInputs(),
+      lectureSchedule: state.lectureSchedule,
+    );
+
+    state = state.copyWith(
+      studyBlocks: regenerated,
+      totalWeeklyTarget: regenerated.isNotEmpty ? regenerated.length : 12,
+    );
+  }
 }
 
 final plannerProvider = NotifierProvider<PlannerNotifier, PlannerState>(PlannerNotifier.new);

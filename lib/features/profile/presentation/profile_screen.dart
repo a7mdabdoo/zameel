@@ -46,6 +46,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final teacherRating = (userDoc?['teacherRating'] as num?)?.toDouble() ?? 5.0;
     final studyHours = (userDoc?['studyHours'] as num?)?.toInt() ?? 0;
 
+    // استخراج المواد الدراسية وتقييمات الطالب من فايربيس
+    final userCourses = _getUserCourses(userDoc);
+    final userRatings = _getUserRatings(userDoc, userCourses);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -130,6 +134,57 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     child: _buildBadgeCard('ساعات المذاكرة', '$studyHours ساعة', Icons.timer_outlined, AppColors.primary),
                   ),
                 ],
+              ),
+
+              const SizedBox(height: 24),
+
+              // Courses Section Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      TextButton.icon(
+                        onPressed: () => _showAddCourseModal(context, userCourses, userRatings),
+                        icon: const Icon(Icons.add_circle_outline_rounded, size: 18, color: AppColors.primary),
+                        label: const Text(
+                          'أضف مادة',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () => _showManageCoursesModal(context, userCourses, userRatings),
+                        icon: const Icon(Icons.tune_rounded, size: 18, color: AppColors.textSecondary),
+                        label: const Text(
+                          'تعديل',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    'موادي الدراسية 📚 (${userCourses.length})',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              // Course Cards List in Profile
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.hairline),
+                ),
+                child: Column(
+                  children: [
+                    for (int i = 0; i < userCourses.length; i++) ...[
+                      if (i > 0) const Divider(height: 1, color: AppColors.hairline),
+                      _buildCourseRow(userCourses[i], userRatings[userCourses[i].id] ?? 2),
+                    ],
+                  ],
+                ),
               ),
 
               const SizedBox(height: 24),
@@ -228,6 +283,562 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           const SizedBox(height: 2),
           Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
         ],
+      ),
+    );
+  }
+
+  List<CourseSeed> _getUserCourses(Map<String, dynamic>? userDoc) {
+    if (userDoc == null) return List<CourseSeed>.from(AppConstants.seedCourses);
+    final coursesData = userDoc['coursesData'] as List<dynamic>?;
+    if (coursesData != null && coursesData.isNotEmpty) {
+      return coursesData
+          .map((m) => CourseSeed.fromMap(Map<String, dynamic>.from(m as Map)))
+          .toList();
+    }
+    final selectedIds = List<String>.from(userDoc['selectedCourses'] ?? []);
+    if (selectedIds.isNotEmpty) {
+      final list = AppConstants.seedCourses.where((c) => selectedIds.contains(c.id)).toList();
+      if (list.isNotEmpty) return list;
+    }
+    return List<CourseSeed>.from(AppConstants.seedCourses);
+  }
+
+  Map<String, int> _getUserRatings(Map<String, dynamic>? userDoc, List<CourseSeed> courses) {
+    final raw = userDoc?['courseRatings'] as Map<dynamic, dynamic>?;
+    final map = <String, int>{};
+    if (raw != null) {
+      raw.forEach((k, v) {
+        if (v is num) map[k.toString()] = v.toInt();
+      });
+    }
+    for (final c in courses) {
+      map.putIfAbsent(c.id, () => 2);
+    }
+    return map;
+  }
+
+  Widget _buildCourseRow(CourseSeed course, int rating) {
+    String ratingLabel;
+    Color ratingColor;
+    switch (rating) {
+      case 1:
+        ratingLabel = 'أحتاج مساعدة';
+        ratingColor = Colors.orange.shade700;
+        break;
+      case 3:
+        ratingLabel = 'مستعد للشرح';
+        ratingColor = AppColors.deepSage;
+        break;
+      case 2:
+      default:
+        ratingLabel = 'متوسط';
+        ratingColor = AppColors.primary;
+        break;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: BoxDecoration(color: course.color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  course.name,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  course.code,
+                  style: const TextStyle(fontSize: 11, color: AppColors.textTertiary),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: course.creditHours >= 3 ? AppColors.pointsAmber.withValues(alpha: 0.15) : AppColors.surfaceAlt,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              '${course.creditHours} ساعات',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+                color: course.creditHours >= 3 ? const Color(0xFF664700) : AppColors.textSecondary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: ratingColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              ratingLabel,
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: ratingColor),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAddCourseModal(
+    BuildContext context,
+    List<CourseSeed> currentCourses,
+    Map<String, int> currentRatings,
+  ) {
+    final nameController = TextEditingController();
+    final codeController = TextEditingController();
+    int selectedCreditHours = 3;
+    int selectedRating = 2;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            padding: EdgeInsets.only(
+              left: 20,
+              right: 20,
+              top: 24,
+              bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+            ),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'إضافة مادة جديدة لحسابي ➕',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'ستتم إضافتها إلى خطة مذاكرتك وبنك الوقت مع زملائك',
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Course Name
+                  const Text('اسم المادة', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: nameController,
+                    decoration: InputDecoration(
+                      hintText: 'مثال: الذكاء الاصطناعي (AI)',
+                      filled: true,
+                      fillColor: AppColors.surfaceAlt,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      prefixIcon: const Icon(Icons.book_outlined, color: AppColors.primary),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Course Code
+                  const Text('كود المادة (اختياري)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: codeController,
+                    decoration: InputDecoration(
+                      hintText: 'مثال: AI301',
+                      filled: true,
+                      fillColor: AppColors.surfaceAlt,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      prefixIcon: const Icon(Icons.tag_rounded, color: AppColors.primary),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Credit Hours
+                  const Text('الساعات المعتمدة للمادة (الأهمية)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _buildHourChoice(
+                        hours: 2,
+                        label: 'ساعتان (2h)',
+                        subtitle: 'وزن أساسي',
+                        selected: selectedCreditHours == 2,
+                        onTap: () => setModalState(() => selectedCreditHours = 2),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildHourChoice(
+                        hours: 3,
+                        label: '3 ساعات (3h)',
+                        subtitle: 'أولوية أعلى ⭐',
+                        selected: selectedCreditHours == 3,
+                        onTap: () => setModalState(() => selectedCreditHours = 3),
+                      ),
+                      const SizedBox(width: 8),
+                      _buildHourChoice(
+                        hours: 4,
+                        label: '4 ساعات (4h)',
+                        subtitle: 'أولوية قصوى 🔥',
+                        selected: selectedCreditHours == 4,
+                        onTap: () => setModalState(() => selectedCreditHours = 4),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Rating in this course
+                  const Text('تقييم مستواك في المادة', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _buildRateChip('أحتاج مساعدة', 1, selectedRating == 1, Colors.orange.shade700, () {
+                        setModalState(() => selectedRating = 1);
+                      }),
+                      const SizedBox(width: 8),
+                      _buildRateChip('متوسط', 2, selectedRating == 2, AppColors.primary, () {
+                        setModalState(() => selectedRating = 2);
+                      }),
+                      const SizedBox(width: 8),
+                      _buildRateChip('مستعد للشرح', 3, selectedRating == 3, AppColors.deepSage, () {
+                        setModalState(() => selectedRating = 3);
+                      }),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Save CTA
+                  SizedBox(
+                    height: 50,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        final name = nameController.text.trim();
+                        if (name.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('يرجى إدخال اسم المادة الدراسية')),
+                          );
+                          return;
+                        }
+
+                        final code = codeController.text.trim().isEmpty
+                            ? 'CRS${DateTime.now().millisecondsSinceEpoch % 1000}'
+                            : codeController.text.trim().toUpperCase();
+
+                        final newId = 'custom_${DateTime.now().millisecondsSinceEpoch}';
+                        final newCourse = CourseSeed(
+                          id: newId,
+                          name: name,
+                          code: code,
+                          color: AppColors.courseTeal,
+                          creditHours: selectedCreditHours,
+                        );
+
+                        final updatedCourses = [...currentCourses, newCourse];
+                        final updatedRatings = Map<String, int>.from(currentRatings);
+                        updatedRatings[newId] = selectedRating;
+
+                        // الحفظ في فايربيس
+                        await ref.read(authServiceProvider).updateUserProfile(
+                          selectedCourses: updatedCourses.map((c) => c.id).toList(),
+                          coursesData: updatedCourses.map((c) => c.toMap()).toList(),
+                          courseRatings: updatedRatings,
+                        );
+
+                        // تحديث خوارزمية المذاكرة في الذاكرة الحية
+                        ref.read(plannerProvider.notifier).updateCoursesAndRegeneratePlan(
+                          updatedCourses,
+                          updatedRatings,
+                        );
+
+                        if (ctx.mounted) {
+                          Navigator.pop(ctx);
+                        }
+
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('تمت إضافة مادة "$name" ($selectedCreditHours ساعات) لحسابك وتحديث الخطة بنجاح 🎉'),
+                              backgroundColor: AppColors.success,
+                            ),
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.add_task_rounded, color: Colors.white),
+                      label: const Text(
+                        'إضافة المادة وحفظها',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showManageCoursesModal(
+    BuildContext context,
+    List<CourseSeed> currentCourses,
+    Map<String, int> currentRatings,
+  ) {
+    List<CourseSeed> editableCourses = List<CourseSeed>.from(currentCourses);
+    Map<String, int> editableRatings = Map<String, int>.from(currentRatings);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.75,
+            padding: const EdgeInsets.only(left: 20, right: 20, top: 24, bottom: 20),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'تعديل المواد المقررة والتقييمات ✏️',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
+                      onPressed: () => Navigator.pop(ctx),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'يمكنك تعديل تقييمك وساعات كل مادة أو حذفها، وسيتم تحديث جدول مذاكرتك وبنك الوقت فوراً',
+                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 16),
+
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: editableCourses.length,
+                    itemBuilder: (context, index) {
+                      final course = editableCourses[index];
+                      final rating = editableRatings[course.id] ?? 2;
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 12),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceAlt.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: AppColors.hairline),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(color: course.color, shape: BoxShape.circle),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    course.name,
+                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                                  ),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: course.creditHours >= 3 ? AppColors.pointsAmber.withValues(alpha: 0.2) : Colors.white,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    '${course.creditHours} ساعات',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: course.creditHours >= 3 ? const Color(0xFF664700) : AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                if (editableCourses.length > 1)
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 20),
+                                    onPressed: () {
+                                      setModalState(() {
+                                        editableCourses.removeAt(index);
+                                        editableRatings.remove(course.id);
+                                      });
+                                    },
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            // Quick Rating Row
+                            Row(
+                              children: [
+                                _buildRateChip('أحتاج مساعدة', 1, rating == 1, Colors.orange.shade700, () {
+                                  setModalState(() => editableRatings[course.id] = 1);
+                                }),
+                                const SizedBox(width: 6),
+                                _buildRateChip('متوسط', 2, rating == 2, AppColors.primary, () {
+                                  setModalState(() => editableRatings[course.id] = 2);
+                                }),
+                                const SizedBox(width: 6),
+                                _buildRateChip('مستعد للشرح', 3, rating == 3, AppColors.deepSage, () {
+                                  setModalState(() => editableRatings[course.id] = 3);
+                                }),
+                              ],
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      await ref.read(authServiceProvider).updateUserProfile(
+                        selectedCourses: editableCourses.map((c) => c.id).toList(),
+                        coursesData: editableCourses.map((c) => c.toMap()).toList(),
+                        courseRatings: editableRatings,
+                      );
+
+                      ref.read(plannerProvider.notifier).updateCoursesAndRegeneratePlan(
+                        editableCourses,
+                        editableRatings,
+                      );
+
+                      if (ctx.mounted) {
+                        Navigator.pop(ctx);
+                      }
+
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('تم حفظ التعديلات وتحديث جدول المذاكرة بنجاح ✅'),
+                            backgroundColor: AppColors.success,
+                          ),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.check_circle_outline_rounded, color: Colors.white),
+                    label: const Text(
+                      'حفظ التعديلات في حسابي',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildHourChoice({
+    required int hours,
+    required String label,
+    required String subtitle,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+          decoration: BoxDecoration(
+            color: selected ? AppColors.primaryContainer.withValues(alpha: 0.6) : AppColors.surfaceAlt,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: selected ? AppColors.primary : Colors.transparent,
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            children: [
+              Text(
+                label,
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: selected ? AppColors.primary : AppColors.textPrimary),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: TextStyle(fontSize: 9, color: selected ? AppColors.primary : AppColors.textSecondary),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRateChip(String label, int score, bool selected, Color color, VoidCallback onTap) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: selected ? color.withValues(alpha: 0.12) : AppColors.surfaceAlt,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: selected ? color : Colors.transparent, width: 1.5),
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+              color: selected ? color : AppColors.textSecondary,
+            ),
+          ),
+        ),
       ),
     );
   }
