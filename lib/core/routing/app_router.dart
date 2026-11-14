@@ -89,26 +89,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         return location == '/verify-email' ? null : '/verify-email';
       }
 
-      // المستخدم مسجل ومؤكد البريد: نتحقق من إتمام شاشات التهيئة (Onboarding)
-      final profileAsync = ref.read(userProfileStreamProvider);
-      if (profileAsync.isLoading) {
-        return null;
-      }
-
-      final profileDoc = profileAsync.asData?.value;
-      final onboardingCompleted = profileDoc?.data()?['onboardingCompleted'] as bool? ?? false;
-
-      // أ) إذا لم يكمل التهيئة بعد:
-      if (!onboardingCompleted) {
-        final isOnboardingFlow = location.startsWith('/onboarding');
-        if (isOnboardingFlow) {
-          return null;
-        }
-        return '/onboarding-profile';
-      }
-
-      // ب) إذا كان قد أكمل التهيئة مسبقاً وحاول فتح مسارات الدخول أو التهيئة أو التأكيد:
-      if (isAuthFlow || location == '/verify-email' || location.startsWith('/onboarding')) {
+      // المستخدم مسجل ومؤكد البريد:
+      // عند تسجيل الدخول بحساب موجود أو الانتقال بعد المصادقة، نوجهه مباشرة إلى الشاشة الرئيسية (/today)
+      // ولا نلزمه بشاشات التهيئة إطلاقاً عند تسجيل الدخول
+      if (isAuthFlow || location == '/verify-email') {
         return '/today';
       }
 
