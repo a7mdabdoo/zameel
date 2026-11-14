@@ -18,7 +18,6 @@ class _OnboardingProfileScreenState extends ConsumerState<OnboardingProfileScree
   final String _selectedFaculty = 'كلية الحاسبات والذكاء الاصطناعي';
   final String _selectedYear = 'الفرقة الثانية';
   String _selectedDepartment = 'عام (General)';
-  bool _isSaving = false;
 
   final List<String> _departments = [
     'عام (General)',
@@ -28,34 +27,25 @@ class _OnboardingProfileScreenState extends ConsumerState<OnboardingProfileScree
     'تكنولوجيا المعلومات (IT)',
   ];
 
-  Future<void> _skipOnboarding() async {
-    setState(() => _isSaving = true);
-    try {
-      await ref.read(authServiceProvider).updateUserProfile(
-        faculty: _selectedFaculty,
-        year: _selectedYear,
-        department: _selectedDepartment,
-        onboardingCompleted: true,
-      );
-    } catch (_) {}
-    if (mounted) {
-      context.go('/today');
-    }
+  void _skipOnboarding() {
+    // حفظ التفضيلات وإتمام التهيئة في الخلفية دون أي تعطيل لدخول المستخدم
+    ref.read(authServiceProvider).updateUserProfile(
+      faculty: _selectedFaculty,
+      year: _selectedYear,
+      department: _selectedDepartment,
+      onboardingCompleted: true,
+    );
+    context.go('/today');
   }
 
-  Future<void> _proceedToCourses() async {
-    setState(() => _isSaving = true);
-    try {
-      await ref.read(authServiceProvider).updateUserProfile(
-        faculty: _selectedFaculty,
-        year: _selectedYear,
-        department: _selectedDepartment,
-      );
-    } catch (_) {}
-    if (mounted) {
-      setState(() => _isSaving = false);
-      context.push('/onboarding-courses');
-    }
+  void _proceedToCourses() {
+    // حفظ بيانات الملف الشخصي والانتقال لاختيار المواد
+    ref.read(authServiceProvider).updateUserProfile(
+      faculty: _selectedFaculty,
+      year: _selectedYear,
+      department: _selectedDepartment,
+    );
+    context.push('/onboarding-courses');
   }
 
   @override
@@ -72,7 +62,7 @@ class _OnboardingProfileScreenState extends ConsumerState<OnboardingProfileScree
         centerTitle: true,
         actions: [
           TextButton(
-            onPressed: _isSaving ? null : _skipOnboarding,
+            onPressed: _skipOnboarding,
             child: const Text(
               'تخطي',
               style: TextStyle(
@@ -216,14 +206,12 @@ class _OnboardingProfileScreenState extends ConsumerState<OnboardingProfileScree
               SizedBox(
                 height: 52,
                 child: ElevatedButton.icon(
-                  onPressed: _isSaving ? null : _proceedToCourses,
+                  onPressed: _proceedToCourses,
                   icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20),
-                  label: _isSaving
-                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text(
-                          'التالي: اختيار المواد',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
+                  label: const Text(
+                    'التالي: اختيار المواد',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
