@@ -53,10 +53,22 @@ class _OnboardingRateScreenState extends ConsumerState<OnboardingRateScreen> {
         courseRatings: _ratings,
         onboardingCompleted: true,
       );
-    } catch (_) {}
-
-    if (mounted) {
-      context.go('/today');
+      if (mounted) {
+        context.go('/today');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('تعذر حفظ البيانات: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 
