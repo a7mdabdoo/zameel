@@ -150,7 +150,7 @@ class _NeedHelpScreenState extends State<NeedHelpScreen> {
               SizedBox(
                 height: 52,
                 child: ElevatedButton.icon(
-                  onPressed: () => context.push('/candidates'),
+                  onPressed: () => context.push('/candidates', extra: _selectedCourse),
                   icon: const Icon(Icons.search_rounded, color: Colors.white),
                   label: const Text(
                     'ابحث عن زميل متاح',

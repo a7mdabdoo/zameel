@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/state/app_state.dart';
+import '../../../features/auth/data/auth_service.dart';
+import '../../../features/timebank/data/timebank_repository.dart';
 
 class MyOffersScreen extends ConsumerStatefulWidget {
   const MyOffersScreen({super.key});
@@ -19,8 +20,15 @@ class _MyOffersScreenState extends ConsumerState<MyOffersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final timeBankState = ref.watch(timeBankProvider);
-    final offers = timeBankState.offers;
+    final user = ref.watch(authServiceProvider).currentUser;
+    final userId = user?.uid ?? '';
+
+    final liveOffersAsync = ref.watch(userOffersStreamProvider(userId));
+    final offers = liveOffersAsync.value ?? [];
+
+    final learnerSessionsAsync = ref.watch(learnerSessionsStreamProvider(userId));
+    final teacherSessionsAsync = ref.watch(teacherSessionsStreamProvider(userId));
+    final totalSessionsCount = (learnerSessionsAsync.value?.length ?? 0) + (teacherSessionsAsync.value?.length ?? 0);
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -54,7 +62,7 @@ class _MyOffersScreenState extends ConsumerState<MyOffersScreen> {
                 children: [
                   _buildTabItem(0, 'عروضي (${offers.length})'),
                   const SizedBox(width: 8),
-                  _buildTabItem(1, 'جلساتي (${timeBankState.sessions.length})'),
+                  _buildTabItem(1, 'جلساتي ($totalSessionsCount)'),
                   const SizedBox(width: 8),
                   _buildTabItem(2, 'طلب مساعدة'),
                 ],
@@ -136,6 +144,33 @@ class _MyOffersScreenState extends ConsumerState<MyOffersScreen> {
         ),
 
         const SizedBox(height: 16),
+
+        if (offers.isEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40.0, horizontal: 20.0),
+              child: Column(
+                children: [
+                  const Icon(Icons.school_outlined, size: 64, color: AppColors.textSecondary),
+                  const SizedBox(height: 16),
+                  Text(
+                    'لا توجد لديك عروض شرح حالياً',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'شارك معرفتك مع زملائك واكسب عملات وقت لطلب المساعدة في المواد التي تحتاجها.\nاضغط على الزر بالأسفل لإضافة أول عرض شرح.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
+                  ),
+                ],
+              ),
+            ),
+          ),
 
         // Active offers list
         ...offers.map((offer) {

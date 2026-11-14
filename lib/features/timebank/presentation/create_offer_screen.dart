@@ -9,6 +9,9 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/models/app_models.dart';
 import '../../../core/state/app_state.dart';
 
+import '../../../features/auth/data/auth_service.dart';
+import '../../../features/timebank/data/timebank_repository.dart';
+
 class CreateOfferScreen extends ConsumerStatefulWidget {
   const CreateOfferScreen({super.key});
 
@@ -18,9 +21,10 @@ class CreateOfferScreen extends ConsumerStatefulWidget {
 
 class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
   CourseSeed _selectedCourse = AppConstants.seedCourses[0]; // OOP
-  final _topicController = TextEditingController(text: 'شرح مفهوم الوراثة والـ Polymorphism وحل تمارين عملية');
+  final _topicController = TextEditingController();
   String _selectedDay = 'الأحد';
   String _location = 'مكتبة الكلية • قاعة الاستذكار 2';
+  bool _isPublishing = false;
 
   final List<String> _days = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
 
@@ -30,30 +34,67 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
     super.dispose();
   }
 
-  void _publishOffer() {
-    if (_topicController.text.trim().isEmpty) return;
+  Future<void> _publishOffer() async {
+    final topic = _topicController.text.trim();
+    if (topic.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يرجى كتابة الموضوع الذي ستشرحه لزملائك')),
+      );
+      return;
+    }
 
-    final newOffer = TimeBankOfferModel(
-      id: 'offer_${DateTime.now().millisecondsSinceEpoch}',
-      teacherId: 'current_user',
-      teacherName: 'أحمد محمود (أنت)',
-      courseId: _selectedCourse.id,
-      courseName: _selectedCourse.name,
-      courseCode: _selectedCourse.code,
-      topic: _topicController.text.trim(),
-      day: _selectedDay,
-      time: '12:00 ظهراً',
-      durationMinutes: 60,
-      location: _location,
-      courseColor: _selectedCourse.color,
-    );
+    final user = ref.read(authServiceProvider).currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يرجى تسجيل الدخول أولاً')),
+      );
+      return;
+    }
 
-    ref.read(timeBankProvider.notifier).addOffer(newOffer);
+    setState(() => _isPublishing = true);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('تم نشر عرض الشرح بنجاح! سيتم إشعارك فور حجز أحد الزملاء 🎉')),
-    );
-    context.pop();
+    try {
+      final profileAsync = ref.read(userProfileStreamProvider);
+      final profileName = profileAsync.value?.data()?['name'] as String? ?? user.displayName ?? 'زميل';
+
+      final offerId = 'offer_${DateTime.now().millisecondsSinceEpoch}_${user.uid.substring(0, 5)}';
+      final newOffer = TimeBankOfferModel(
+        id: offerId,
+        teacherId: user.uid,
+        teacherName: profileName,
+        courseId: _selectedCourse.id,
+        courseName: _selectedCourse.name,
+        courseCode: _selectedCourse.code,
+        topic: topic,
+        day: _selectedDay,
+        time: '12:00 ظهراً',
+        durationMinutes: 60,
+        location: _location,
+        courseColor: _selectedCourse.color,
+        isAvailable: true,
+        createdAt: DateTime.now(),
+      );
+
+      await ref.read(timeBankRepositoryProvider).createOffer(newOffer);
+      ref.read(timeBankProvider.notifier).addOffer(newOffer);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم نشر عرض الشرح بنجاح! سيظهر لزملائك فوراً 🎉')),
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('حدث خطأ أثناء نشر العرض: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isPublishing = false);
+      }
+    }
   }
 
   @override
@@ -187,11 +228,17 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
               SizedBox(
                 height: 52,
                 child: ElevatedButton.icon(
-                  onPressed: _publishOffer,
-                  icon: const Icon(Icons.check, color: Colors.white),
-                  label: const Text(
-                    'نشر العرض في بنك الوقت',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                  onPressed: _isPublishing ? null : _publishOffer,
+                  icon: _isPublishing
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Icon(Icons.check, color: Colors.white),
+                  label: Text(
+                    _isPublishing ? 'جاري نشر العرض...' : 'نشر العرض في بنك الوقت',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,

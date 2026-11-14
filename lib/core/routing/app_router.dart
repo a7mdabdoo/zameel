@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/data/auth_service.dart';
+import '../constants/app_constants.dart';
+import '../models/app_models.dart';
 
 // شاشات مطور 2
 import '../../features/auth/presentation/welcome_screen.dart';
@@ -155,11 +157,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/candidates',
-        builder: (context, state) => const CandidatesScreen(),
+        builder: (context, state) => CandidatesScreen(targetCourse: state.extra as CourseSeed?),
       ),
       GoRoute(
         path: '/booking',
-        builder: (context, state) => const BookingScreen(),
+        builder: (context, state) => BookingScreen(offer: state.extra as TimeBankOfferModel?),
       ),
       GoRoute(
         path: '/create-offer',
@@ -171,15 +173,15 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/session-teacher',
-        builder: (context, state) => const SessionDetailsTeacherScreen(),
+        builder: (context, state) => SessionDetailsTeacherScreen(session: state.extra as TimeBankSessionModel?),
       ),
       GoRoute(
         path: '/session-learner',
-        builder: (context, state) => const SessionDetailsLearnerScreen(),
+        builder: (context, state) => SessionDetailsLearnerScreen(session: state.extra as TimeBankSessionModel?),
       ),
       GoRoute(
         path: '/session-rating',
-        builder: (context, state) => const RatingScreen(),
+        builder: (context, state) => RatingScreen(session: state.extra as TimeBankSessionModel?),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {

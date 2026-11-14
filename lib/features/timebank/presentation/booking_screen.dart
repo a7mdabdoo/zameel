@@ -1,19 +1,117 @@
 // مطور 3
-// فيجما: حجز جلسة - ذاكر وعلّم
+// فيجما: حجز جلسة - ذاكر وعلّم (الربط الحي بالضمان والفايربيز)
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/constants/app_constants.dart';
+import '../../../core/models/app_models.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/state/app_state.dart';
+import '../../auth/data/auth_service.dart';
+import '../data/timebank_repository.dart';
 
-class BookingScreen extends ConsumerWidget {
-  const BookingScreen({super.key});
+class BookingScreen extends ConsumerStatefulWidget {
+  final TimeBankOfferModel? offer;
+  const BookingScreen({super.key, this.offer});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final timeBankState = ref.watch(timeBankProvider);
-    final coins = timeBankState.activeTimeCoins;
+  ConsumerState<BookingScreen> createState() => _BookingScreenState();
+}
+
+class _BookingScreenState extends ConsumerState<BookingScreen> {
+  bool _isBooking = false;
+
+  Future<void> _handleBookSession(int currentCoins) async {
+    final offer = widget.offer;
+    if (offer == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('بيانات العرض غير متوفرة')),
+      );
+      return;
+    }
+
+    final user = ref.read(authServiceProvider).currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يرجى تسجيل الدخول أولاً')),
+      );
+      return;
+    }
+
+    if (currentCoins < AppConstants.sessionCostCoins) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('رصيدك لا يكفي لحجز الجلسة (المطلوب: 1 عملة وقت)')),
+      );
+      return;
+    }
+
+    setState(() => _isBooking = true);
+
+    try {
+      final profileAsync = ref.read(userProfileStreamProvider);
+      final profileName = profileAsync.value?.data()?['name'] as String? ?? user.displayName ?? 'زميل';
+
+      final sessionId = 'sess_${DateTime.now().millisecondsSinceEpoch}_${user.uid.substring(0, 5)}';
+      final session = TimeBankSessionModel(
+        id: sessionId,
+        learnerId: user.uid,
+        learnerName: profileName,
+        teacherId: offer.teacherId,
+        teacherName: offer.teacherName,
+        teacherInitials: offer.teacherName.trim().isNotEmpty
+            ? offer.teacherName.trim().split(' ').map((p) => p.isNotEmpty ? p[0] : '').take(2).join('.')
+            : 'ز.م',
+        courseName: offer.courseName,
+        courseCode: offer.courseCode,
+        topic: offer.topic,
+        day: offer.day,
+        time: offer.time,
+        durationMinutes: offer.durationMinutes,
+        location: offer.location,
+        costCoins: AppConstants.sessionCostCoins,
+        status: 'confirmed',
+        escrowStatus: 'held',
+        rating: 5,
+        scheduledAt: DateTime.now().add(const Duration(hours: 24)),
+        createdAt: DateTime.now(),
+      );
+
+      await ref.read(timeBankRepositoryProvider).bookSessionWithEscrow(session: session);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تم حجز الجلسة بنجاح مع ${offer.teacherName}! وحُجزت 1 عملة في الضمان 🚀')),
+        );
+        context.pushReplacement('/my-sessions');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر إتمام الحجز: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isBooking = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final offer = widget.offer;
+    final userProfileAsync = ref.watch(userProfileStreamProvider);
+    final userDoc = userProfileAsync.value?.data();
+    final coins = (userDoc?['timeCoins'] as num?)?.toInt() ?? 2;
+
+    final teacherName = offer?.teacherName ?? 'زميل دراسة';
+    final teacherInitials = teacherName.trim().isNotEmpty
+        ? teacherName.trim().split(' ').map((p) => p.isNotEmpty ? p[0] : '').take(2).join('.')
+        : 'ز.م';
+    final courseName = offer?.courseName ?? 'المادة الدراسية';
+    final topic = offer?.topic ?? 'شرح موضوع دراسي وتطبيق عملي';
+    final dayTime = offer != null ? '${offer.day} • ${offer.time} (${offer.durationMinutes} دقيقة)' : 'ميعاد متفق عليه';
+    final location = offer?.location ?? 'مبنى الكلية';
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -49,14 +147,14 @@ class BookingScreen extends ConsumerWidget {
                     CircleAvatar(
                       radius: 26,
                       backgroundColor: AppColors.primaryContainer,
-                      child: const Text('ع.خ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                      child: Text(teacherInitials, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary)),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('عمر خالد', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
+                          Text(teacherName, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
                           const SizedBox(height: 2),
                           const Text('الفرقة الثانية • كلية الحاسبات والذكاء الاصطناعي', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                           const SizedBox(height: 4),
@@ -64,7 +162,7 @@ class BookingScreen extends ConsumerWidget {
                             children: [
                               Icon(Icons.star_rounded, size: 16, color: AppColors.pointsAmber),
                               SizedBox(width: 4),
-                              Text('4.9 (14 جلسة ناجحة)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                              Text('تقييم ممتاز في بنك الوقت', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary)),
                             ],
                           ),
                         ],
@@ -86,50 +184,43 @@ class BookingScreen extends ConsumerWidget {
                 ),
                 child: Column(
                   children: [
-                    _buildDetailRow(context, Icons.menu_book_rounded, 'المادة', 'الجبر الخطي (Linear Algebra)'),
+                    _buildDetailRow(context, Icons.menu_book_rounded, 'المادة', courseName),
                     const Divider(height: 20, color: AppColors.hairline),
-                    _buildDetailRow(context, Icons.topic_outlined, 'الموضوع', 'الفضاءات المتجهة والتحويلات الخطية'),
+                    _buildDetailRow(context, Icons.topic_outlined, 'الموضوع', topic),
                     const Divider(height: 20, color: AppColors.hairline),
-                    _buildDetailRow(context, Icons.calendar_today_outlined, 'الموعد', 'اليوم • 1:30 ظهراً (60 دقيقة)'),
+                    _buildDetailRow(context, Icons.calendar_today_outlined, 'الموعد', dayTime),
                     const Divider(height: 20, color: AppColors.hairline),
-                    _buildDetailRow(context, Icons.location_on_outlined, 'المكان', 'معمل 3 • مبنى الكلية'),
+                    _buildDetailRow(context, Icons.location_on_outlined, 'المكان', location),
                   ],
                 ),
               ),
 
               const SizedBox(height: 20),
 
-              // Time Coin deduction notice
+              // Escrow notice card
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.pointsAmber.withValues(alpha: 0.12),
+                  color: AppColors.pointsAmber.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: AppColors.pointsAmber.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: AppColors.pointsAmber,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.monetization_on_rounded, size: 20, color: Colors.white),
-                    ),
-                    const SizedBox(width: 14),
+                    const Icon(Icons.shield_outlined, color: AppColors.pointsAmber, size: 28),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'تكلفة الحجز: 1 عملة وقت (رصيدك الحالي: $coins عملات)',
-                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF664700)),
-                          ),
-                          const SizedBox(height: 2),
                           const Text(
-                            'يتم حجز العملة كأمانة، وتتحول لحساب الزميل فور تأكيد إتمام الجلسة.',
-                            style: TextStyle(fontSize: 11, color: Color(0xFF855D00)),
+                            'نظام الضمان الآمن (Escrow System)',
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF664700)),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'رصيدك الحالي: $coins عملات وقت • تكلفة الجلسة: 1 عملة.\nتُعلّق العملة كأمانة، ولا تُحوّل لحساب الزميل إلا بعد انتهاء الشرح وتأكيدك.',
+                            style: const TextStyle(fontSize: 11, color: Color(0xFF855D00), height: 1.4),
                           ),
                         ],
                       ),
@@ -144,32 +235,25 @@ class BookingScreen extends ConsumerWidget {
               SizedBox(
                 height: 52,
                 child: ElevatedButton.icon(
-                  onPressed: coins <= 0
+                  onPressed: (_isBooking || coins < AppConstants.sessionCostCoins)
                       ? null
-                      : () {
-                          // تفعيل الحجز الفعلي في منظومة Riverpod
-                          ref.read(timeBankProvider.notifier).bookSession(
-                                teacherName: 'عمر خالد',
-                                teacherInitials: 'ع.خ',
-                                courseName: 'الجبر الخطي',
-                                courseCode: 'MATH201',
-                                topic: 'الفضاءات المتجهة والتحويلات الخطية',
-                                time: '1:30 ظهراً',
-                                location: 'معمل 3 • الكلية',
-                              );
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('تم تأكيد حجز الجلسة بنجاح مع عمر خالد! 🚀')),
-                          );
-                          context.push('/my-sessions');
-                        },
-                  icon: const Icon(Icons.send_rounded, color: Colors.white, size: 18),
-                  label: const Text(
-                    'أرسل طلب الجلسة',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      : () => _handleBookSession(coins),
+                  icon: _isBooking
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Icon(Icons.send_rounded, color: Colors.white, size: 18),
+                  label: Text(
+                    _isBooking
+                        ? 'جاري تأكيد الحجز وحفظ الضمان...'
+                        : (coins < AppConstants.sessionCostCoins ? 'رصيدك لا يكفي للحجز (تحتاج 1 عملة)' : 'تأكيد الحجز وخصم عملة واحدة للضمان'),
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
+                    disabledBackgroundColor: Colors.grey.shade400,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                 ),
@@ -188,7 +272,14 @@ class BookingScreen extends ConsumerWidget {
         const SizedBox(width: 12),
         Text(label, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
         const Spacer(),
-        Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
+        Expanded(
+          flex: 2,
+          child: Text(
+            value,
+            textAlign: TextAlign.end,
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
+          ),
+        ),
       ],
     );
   }

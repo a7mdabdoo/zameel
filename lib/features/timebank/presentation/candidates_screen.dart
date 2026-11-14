@@ -5,14 +5,32 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/state/app_state.dart';
+import '../../../core/constants/app_constants.dart';
+import '../../../features/auth/data/auth_service.dart';
+import '../../../features/timebank/data/timebank_repository.dart';
 
 class CandidatesScreen extends ConsumerWidget {
-  const CandidatesScreen({super.key});
+  final CourseSeed? targetCourse;
+  const CandidatesScreen({super.key, this.targetCourse});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final matches = ref.watch(peerMatchesProvider);
+    final user = ref.watch(authServiceProvider).currentUser;
+    final currentUserId = user?.uid ?? '';
+
+    final availableOffersAsync = ref.watch(availableOffersStreamProvider);
+    final allOffers = availableOffersAsync.value ?? [];
+
+    // تصفية العروض المتاحة لتلك المادة واستبعاد عروض المستخدم نفسه
+    final courseOffers = allOffers.where((offer) {
+      final isNotSelf = offer.teacherId != currentUserId;
+      if (targetCourse != null) {
+        return isNotSelf && (offer.courseId == targetCourse!.id ||
+            offer.courseName.contains(targetCourse!.name) ||
+            targetCourse!.name.contains(offer.courseName));
+      }
+      return isNotSelf;
+    }).toList();
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -24,161 +42,188 @@ class CandidatesScreen extends ConsumerWidget {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          'المرشحون للمساعدة 🎯 (${matches.length} زملاء)',
+          targetCourse != null
+              ? 'المرشحون: ${targetCourse!.name}'
+              : 'المرشحون للمساعدة 🎯 (${courseOffers.length})',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
         ),
         centerTitle: true,
       ),
       body: SafeArea(
-        child: ListView.builder(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          itemCount: matches.length,
-          itemBuilder: (context, index) {
-            final match = matches[index];
-            final teacher = match.teacher;
-
-            return Container(
-              margin: const EdgeInsets.only(bottom: 14),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardTheme.color,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: AppColors.hairline),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Top row: match badge & Peer info
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: courseOffers.isEmpty
+            ? Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryContainer.withValues(alpha: 0.6),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.auto_awesome_rounded, size: 14, color: AppColors.primary),
-                            const SizedBox(width: 4),
-                            Text(
-                              'توافق ${match.matchScore}%',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                          ],
+                      const Icon(Icons.people_outline_rounded, size: 72, color: AppColors.textSecondary),
+                      const SizedBox(height: 18),
+                      Text(
+                        'لا يوجد عروض شرح متاحة حالياً لهذه المادة',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
-                      Row(
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                teacher.name,
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.onSurface,
-                                ),
-                              ),
-                              Row(
-                                children: [
-                                  Text(
-                                    '(${teacher.totalReviews} جلسة شرح)',
-                                    style: const TextStyle(fontSize: 11, color: AppColors.textTertiary),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    '${teacher.rating}',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: Theme.of(context).colorScheme.onSurface,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 2),
-                                  const Icon(Icons.star_rounded, size: 16, color: AppColors.pointsAmber),
-                                ],
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: 12),
-                          CircleAvatar(
-                            radius: 22,
-                            backgroundColor: AppColors.primaryContainer,
-                            child: Text(
-                              teacher.initials,
-                              style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
-                            ),
-                          ),
-                        ],
+                      const SizedBox(height: 10),
+                      Text(
+                        'يمكن لزميلك الدخول من حسابه والضغط على "أضف عرضاً للشرح" في مادة "${targetCourse?.name ?? 'المادة'}"، وسيظهر لك عرضه هنا فوراً لحجز الجلسة معه!',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.5),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        onPressed: () => context.pop(),
+                        icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 18),
+                        label: const Text('العودة لاختيار مادة أخرى', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
                       ),
                     ],
                   ),
+                ),
+              )
+            : ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                itemCount: courseOffers.length,
+                itemBuilder: (context, index) {
+                  final offer = courseOffers[index];
+                  final teacherInitials = offer.teacherName.trim().isNotEmpty
+                      ? offer.teacherName.trim().split(' ').map((p) => p.isNotEmpty ? p[0] : '').take(2).join('.')
+                      : 'ز.م';
 
-                  const SizedBox(height: 12),
-                  Text(
-                    teacher.bioNote,
-                    style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
-                  ),
-
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(10),
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 14),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceAlt,
-                      borderRadius: BorderRadius.circular(10),
+                      color: Theme.of(context).cardTheme.color,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: AppColors.hairline),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
                     ),
-                    child: Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Icon(Icons.access_time_filled_rounded, size: 16, color: AppColors.primary),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'الموعد المشترك: ${match.bestSlotFormatted}',
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary),
+                        // Top row: badge & Peer info
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: AppColors.primaryContainer.withValues(alpha: 0.6),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.verified_user_rounded, size: 14, color: AppColors.primary),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'عرض متاح',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Row(
+                              children: [
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      offer.teacherName,
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                        color: Theme.of(context).colorScheme.onSurface,
+                                      ),
+                                    ),
+                                    const Text(
+                                      'زميل دراسة • كلية الحاسبات',
+                                      style: TextStyle(fontSize: 11, color: AppColors.textTertiary),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(width: 12),
+                                CircleAvatar(
+                                  radius: 22,
+                                  backgroundColor: AppColors.primaryContainer,
+                                  child: Text(
+                                    teacherInitials,
+                                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 12),
+                        Text(
+                          offer.topic,
+                          style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurface, height: 1.4),
+                        ),
+
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceAlt,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.access_time_filled_rounded, size: 16, color: AppColors.primary),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'الموعد: ${offer.day} • ${offer.time} (${offer.location})',
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        // Button "عرض تفاصيل الحجز" -> /booking
+                        SizedBox(
+                          height: 44,
+                          child: ElevatedButton.icon(
+                            onPressed: () => context.push('/booking', extra: offer),
+                            icon: const Icon(Icons.calendar_month_outlined, color: Colors.white, size: 18),
+                            label: const Text(
+                              'عرض تفاصيل الحجز',
+                              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  ),
-
-                  const SizedBox(height: 14),
-
-                  // Button "اعرض واحجز" -> /booking
-                  SizedBox(
-                    height: 44,
-                    child: ElevatedButton.icon(
-                      onPressed: () => context.push('/booking'),
-                      icon: const Icon(Icons.calendar_month_outlined, color: Colors.white, size: 18),
-                      label: const Text(
-                        'عرض تفاصيل الحجز',
-                        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                  ),
-                ],
+                  );
+                },
               ),
-            );
-          },
-        ),
       ),
     );
   }

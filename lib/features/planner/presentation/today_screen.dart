@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/state/app_state.dart';
 import '../../auth/data/auth_service.dart';
+import '../../timebank/data/timebank_repository.dart';
 
 class TodayScreen extends ConsumerWidget {
   const TodayScreen({super.key});
@@ -17,13 +18,21 @@ class TodayScreen extends ConsumerWidget {
     final userDoc = userProfileAsync.value?.data();
     final userName = userDoc?['name'] as String? ?? 'أحمد';
 
-    final plannerState = ref.watch(plannerProvider);
-    final timeBankState = ref.watch(timeBankProvider);
+    final user = ref.watch(authServiceProvider).currentUser;
+    final userId = user?.uid ?? '';
 
-    final timeCoins = timeBankState.activeTimeCoins;
+    final plannerState = ref.watch(plannerProvider);
+
+    final timeCoins = (userDoc?['timeCoins'] as num?)?.toInt() ?? 2;
     final todayBlocks = plannerState.studyBlocks.where((b) => b.day == 'السبت').toList();
     final nextBlock = todayBlocks.isNotEmpty ? todayBlocks.first : null;
-    final confirmedSession = timeBankState.sessions.isNotEmpty ? timeBankState.sessions.first : null;
+
+    final learnerSessions = ref.watch(learnerSessionsStreamProvider(userId)).value ?? [];
+    final teacherSessions = ref.watch(teacherSessionsStreamProvider(userId)).value ?? [];
+    final allSessions = [...learnerSessions, ...teacherSessions];
+    final confirmedSession = allSessions.isNotEmpty
+        ? allSessions.firstWhere((s) => s.escrowStatus == 'held', orElse: () => allSessions.first)
+        : null;
 
     final progressPct = plannerState.progressPercentage;
     final progressInt = (progressPct * 100).round();

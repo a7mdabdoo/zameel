@@ -5,7 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/state/app_state.dart';
+import '../../../features/auth/data/auth_service.dart';
+import '../../../features/timebank/data/timebank_repository.dart';
 
 class MySessionsScreen extends ConsumerStatefulWidget {
   const MySessionsScreen({super.key});
@@ -19,9 +20,14 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final timeBankState = ref.watch(timeBankProvider);
-    final learnerSessions = timeBankState.sessions.where((s) => s.learnerId == 'current_user').toList();
-    final teacherSessions = timeBankState.sessions.where((s) => s.teacherId == 'current_user').toList();
+    final user = ref.watch(authServiceProvider).currentUser;
+    final userId = user?.uid ?? '';
+
+    final learnerSessionsAsync = ref.watch(learnerSessionsStreamProvider(userId));
+    final teacherSessionsAsync = ref.watch(teacherSessionsStreamProvider(userId));
+
+    final learnerSessions = learnerSessionsAsync.value ?? [];
+    final teacherSessions = teacherSessionsAsync.value ?? [];
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -121,6 +127,19 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                       )
                     else
                       ...learnerSessions.map((session) {
+                        final isCompleted = session.status == 'completed' || session.escrowStatus == 'released_to_teacher';
+                        final isCancelled = session.status.startsWith('cancelled') || session.escrowStatus == 'refunded_to_learner';
+                        
+                        String badge = 'في الضمان 🔒';
+                        Color bColor = AppColors.deepSage;
+                        if (isCompleted) {
+                          badge = 'مكتملة ✓';
+                          bColor = AppColors.primary;
+                        } else if (isCancelled) {
+                          badge = 'ملغاة ↩️';
+                          bColor = AppColors.error;
+                        }
+
                         return _buildSessionCard(
                           partnerName: '${session.teacherName} (الشارح)',
                           partnerInitials: session.teacherInitials,
@@ -128,14 +147,14 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                           topic: session.topic,
                           time: '${session.day} • ${session.time} (${session.durationMinutes} دقيقة)',
                           location: session.location,
-                          badgeText: session.status == 'completed' ? 'مكتملة ✓' : 'مؤكدة',
-                          badgeColor: session.status == 'completed' ? AppColors.primary : AppColors.deepSage,
+                          badgeText: badge,
+                          badgeColor: bColor,
                           costText: '-${session.costCoins} عملة وقت',
                           costColor: AppColors.error,
-                          actionLabel: session.status == 'completed'
-                              ? 'تم تقييم الجلسة وتحويل الرصيد'
-                              : 'تفاصيل الجلسة وتأكيد الإتمام',
-                          onAction: () => context.push('/session-learner'),
+                          actionLabel: isCompleted
+                              ? 'عرض تقييم الجلسة'
+                              : (isCancelled ? 'تفاصيل الجلسة الملغاة' : 'تفاصيل الجلسة وتأكيد الإتمام'),
+                          onAction: () => context.push('/session-learner', extra: session),
                         );
                       }),
                   ] else ...[
@@ -143,11 +162,24 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                       const Center(
                         child: Padding(
                           padding: EdgeInsets.all(32.0),
-                          child: Text('لا توجد طلبات جلسات شرح واردة حالياً'),
+                          child: Text('لا توجد جلسات شرح واردة لك حالياً'),
                         ),
                       )
                     else
                       ...teacherSessions.map((session) {
+                        final isCompleted = session.status == 'completed' || session.escrowStatus == 'released_to_teacher';
+                        final isCancelled = session.status.startsWith('cancelled') || session.escrowStatus == 'refunded_to_learner';
+
+                        String badge = 'مؤكدة (في الضمان)';
+                        Color bColor = AppColors.primary;
+                        if (isCompleted) {
+                          badge = 'مكتملة ✓';
+                          bColor = AppColors.primary;
+                        } else if (isCancelled) {
+                          badge = 'ملغاة ↩️';
+                          bColor = AppColors.error;
+                        }
+
                         return _buildSessionCard(
                           partnerName: '${session.learnerName} (المتعلّم)',
                           partnerInitials: session.teacherInitials,
@@ -155,12 +187,14 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                           topic: session.topic,
                           time: '${session.day} • ${session.time} (${session.durationMinutes} دقيقة)',
                           location: session.location,
-                          badgeText: 'طلب وارد',
-                          badgeColor: AppColors.primary,
+                          badgeText: badge,
+                          badgeColor: bColor,
                           costText: '+${session.costCoins} عملة وقت',
                           costColor: AppColors.pointsAmber,
-                          actionLabel: 'تفاصيل الجلسة وبدء الشرح',
-                          onAction: () => context.push('/session-teacher'),
+                          actionLabel: isCompleted
+                              ? 'الجلسة مكتملة ومقبوضة'
+                              : (isCancelled ? 'تفاصيل الإلغاء' : 'تفاصيل الجلسة وبدء الشرح'),
+                          onAction: () => context.push('/session-teacher', extra: session),
                         );
                       }),
                   ],

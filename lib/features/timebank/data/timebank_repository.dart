@@ -357,21 +357,64 @@ class TimeBankRepository {
   // =========================================================================
   // 4. البث المباشر (Firestore Streams)
   // =========================================================================
-  Stream<List<TimeBankSessionModel>> streamUserSessions(String userId) {
+  Stream<List<TimeBankSessionModel>> streamLearnerSessions(String userId) {
     final firestore = _firestore;
     if (firestore == null || userId.isEmpty) {
       return Stream.value([]);
     }
 
-    // نستمع لجلسات المستخدم (كمتعلم أو كمعلم)
     return firestore
         .collection('sessions')
         .where('learnerId', isEqualTo: userId)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs
+      final list = snapshot.docs
           .map((doc) => TimeBankSessionModel.fromMap(doc.data(), doc.id))
           .toList();
+      list.sort((a, b) => (b.createdAt ?? DateTime.now()).compareTo(a.createdAt ?? DateTime.now()));
+      return list;
+    });
+  }
+
+  Stream<List<TimeBankSessionModel>> streamTeacherSessions(String userId) {
+    final firestore = _firestore;
+    if (firestore == null || userId.isEmpty) {
+      return Stream.value([]);
+    }
+
+    return firestore
+        .collection('sessions')
+        .where('teacherId', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) {
+      final list = snapshot.docs
+          .map((doc) => TimeBankSessionModel.fromMap(doc.data(), doc.id))
+          .toList();
+      list.sort((a, b) => (b.createdAt ?? DateTime.now()).compareTo(a.createdAt ?? DateTime.now()));
+      return list;
+    });
+  }
+
+  Stream<List<TimeBankSessionModel>> streamUserSessions(String userId) {
+    return streamLearnerSessions(userId);
+  }
+
+  Stream<List<TimeBankOfferModel>> streamUserOffers(String userId) {
+    final firestore = _firestore;
+    if (firestore == null || userId.isEmpty) {
+      return Stream.value([]);
+    }
+
+    return firestore
+        .collection('offers')
+        .where('teacherId', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) {
+      final list = snapshot.docs
+          .map((doc) => TimeBankOfferModel.fromMap(doc.data(), doc.id))
+          .toList();
+      list.sort((a, b) => (b.createdAt ?? DateTime.now()).compareTo(a.createdAt ?? DateTime.now()));
+      return list;
     });
   }
 
@@ -386,9 +429,11 @@ class TimeBankRepository {
         .where('isAvailable', isEqualTo: true)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs
+      final list = snapshot.docs
           .map((doc) => TimeBankOfferModel.fromMap(doc.data(), doc.id))
           .toList();
+      list.sort((a, b) => (b.createdAt ?? DateTime.now()).compareTo(a.createdAt ?? DateTime.now()));
+      return list;
     });
   }
 
@@ -403,9 +448,11 @@ class TimeBankRepository {
         .where('userId', isEqualTo: userId)
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs
+      final list = snapshot.docs
           .map((doc) => WalletTransactionModel.fromMap(doc.data(), doc.id))
           .toList();
+      list.sort((a, b) => (b.createdAt ?? DateTime.now()).compareTo(a.createdAt ?? DateTime.now()));
+      return list;
     });
   }
 
@@ -418,4 +465,34 @@ class TimeBankRepository {
 
 final timeBankRepositoryProvider = Provider<TimeBankRepository>((ref) {
   return TimeBankRepository();
+});
+
+final learnerSessionsStreamProvider =
+    StreamProvider.family<List<TimeBankSessionModel>, String>((ref, userId) {
+  final repo = ref.watch(timeBankRepositoryProvider);
+  return repo.streamLearnerSessions(userId);
+});
+
+final teacherSessionsStreamProvider =
+    StreamProvider.family<List<TimeBankSessionModel>, String>((ref, userId) {
+  final repo = ref.watch(timeBankRepositoryProvider);
+  return repo.streamTeacherSessions(userId);
+});
+
+final userOffersStreamProvider =
+    StreamProvider.family<List<TimeBankOfferModel>, String>((ref, userId) {
+  final repo = ref.watch(timeBankRepositoryProvider);
+  return repo.streamUserOffers(userId);
+});
+
+final availableOffersStreamProvider =
+    StreamProvider<List<TimeBankOfferModel>>((ref) {
+  final repo = ref.watch(timeBankRepositoryProvider);
+  return repo.streamAvailableOffers();
+});
+
+final userTransactionsStreamProvider =
+    StreamProvider.family<List<WalletTransactionModel>, String>((ref, userId) {
+  final repo = ref.watch(timeBankRepositoryProvider);
+  return repo.streamUserTransactions(userId);
 });
