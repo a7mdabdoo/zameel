@@ -1,16 +1,17 @@
 // مطور 1
-// فيجما: التقييم وتحويل الرصيد - ذاكر وعلّم (المعاملة الذرية Firestore Transaction)
+// فيجما: التقييم وتحويل الرصيد - ذاكر وعلّم (المعاملة الذرية الحقيقية مع الضمان)
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/models/app_models.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/state/app_state.dart';
+import '../../auth/data/auth_service.dart';
+import '../../timebank/data/timebank_repository.dart';
 
 class RatingScreen extends ConsumerStatefulWidget {
-  const RatingScreen({super.key});
+  final TimeBankSessionModel? session;
+  const RatingScreen({super.key, this.session});
 
   @override
   ConsumerState<RatingScreen> createState() => _RatingScreenState();
@@ -18,7 +19,7 @@ class RatingScreen extends ConsumerStatefulWidget {
 
 class _RatingScreenState extends ConsumerState<RatingScreen> {
   int _rating = 5;
-  final _commentController = TextEditingController(text: 'شرح ممتاز جداً ومبسط، ساعدني في فهم الفضاءات المتجهة بسهولة!');
+  final _commentController = TextEditingController();
   bool _isSubmitting = false;
 
   @override
@@ -28,62 +29,71 @@ class _RatingScreenState extends ConsumerState<RatingScreen> {
   }
 
   Future<void> _submitRatingAndTransfer() async {
+    final session = widget.session;
+    if (session == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('بيانات الجلسة غير متوفرة')),
+      );
+      return;
+    }
+
+    final user = ref.read(authServiceProvider).currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يرجى تسجيل الدخول أولاً')),
+      );
+      return;
+    }
+
     setState(() => _isSubmitting = true);
 
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        // المعاملة الذرية (Atomic Firestore Transaction) لنقل عملة الوقت دون تعارض
-        final userDocRef = FirebaseFirestore.instance.collection('users').doc(user.uid);
-        await FirebaseFirestore.instance.runTransaction((transaction) async {
-          final snapshot = await transaction.get(userDocRef);
-          if (snapshot.exists) {
-            final currentCoins = snapshot.data()?['timeCoins'] as int? ?? 3;
-            if (currentCoins > 0) {
-              transaction.update(userDocRef, {'timeCoins': currentCoins - 1});
-            }
-          }
-        });
+      final comment = _commentController.text.trim().isEmpty
+          ? 'شرح ممتاز ومفيد جداً، شكراً للزميل على وقته ومجهوده!'
+          : _commentController.text.trim();
 
-        // تسجيل المعاملة في محفظة المعاملات
-        await FirebaseFirestore.instance.collection('transactions').add({
-          'userId': user.uid,
-          'type': 'spend',
-          'amount': 1,
-          'peerName': 'عمر خالد',
-          'course': 'الجبر الخطي',
-          'rating': _rating,
-          'comment': _commentController.text,
-          'timestamp': FieldValue.serverTimestamp(),
-        });
-      }
-    } catch (_) {}
+      await ref.read(timeBankRepositoryProvider).completeSessionAndReleaseEscrow(
+            sessionId: session.id,
+            learnerId: user.uid,
+            rating: _rating,
+            reviewComment: comment,
+          );
 
-    // تحديث الحالة المحلية في Riverpod
-    ref.read(timeBankProvider.notifier).completeAndRateSession(
-          sessionId: 'sess_1',
-          rating: _rating,
-          reviewComment: _commentController.text,
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تم إتمام الجلسة وتحويل عملة الوقت إلى ${session.teacherName} بنجاح! شكراً لك 🎉')),
         );
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم تحويل عملة الوقت بنجاح وإرسال التقييم! شكراً لك 🎉')),
-      );
-      context.go('/wallet');
+        context.go('/my-sessions');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر إتمام الجلسة وإطلاق الضمان: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final session = widget.session;
+    final teacherName = session?.teacherName ?? 'الزميل الشارح';
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_forward_ios_rounded, color: Theme.of(context).colorScheme.onSurface),
+          onPressed: () => context.pop(),
+        ),
         title: Text(
-          'تقييم الجلسة وتحويل الرصيد ⭐',
+          'تقييم الجلسة وإطلاق العملة ⭐',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
         ),
         centerTitle: true,
@@ -100,54 +110,78 @@ class _RatingScreenState extends ConsumerState<RatingScreen> {
                   width: 72,
                   height: 72,
                   decoration: BoxDecoration(
-                    color: AppColors.sage.withValues(alpha: 0.2),
+                    color: AppColors.primaryContainer.withValues(alpha: 0.5),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check_circle_rounded, size: 48, color: AppColors.deepSage),
+                  child: const Icon(
+                    Icons.school_rounded,
+                    size: 38,
+                    color: AppColors.primary,
+                  ),
                 ),
               ),
-
               const SizedBox(height: 16),
-
               Text(
-                'اكتملت جلسة الشرح بنجاح!',
+                'كيف كانت جلسة الشرح مع $teacherName؟',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
               ),
               const SizedBox(height: 6),
               const Text(
-                'كيف كانت تجربتك مع الزميل عمر خالد في مادة الجبر الخطي؟',
+                'تقييمك يساعد زملاءك في التعرف على تميز الشارح ويزيد من موثوقية بنك الوقت.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
 
-              // Star rating selector
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(5, (index) {
-                  final starValue = index + 1;
-                  return IconButton(
-                    iconSize: 36,
-                    icon: Icon(
-                      starValue <= _rating ? Icons.star_rounded : Icons.star_border_rounded,
-                      color: AppColors.pointsAmber,
+              // Star Rating Selector
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 18),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardTheme.color,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.hairline),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        final starValue = index + 1;
+                        final isFilled = starValue <= _rating;
+                        return IconButton(
+                          iconSize: 36,
+                          icon: Icon(
+                            isFilled ? Icons.star_rounded : Icons.star_border_rounded,
+                            color: isFilled ? AppColors.pointsAmber : AppColors.textTertiary,
+                          ),
+                          onPressed: () => setState(() => _rating = starValue),
+                        );
+                      }),
                     ),
-                    onPressed: () {
-                      setState(() {
-                        _rating = starValue;
-                      });
-                    },
-                  );
-                }),
+                    const SizedBox(height: 8),
+                    Text(
+                      _rating == 5
+                          ? 'ممتاز جداً 🌟'
+                          : _rating == 4
+                              ? 'جيد جداً 👍'
+                              : _rating == 3
+                                  ? 'متوسط 👌'
+                                  : _rating == 2
+                                      ? 'مقبول'
+                                      : 'بحاجة لتحسين',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary),
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 20),
 
-              // Comment
+              // Comment field
               Text(
-                'كلمة شكر أو ملاحظات للزميل',
+                'ملاحظاتك للزميل (اختياري)',
                 style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface),
               ),
               const SizedBox(height: 8),
@@ -155,31 +189,32 @@ class _RatingScreenState extends ConsumerState<RatingScreen> {
                 controller: _commentController,
                 maxLines: 3,
                 decoration: InputDecoration(
+                  hintText: 'اكتب كلمة شكر أو ملاحظات ساعدتك أثناء الشرح...',
                   filled: true,
                   fillColor: Theme.of(context).cardTheme.color,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppColors.hairline)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppColors.hairline)),
                 ),
               ),
 
               const SizedBox(height: 24),
 
-              // Coin transfer notice
+              // Transfer Notice
               Container(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).cardTheme.color,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.hairline),
+                  color: AppColors.primaryContainer.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
                 ),
-                child: Row(
+                child: const Row(
                   children: [
-                    const Icon(Icons.swap_horizontal_circle_outlined, color: AppColors.primary, size: 22),
-                    const SizedBox(width: 10),
+                    Icon(Icons.shield_rounded, color: AppColors.primary, size: 28),
+                    SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'سيتم خصم 1 عملة وقت من رصيدك وإضافتها إلى محفظة عمر خالد تقديراً لجهده الأكاديمي.',
-                        style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurface, height: 1.4),
+                        'عند الضغط على الزر، سيتم فك حجز الضمان وتحويل 1 عملة وقت إلى محفظة الشارح فوراً.',
+                        style: TextStyle(fontSize: 12, color: AppColors.primary, height: 1.4),
                       ),
                     ),
                   ],
@@ -188,33 +223,26 @@ class _RatingScreenState extends ConsumerState<RatingScreen> {
 
               const SizedBox(height: 36),
 
-              // Submit Button -> /wallet
+              // Submit Button
               SizedBox(
                 height: 52,
                 child: ElevatedButton.icon(
                   onPressed: _isSubmitting ? null : _submitRatingAndTransfer,
-                  icon: const Icon(Icons.send_rounded, color: Colors.white),
-                  label: _isSubmitting
-                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text(
-                          'إرسال التقييم وتحويل الرصيد',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                        ),
+                  icon: _isSubmitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        )
+                      : const Icon(Icons.send_rounded, color: Colors.white),
+                  label: Text(
+                    _isSubmitting ? 'جاري تحرير الضمان والتقييم...' : 'إرسال التقييم وإطلاق عملة الوقت',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // Skip Button -> /wallet
-              TextButton(
-                onPressed: () => context.go('/wallet'),
-                child: const Text(
-                  'تخطي التقييم والانتقال إلى المحفظة',
-                  style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
                 ),
               ),
             ],

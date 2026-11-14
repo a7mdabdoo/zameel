@@ -3,7 +3,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../theme/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../algorithms/planner_algorithm.dart';
 import '../algorithms/matching_algorithm.dart';
@@ -60,49 +59,13 @@ class PlannerState {
 }
 
 class PlannerNotifier extends Notifier<PlannerState> {
-  static final List<ScheduleItemModel> _defaultLectures = [
-    const ScheduleItemModel(
-      id: 'lec_1',
-      courseName: 'التفاضل والتكامل (Calculus)',
-      courseCode: 'MATH202',
-      day: 'السبت',
-      startTime: '09:00 ص',
-      endTime: '10:30 ص',
-      room: 'قاعة 3',
-      color: AppColors.courseSlate,
-    ),
-    const ScheduleItemModel(
-      id: 'lec_2',
-      courseName: 'تنظيم الحواسب (Computer Org)',
-      courseCode: 'CS203',
-      day: 'الأحد',
-      startTime: '08:30 ص',
-      endTime: '10:00 ص',
-      room: 'مدرج 2',
-      color: AppColors.courseDustPlum,
-    ),
-    const ScheduleItemModel(
-      id: 'lec_3',
-      courseName: 'هياكل البيانات (Data Structures)',
-      courseCode: 'CS202',
-      day: 'الاثنين',
-      startTime: '10:00 ص',
-      endTime: '11:30 ص',
-      room: 'معمل الحاسب 1',
-      color: AppColors.courseSage,
-    ),
-  ];
-
   @override
   PlannerState build() {
-    return PlannerState(
-      studyBlocks: PlannerAlgorithm.generateWeeklyPlan(
-        courseInputs: PlannerAlgorithm.getDefaultSeedInputs(),
-        lectureSchedule: _defaultLectures,
-      ),
-      lectureSchedule: _defaultLectures,
-      completedBlocksCount: 7,
-      totalWeeklyTarget: 12,
+    return const PlannerState(
+      studyBlocks: [],
+      lectureSchedule: [],
+      completedBlocksCount: 0,
+      totalWeeklyTarget: 0,
     );
   }
 
@@ -194,86 +157,11 @@ class TimeBankState {
 class TimeBankNotifier extends Notifier<TimeBankState> {
   @override
   TimeBankState build() {
-    return TimeBankState(
+    return const TimeBankState(
       activeTimeCoins: AppConstants.welcomeCoins,
-      offers: [
-        const TimeBankOfferModel(
-          id: 'offer_1',
-          teacherId: 'current_user',
-          teacherName: 'أحمد محمود (أنت)',
-          courseId: 'cs201',
-          courseName: 'البرمجة الكائنية (OOP - CS201)',
-          courseCode: 'CS201',
-          topic: 'مفاهيم الوراثة وتعدد الأشكال (Inheritance & Polymorphism) وحل شيت المعمل.',
-          day: 'الأربعاء',
-          time: '12:00 ظهراً',
-          durationMinutes: 60,
-          location: 'مكتبة الكلية • الطابق الثاني',
-          courseColor: AppColors.courseTeal,
-        ),
-      ],
-      sessions: const [
-        TimeBankSessionModel(
-          id: 'sess_1',
-          learnerId: 'current_user',
-          learnerName: 'أحمد محمود',
-          teacherId: 'teacher_1',
-          teacherName: 'عمر خالد',
-          teacherInitials: 'ع.خ',
-          courseName: 'الجبر الخطي (Linear Algebra)',
-          courseCode: 'MATH201',
-          topic: 'الفضاءات المتجهة والتحويلات الخطية',
-          day: 'اليوم (السبت)',
-          time: '1:30 ظهراً',
-          durationMinutes: 60,
-          location: 'معمل 3 • مبنى الكلية',
-          costCoins: 1,
-          status: 'confirmed',
-        ),
-        TimeBankSessionModel(
-          id: 'sess_2',
-          learnerId: 'learner_ziyad',
-          learnerName: 'زياد ناصح',
-          teacherId: 'current_user',
-          teacherName: 'أحمد محمود (أنت)',
-          teacherInitials: 'ز.ن',
-          courseName: 'البرمجة الكائنية (OOP)',
-          courseCode: 'CS201',
-          topic: 'شرح الـ Inheritance والـ Polymorphism',
-          day: 'الأربعاء',
-          time: '12:00 ظهراً',
-          durationMinutes: 60,
-          location: 'مكتبة الكلية • الطابق الثاني',
-          costCoins: 1,
-          status: 'pending',
-        ),
-      ],
-      transactions: const [
-        WalletTransactionModel(
-          id: 'tx_1',
-          title: 'شرح الجبر الخطي من عمر خالد',
-          date: 'اليوم • 1:30 م',
-          amount: 1,
-          isNegative: true,
-          icon: Icons.school_outlined,
-        ),
-        WalletTransactionModel(
-          id: 'tx_2',
-          title: 'شرح البرمجة الكائنية لـ زياد ناصح',
-          date: 'أمس • 4:00 م',
-          amount: 1,
-          isNegative: false,
-          icon: Icons.volunteer_activism_outlined,
-        ),
-        WalletTransactionModel(
-          id: 'tx_3',
-          title: 'مكافأة التسجيل الترحيبية في زَميل',
-          date: 'منذ يومين',
-          amount: AppConstants.welcomeCoins,
-          isNegative: false,
-          icon: Icons.card_giftcard_rounded,
-        ),
-      ],
+      offers: [],
+      sessions: [],
+      transactions: [],
     );
   }
 

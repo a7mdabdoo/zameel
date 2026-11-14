@@ -1,15 +1,98 @@
 // مطور 1
-// فيجما: تأكيد الجلسة - عرض المتعلّم
+// فيجما: تأكيد الجلسة - عرض المتعلّم (الربط الحي بالضمان والتقييم)
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/models/app_models.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../auth/data/auth_service.dart';
+import '../../timebank/data/timebank_repository.dart';
 
-class SessionDetailsLearnerScreen extends StatelessWidget {
-  const SessionDetailsLearnerScreen({super.key});
+class SessionDetailsLearnerScreen extends ConsumerStatefulWidget {
+  final TimeBankSessionModel? session;
+  const SessionDetailsLearnerScreen({super.key, this.session});
+
+  @override
+  ConsumerState<SessionDetailsLearnerScreen> createState() => _SessionDetailsLearnerScreenState();
+}
+
+class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLearnerScreen> {
+  bool _isCancelling = false;
+
+  Future<void> _cancelSession(TimeBankSessionModel session) async {
+    final user = ref.read(authServiceProvider).currentUser;
+    if (user == null) return;
+
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('إلغاء حجز الجلسة'),
+        content: const Text(
+          'قواعد استرداد الضمان:\n'
+          '• إذا ألغيت قبل الموعد بأكثر من ساعتين: يتم استرداد عملة الوقت كاملة لمحفظتك.\n'
+          '• إذا ألغيت قبل الموعد بأقل من ساعتين: تُحوّل العملة للزميل الشارح تعويضاً عن حجز وقته.\n\n'
+          'هل أنت متأكد من رغبتك في الإلغاء؟',
+          style: TextStyle(fontSize: 13, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('تراجع'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('تأكيد الإلغاء', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isCancelling = true);
+
+    try {
+      await ref.read(timeBankRepositoryProvider).cancelSessionWithEscrow(
+            sessionId: session.id,
+            cancellingUserId: user.uid,
+            reason: 'إلغاء من قِبل المتعلّم',
+          );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم إلغاء الجلسة بنجاح وفقاً لقواعد الضمان 🔄')),
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر إلغاء الجلسة: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isCancelling = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final session = widget.session;
+    final teacherName = session?.teacherName ?? 'الزميل الشارح';
+    final teacherInitials = session?.teacherInitials ?? 'ع.خ';
+    final courseName = session?.courseName ?? 'المادة الدراسية';
+    final topic = session?.topic ?? 'موضوع الشرح';
+    final duration = '${session?.durationMinutes ?? 60} دقيقة كاملة';
+    final location = session?.location ?? 'مبنى الكلية';
+    final escrowStatus = session?.escrowStatus ?? 'held';
+    final isHeld = escrowStatus == 'held';
+    final isReleased = escrowStatus == 'released_to_teacher';
+    final isRefunded = escrowStatus == 'refunded_to_learner';
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -44,16 +127,16 @@ class SessionDetailsLearnerScreen extends StatelessWidget {
                     CircleAvatar(
                       radius: 26,
                       backgroundColor: AppColors.primaryContainer,
-                      child: const Text('ع.خ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                      child: Text(teacherInitials, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary)),
                     ),
                     const SizedBox(width: 14),
-                    const Expanded(
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('عمر خالد (الشارح)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                          SizedBox(height: 2),
-                          Text('الفرقة الثانية • هندسة البرمجيات والذكاء الاصطناعي', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                          Text('$teacherName (الشارح)', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                          const SizedBox(height: 2),
+                          const Text('الفرقة الثانية • كلية الحاسبات والذكاء الاصطناعي', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                         ],
                       ),
                     ),
@@ -67,18 +150,39 @@ class SessionDetailsLearnerScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: AppColors.sage.withValues(alpha: 0.15),
+                  color: isReleased
+                      ? AppColors.primary.withValues(alpha: 0.15)
+                      : (isRefunded ? AppColors.error.withValues(alpha: 0.1) : AppColors.sage.withValues(alpha: 0.15)),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.sage.withValues(alpha: 0.3)),
+                  border: Border.all(
+                    color: isReleased
+                        ? AppColors.primary.withValues(alpha: 0.3)
+                        : (isRefunded ? AppColors.error.withValues(alpha: 0.3) : AppColors.sage.withValues(alpha: 0.3)),
+                  ),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.check_circle_rounded, color: AppColors.deepSage, size: 24),
-                    SizedBox(width: 12),
+                    Icon(
+                      isReleased
+                          ? Icons.stars_rounded
+                          : (isRefunded ? Icons.undo_rounded : Icons.lock_clock_rounded),
+                      color: isReleased ? AppColors.primary : (isRefunded ? AppColors.error : AppColors.deepSage),
+                      size: 24,
+                    ),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'انتهت مدة الجلسة المقررة. يرجى تأكيد استلام الشرح ليتم تحويل عملة الوقت لزميلك.',
-                        style: TextStyle(fontSize: 13, color: AppColors.deepSage, height: 1.4),
+                        isReleased
+                            ? 'تم إتمام الجلسة وإطلاق العملة بنجاح! تقييمك للشارح: ${session?.rating ?? 5} نجوم ⭐'
+                            : (isRefunded
+                                ? 'تم إلغاء هذه الجلسة واسترداد العملة إلى محفظتك.'
+                                : 'الجلسة معلقة بالضمان (1 عملة محجوزة). بعد انتهاء الشرح، اضغط لتأكيد الإتمام وتقييم الزميل.'),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isReleased ? AppColors.primary : (isRefunded ? AppColors.error : AppColors.deepSage),
+                          height: 1.4,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
@@ -95,37 +199,55 @@ class SessionDetailsLearnerScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(color: AppColors.hairline),
                 ),
-                child: const Column(
+                child: Column(
                   children: [
-                    _RowItem('المادة', 'الجبر الخطي (MATH201)'),
-                    Divider(height: 20, color: AppColors.hairline),
-                    _RowItem('الموضوع', 'الفضاءات المتجهة والقيم الذاتية'),
-                    Divider(height: 20, color: AppColors.hairline),
-                    _RowItem('المدة الفعلية', '60 دقيقة كاملة'),
-                    Divider(height: 20, color: AppColors.hairline),
-                    _RowItem('المكان', 'معمل 3 • مبنى الكلية'),
+                    _RowItem('المادة', courseName),
+                    const Divider(height: 20, color: AppColors.hairline),
+                    _RowItem('الموضوع', topic),
+                    const Divider(height: 20, color: AppColors.hairline),
+                    _RowItem('المدة المقررة', duration),
+                    const Divider(height: 20, color: AppColors.hairline),
+                    _RowItem('المكان', location),
                   ],
                 ),
               ),
 
               const SizedBox(height: 36),
 
-              // Confirm Button -> /session-rating
-              SizedBox(
-                height: 52,
-                child: ElevatedButton.icon(
-                  onPressed: () => context.push('/session-rating'),
-                  icon: const Icon(Icons.verified_rounded, color: Colors.white),
-                  label: const Text(
-                    'أؤكد إتمام الجلسة واستلام الشرح',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              // Confirm Button -> /session-rating (فقط إذا كانت معلقة في الضمان)
+              if (isHeld) ...[
+                SizedBox(
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    onPressed: () => context.push('/session-rating', extra: session),
+                    icon: const Icon(Icons.verified_rounded, color: Colors.white),
+                    label: const Text(
+                      'أؤكد إتمام الجلسة وتقييم الزميل',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
                   ),
                 ),
-              ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    onPressed: _isCancelling ? null : () => session != null ? _cancelSession(session) : null,
+                    icon: const Icon(Icons.cancel_outlined, color: AppColors.error),
+                    label: Text(
+                      _isCancelling ? 'جاري إلغاء الجلسة...' : 'إلغاء الجلسة',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.error),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.error),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -144,7 +266,14 @@ class _RowItem extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+        Expanded(
+          flex: 2,
+          child: Text(
+            value,
+            textAlign: TextAlign.start,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+          ),
+        ),
         Text(label, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
       ],
     );

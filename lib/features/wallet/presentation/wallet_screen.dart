@@ -1,20 +1,27 @@
 // مطور 1
-// فيجما: محفظتي - ذاكر وعلّم
+// فيجما: محفظتي - ذاكر وعلّم (الربط الحي بالرصيد والعملات من Firestore)
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/state/app_state.dart';
+import '../../auth/data/auth_service.dart';
+import '../../timebank/data/timebank_repository.dart';
 
 class WalletScreen extends ConsumerWidget {
   const WalletScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final timeBankState = ref.watch(timeBankProvider);
-    final timeCoins = timeBankState.activeTimeCoins;
-    final transactions = timeBankState.transactions;
+    final user = ref.watch(authServiceProvider).currentUser;
+    final userId = user?.uid ?? '';
+
+    final userProfileAsync = ref.watch(userProfileStreamProvider);
+    final userDoc = userProfileAsync.value?.data();
+    final timeCoins = (userDoc?['timeCoins'] as num?)?.toInt() ?? 2;
+
+    final transactionsAsync = ref.watch(userTransactionsStreamProvider(userId));
+    final transactions = transactionsAsync.value ?? [];
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -87,7 +94,7 @@ class WalletScreen extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        'تعادل ${(timeCoins * 30 / 60).toStringAsFixed(1)} ساعة تعلّم مجانية مع زملائك',
+                        'تعادل ${(timeCoins * 60 / 60).toStringAsFixed(0)} ساعة تعلّم مجانية مع زملائك',
                         style: const TextStyle(fontSize: 12, color: Colors.white),
                       ),
                     ),
@@ -143,16 +150,39 @@ class WalletScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
 
-              ...transactions.map((tx) {
-                return _buildTransactionItem(
-                  context: context,
-                  title: tx.title,
-                  date: tx.date,
-                  amount: '${tx.isNegative ? '-' : '+'}${tx.amount} عملة',
-                  isNegative: tx.isNegative,
-                  icon: tx.icon,
-                );
-              }),
+              if (transactions.isEmpty)
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 32.0, horizontal: 16.0),
+                    child: Column(
+                      children: [
+                        const Icon(Icons.receipt_long_outlined, size: 54, color: AppColors.textSecondary),
+                        const SizedBox(height: 12),
+                        Text(
+                          'لا توجد حركات مسجلة بعد',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
+                        ),
+                        const SizedBox(height: 6),
+                        const Text(
+                          'عند حجز جلسة أو تقديم شرح لزميلك، ستظهر تفاصيل كل حركة وتحديثات الرصيد هنا بدقة.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              else
+                ...transactions.map((tx) {
+                  return _buildTransactionItem(
+                    context: context,
+                    title: tx.title,
+                    date: tx.date,
+                    amount: '${tx.isNegative ? '-' : '+'}${tx.amount} عملة',
+                    isNegative: tx.isNegative,
+                    icon: tx.icon,
+                  );
+                }),
 
               const SizedBox(height: 20),
             ],
