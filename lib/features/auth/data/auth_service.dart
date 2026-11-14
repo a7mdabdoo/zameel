@@ -147,8 +147,18 @@ class AuthService {
             });
           } else {
             final data = doc.data();
-            if (data != null && (data['onboardingCompleted'] as bool? ?? false) == false) {
-              await docRef.update({'onboardingCompleted': true});
+            final updates = <String, dynamic>{};
+            if ((data?['onboardingCompleted'] as bool? ?? false) == false) {
+              updates['onboardingCompleted'] = true;
+            }
+            if ((data?['email'] as String?)?.isEmpty ?? true) {
+              updates['email'] = cred.user!.email ?? email.trim();
+            }
+            if ((data?['name'] as String?)?.isEmpty ?? true) {
+              updates['name'] = cred.user!.displayName ?? email.split('@').first;
+            }
+            if (updates.isNotEmpty) {
+              await docRef.update(updates);
             }
           }
         } catch (_) {}

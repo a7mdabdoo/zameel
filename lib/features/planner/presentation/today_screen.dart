@@ -14,12 +14,16 @@ class TodayScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final userProfileAsync = ref.watch(userProfileStreamProvider);
-    final userDoc = userProfileAsync.value?.data();
-    final userName = userDoc?['name'] as String? ?? 'أحمد';
-
     final user = ref.watch(authServiceProvider).currentUser;
     final userId = user?.uid ?? '';
+
+    final userProfileAsync = ref.watch(userProfileStreamProvider);
+    final userDoc = userProfileAsync.value?.data();
+    final userName = (userDoc?['name'] as String?)?.isNotEmpty == true
+        ? (userDoc!['name'] as String)
+        : (user?.displayName?.isNotEmpty == true
+            ? user!.displayName!
+            : (user?.email?.split('@').first ?? 'طالب زميل'));
 
     final plannerState = ref.watch(plannerProvider);
 

@@ -4,6 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/data/auth_service.dart';
 import '../../../core/state/app_state.dart';
@@ -23,12 +24,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final themeMode = ref.watch(themeModeProvider);
     final isDark = themeMode == ThemeMode.dark;
 
+    final user = ref.watch(authServiceProvider).currentUser;
     final userProfileAsync = ref.watch(userProfileStreamProvider);
     final userDoc = userProfileAsync.value?.data();
-    final userName = userDoc?['name'] as String? ?? 'أحمد محمود';
-    final userEmail = userDoc?['email'] as String? ?? 'ahmed@fci.edu.eg';
-    final faculty = userDoc?['faculty'] as String? ?? 'كلية الحاسبات والذكاء الاصطناعي';
-    final year = userDoc?['year'] as String? ?? 'الفرقة الثانية';
+
+    // جلب البيانات الحقيقية للمستخدم المسجل حالياً من فايربيس
+    final userName = (userDoc?['name'] as String?)?.isNotEmpty == true
+        ? (userDoc!['name'] as String)
+        : (user?.displayName?.isNotEmpty == true
+            ? user!.displayName!
+            : (user?.email?.split('@').first ?? 'طالب زميل'));
+
+    final userEmail = (userDoc?['email'] as String?)?.isNotEmpty == true
+        ? (userDoc!['email'] as String)
+        : (user?.email?.isNotEmpty == true ? user!.email! : '');
+
+    final faculty = userDoc?['faculty'] as String? ?? AppConstants.faculty;
+    final year = userDoc?['year'] as String? ?? AppConstants.academicYear;
+    final department = userDoc?['department'] as String? ?? 'عام (General)';
+    final completedSessions = (userDoc?['completedSessions'] as num?)?.toInt() ?? 0;
+    final teacherRating = (userDoc?['teacherRating'] as num?)?.toDouble() ?? 5.0;
+    final studyHours = (userDoc?['studyHours'] as num?)?.toInt() ?? 0;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -89,7 +105,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Text(
-                        '$faculty • $year',
+                        '$faculty • $year • $department',
                         style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
                       ),
                     ),
@@ -103,15 +119,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: _buildBadgeCard('جلسات مكتملة', '7 جلسات', Icons.check_circle_outline, AppColors.deepSage),
+                    child: _buildBadgeCard('جلسات مكتملة', '$completedSessions جلسة', Icons.check_circle_outline, AppColors.deepSage),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _buildBadgeCard('تقييم الأقران', '4.9 ★', Icons.star_outline_rounded, AppColors.pointsAmber),
+                    child: _buildBadgeCard('تقييم كمعلم', '${teacherRating.toStringAsFixed(1)} ★', Icons.star_outline_rounded, AppColors.pointsAmber),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _buildBadgeCard('ساعات المذاكرة', '14 ساعة', Icons.timer_outlined, AppColors.primary),
+                    child: _buildBadgeCard('ساعات المذاكرة', '$studyHours ساعة', Icons.timer_outlined, AppColors.primary),
                   ),
                 ],
               ),
