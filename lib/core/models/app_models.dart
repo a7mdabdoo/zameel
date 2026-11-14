@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import '../constants/app_constants.dart';
+import '../theme/app_colors.dart';
 
 // 1. نموذج بيانات المستخدم
 class UserModel {
@@ -199,6 +200,54 @@ class ScheduleItemModel {
     required this.room,
     required this.color,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'courseName': courseName,
+      'courseCode': courseCode,
+      'day': day,
+      'startTime': startTime,
+      'endTime': endTime,
+      'room': room,
+      'colorValue': color.toARGB32(),
+    };
+  }
+
+  factory ScheduleItemModel.fromMap(Map<String, dynamic> map) {
+    return ScheduleItemModel(
+      id: map['id'] as String? ?? 'lec_${DateTime.now().millisecondsSinceEpoch}',
+      courseName: map['courseName'] as String? ?? '',
+      courseCode: map['courseCode'] as String? ?? '',
+      day: map['day'] as String? ?? 'السبت',
+      startTime: map['startTime'] as String? ?? '09:00 ص',
+      endTime: map['endTime'] as String? ?? '10:30 ص',
+      room: map['room'] as String? ?? 'قاعة',
+      color: map['colorValue'] != null ? Color(map['colorValue'] as int) : AppColors.courseSlate,
+    );
+  }
+
+  ScheduleItemModel copyWith({
+    String? id,
+    String? courseName,
+    String? courseCode,
+    String? day,
+    String? startTime,
+    String? endTime,
+    String? room,
+    Color? color,
+  }) {
+    return ScheduleItemModel(
+      id: id ?? this.id,
+      courseName: courseName ?? this.courseName,
+      courseCode: courseCode ?? this.courseCode,
+      day: day ?? this.day,
+      startTime: startTime ?? this.startTime,
+      endTime: endTime ?? this.endTime,
+      room: room ?? this.room,
+      color: color ?? this.color,
+    );
+  }
 }
 
 // 4. نموذج جلسة بنك الوقت مع الضمان المعلق (Time Bank Session with Escrow)

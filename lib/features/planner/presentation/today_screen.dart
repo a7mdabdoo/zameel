@@ -108,33 +108,40 @@ class TodayScreen extends ConsumerWidget {
                       ),
                     ),
 
+                    const SizedBox(width: 8),
                     // Greeting & Date
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          'صباح الخير يا $userName 👋',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        const Row(
-                          children: [
-                            Text(
-                              'اليوم • السبت، 14 نوفمبر',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AppColors.textSecondary,
-                              ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Text(
+                            'صباح الخير يا $userName 👋',
+                            textAlign: TextAlign.end,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
                             ),
-                            SizedBox(width: 4),
-                            Icon(Icons.calendar_today_outlined, size: 13, color: AppColors.textTertiary),
-                          ],
-                        ),
-                      ],
+                          ),
+                          const SizedBox(height: 2),
+                          const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'اليوم • السبت، 14 نوفمبر',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              SizedBox(width: 4),
+                              Icon(Icons.calendar_today_outlined, size: 13, color: AppColors.textTertiary),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -386,55 +393,69 @@ class TodayScreen extends ConsumerWidget {
               const SizedBox(height: 20),
 
               // 4. Section: Today's Timeline (جدول اليوم)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  TextButton(
-                    onPressed: () => context.push('/schedule-setup'),
-                    child: const Text(
-                      '+ إضافة موعد',
-                      style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  Text(
-                    'جدول اليوم (${todayBlocks.length + 1} عناصر)',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
+              Builder(
+                builder: (context) {
+                  final todayLectures = plannerState.lectureSchedule.where((l) => l.day == 'السبت').toList();
+                  final totalTodayItems = todayLectures.length + todayBlocks.length;
 
-              // Lecture 1
-              _buildTimelineItem(
-                context: context,
-                title: 'التفاضل والتكامل (Calculus)',
-                category: 'محاضرة رسمية',
-                room: 'قاعة 3',
-                time: '9:00 ص – 10:30 ص',
-                ribbonColor: AppColors.courseSlate,
-                statusText: 'تمت',
-                isDone: true,
-                onTap: () => context.push('/study-block-details'),
-              ),
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          TextButton(
+                            onPressed: () => context.push('/schedule-setup'),
+                            child: const Text(
+                              '+ إضافة / تعديل المحاضرات',
+                              style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                          Text(
+                            'جدول اليوم ($totalTodayItems عناصر)',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
 
-              // Dynamic Blocks from Greedy Algorithm
-              ...todayBlocks.map((block) {
-                return _buildTimelineItem(
-                  context: context,
-                  title: block.courseName,
-                  category: block.topic,
-                  room: block.room,
-                  time: '${block.startTime} – ${block.endTime}',
-                  ribbonColor: block.ribbonColor,
-                  statusText: block.isCompleted ? 'مكتملة' : 'مخطط لها',
-                  isDone: block.isCompleted,
-                  onTap: () => context.push('/study-block-details'),
-                );
-              }),
+                      // محاضرات اليوم المجدولة يدوياً
+                      ...todayLectures.map((lec) {
+                        return _buildTimelineItem(
+                          context: context,
+                          title: lec.courseName,
+                          category: 'محاضرة رسمية',
+                          room: lec.room,
+                          time: '${lec.startTime} – ${lec.endTime}',
+                          ribbonColor: lec.color,
+                          statusText: 'محاضرة',
+                          isDone: true,
+                          onTap: () => context.push('/schedule-setup'),
+                        );
+                      }),
+
+                      // كتل المذاكرة المتولدة تلقائياً بالخوارزمية الذكية حول المحاضرات
+                      ...todayBlocks.map((block) {
+                        return _buildTimelineItem(
+                          context: context,
+                          title: block.courseName,
+                          category: block.topic,
+                          room: block.room,
+                          time: '${block.startTime} – ${block.endTime}',
+                          ribbonColor: block.ribbonColor,
+                          statusText: block.isCompleted ? 'مكتملة' : 'مخطط لها',
+                          isDone: block.isCompleted,
+                          onTap: () => context.push('/study-block-details'),
+                        );
+                      }),
+                    ],
+                  );
+                },
+              ),
 
               const SizedBox(height: 16),
 
@@ -565,12 +586,18 @@ class TodayScreen extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      Text(
-                        title,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onSurface,
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          title,
+                          textAlign: TextAlign.end,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                         ),
                       ),
                     ],
@@ -584,9 +611,15 @@ class TodayScreen extends ConsumerWidget {
                           time,
                           style: const TextStyle(fontSize: 11, color: AppColors.textTertiary),
                         ),
-                        Text(
-                          '$category • $room',
-                          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '$category • $room',
+                            textAlign: TextAlign.end,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                          ),
                         ),
                       ],
                     ),

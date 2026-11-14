@@ -93,6 +93,23 @@ class PlannerNotifier extends Notifier<PlannerState> {
     ),
   ];
 
+  List<CourseSeed> _currentCourses = List<CourseSeed>.from(AppConstants.seedCourses);
+  Map<String, int> _currentRatings = {};
+
+  List<CourseStudyInput> _buildInputs(List<CourseSeed>? courses, Map<String, int>? ratings) {
+    if (courses != null) _currentCourses = courses;
+    if (ratings != null) _currentRatings = ratings;
+    return _currentCourses.map((course) {
+      final rating = _currentRatings[course.id] ?? 2;
+      return CourseStudyInput(
+        course: course,
+        selfRating: rating,
+        daysUntilExam: 21,
+        topics: ['مفاهيم ومسائل ${course.name}'],
+      );
+    }).toList();
+  }
+
   @override
   PlannerState build() {
     final generatedBlocks = PlannerAlgorithm.generateWeeklyPlan(
@@ -148,28 +165,39 @@ class PlannerNotifier extends Notifier<PlannerState> {
   /// إضافة محاضرة أو موعد انشغال وإعادة توليد الخطة تلقائياً
   void addLecture(ScheduleItemModel item) {
     final updatedLectures = [...state.lectureSchedule, item];
+    setLecturesAndRegeneratePlan(updatedLectures);
+  }
+
+  /// حذف محاضرة من الجدول وإعادة حساب الخطة
+  void removeLecture(String lectureId) {
+    final updatedLectures = state.lectureSchedule.where((l) => l.id != lectureId).toList();
+    setLecturesAndRegeneratePlan(updatedLectures);
+  }
+
+  /// تعيين قائمة المحاضرات كاملة وإعادة توليد خطة المذاكرة حولها
+  void setLecturesAndRegeneratePlan(
+    List<ScheduleItemModel> lectures, {
+    List<CourseSeed>? courses,
+    Map<String, int>? ratings,
+  }) {
+    final inputs = _buildInputs(courses, ratings);
     final regenerated = PlannerAlgorithm.generateWeeklyPlan(
-      courseInputs: PlannerAlgorithm.getDefaultSeedInputs(),
-      lectureSchedule: updatedLectures,
+      courseInputs: inputs.isNotEmpty ? inputs : PlannerAlgorithm.getDefaultSeedInputs(),
+      lectureSchedule: lectures,
     );
 
     state = state.copyWith(
-      lectureSchedule: updatedLectures,
+      lectureSchedule: lectures,
       studyBlocks: regenerated,
+      totalWeeklyTarget: regenerated.isNotEmpty ? regenerated.length : 12,
     );
   }
 
   /// إعادة حساب الخطة الأسبوعية وفق المواد والتقييمات المحدثة للمستخدم
   void updateCoursesAndRegeneratePlan(List<CourseSeed> courses, Map<String, int> ratings) {
-    final inputs = courses.map((course) {
-      final rating = ratings[course.id] ?? 2;
-      return CourseStudyInput(
-        course: course,
-        selfRating: rating,
-        daysUntilExam: 21,
-        topics: ['مفاهيم ومسائل ${course.name}'],
-      );
-    }).toList();
+    _currentCourses = courses;
+    _currentRatings = ratings;
+    final inputs = _buildInputs(courses, ratings);
 
     final regenerated = PlannerAlgorithm.generateWeeklyPlan(
       courseInputs: inputs.isNotEmpty ? inputs : PlannerAlgorithm.getDefaultSeedInputs(),
