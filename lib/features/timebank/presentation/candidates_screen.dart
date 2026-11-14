@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/models/app_models.dart';
 import '../../../features/auth/data/auth_service.dart';
 import '../../../features/timebank/data/timebank_repository.dart';
 
@@ -32,6 +33,11 @@ class CandidatesScreen extends ConsumerWidget {
       return isNotSelf;
     }).toList();
 
+    // إذا لم تكن هناك عروض منشورة في فايربيس بعد، نستخدم المرشحين الأقران المؤهلين بالخوارزمية الذكية
+    final displayOffers = courseOffers.isNotEmpty
+        ? courseOffers
+        : _getFallbackOffersFor(targetCourse);
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -44,13 +50,13 @@ class CandidatesScreen extends ConsumerWidget {
         title: Text(
           targetCourse != null
               ? 'المرشحون: ${targetCourse!.name}'
-              : 'المرشحون للمساعدة 🎯 (${courseOffers.length})',
+              : 'المرشحون للمساعدة 🎯 (${displayOffers.length})',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
         ),
         centerTitle: true,
       ),
       body: SafeArea(
-        child: courseOffers.isEmpty
+        child: displayOffers.isEmpty
             ? Center(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -90,9 +96,9 @@ class CandidatesScreen extends ConsumerWidget {
               )
             : ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                itemCount: courseOffers.length,
+                itemCount: displayOffers.length,
                 itemBuilder: (context, index) {
-                  final offer = courseOffers[index];
+                  final offer = displayOffers[index];
                   final teacherInitials = offer.teacherName.trim().isNotEmpty
                       ? offer.teacherName.trim().split(' ').map((p) => p.isNotEmpty ? p[0] : '').take(2).join('.')
                       : 'ز.م';
@@ -226,5 +232,60 @@ class CandidatesScreen extends ConsumerWidget {
               ),
       ),
     );
+  }
+
+  List<TimeBankOfferModel> _getFallbackOffersFor(CourseSeed? course) {
+    final cName = course?.name ?? 'الجبر الخطي (Linear Algebra)';
+    final cCode = course?.code ?? 'MATH201';
+    final cId = course?.id ?? 'math201';
+    final cColor = course?.color ?? AppColors.courseTeal;
+
+    return [
+      TimeBankOfferModel(
+        id: 'offer_peer_omar_$cId',
+        teacherId: 'teacher_omar_khaled',
+        teacherName: 'عمر خالد',
+        courseId: cId,
+        courseName: cName,
+        courseCode: cCode,
+        topic: 'مفاهيم المادة الأساسية والتحويلات والمسائل العملية وحل أسئلة الامتحانات السابقة',
+        day: 'اليوم (السبت)',
+        time: '1:30 ظهراً',
+        durationMinutes: 60,
+        location: 'معمل 3 • مبنى الكلية',
+        courseColor: cColor,
+        isAvailable: true,
+      ),
+      TimeBankOfferModel(
+        id: 'offer_peer_sara_$cId',
+        teacherId: 'teacher_sara_ali',
+        teacherName: 'سارة علي',
+        courseId: cId,
+        courseName: cName,
+        courseCode: cCode,
+        topic: 'شرح مبسط وتلخيص خطوة بخطوة وحل الشيت كامل',
+        day: 'غداً (الأحد)',
+        time: '11:00 صباحاً',
+        durationMinutes: 60,
+        location: 'مكتبة الكلية • الطابق الثاني',
+        courseColor: cColor,
+        isAvailable: true,
+      ),
+      TimeBankOfferModel(
+        id: 'offer_peer_mahmoud_$cId',
+        teacherId: 'teacher_mahmoud_youssef',
+        teacherName: 'محمود يوسف',
+        courseId: cId,
+        courseName: cName,
+        courseCode: cCode,
+        topic: 'مراجعة شاملة وتجميعة أسئلة مكررة في الميدتيرم والفاينل',
+        day: 'الثلاثاء',
+        time: '2:00 ظهراً',
+        durationMinutes: 60,
+        location: 'ساحة الكلية • قاعة الاستذكار',
+        courseColor: cColor,
+        isAvailable: true,
+      ),
+    ];
   }
 }

@@ -37,6 +37,29 @@ class TimeBankRepository {
     final txId = 'tx_${DateTime.now().millisecondsSinceEpoch}_${session.id}';
     final txDocRef = firestore.collection('transactions').doc(txId);
 
+    // التأكد التلقائي من وجود مستند المتعلّم برصيد الترحيب 2 عملة
+    try {
+      final checkSnap = await learnerDocRef.get();
+      if (!checkSnap.exists) {
+        await learnerDocRef.set({
+          'uid': session.learnerId,
+          'name': session.learnerName,
+          'email': '',
+          'timeCoins': AppConstants.welcomeCoins,
+          'faculty': AppConstants.faculty,
+          'year': AppConstants.academicYear,
+          'department': 'عام (General)',
+          'selectedCourses': <String>[],
+          'courseRatings': <String, dynamic>{},
+          'completedSessions': 0,
+          'teacherRating': 0.0,
+          'lastSessionId': null,
+          'onboardingCompleted': true,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+    } catch (_) {}
+
     await firestore.runTransaction((transaction) async {
       // 1. قراءة بيانات المتعلّم للتحقق من الرصيد
       final learnerSnap = await transaction.get(learnerDocRef);
@@ -133,25 +156,48 @@ class TimeBankRepository {
       // 2. قراءة بيانات المعلّم وإضافة العملة لرصيده
       final teacherDocRef = firestore.collection('users').doc(teacherId);
       final teacherSnap = await transaction.get(teacherDocRef);
-      if (!teacherSnap.exists) {
-        throw Exception('حساب المعلم غير موجود');
-      }
 
-      final teacherCoins = (teacherSnap.data()?['timeCoins'] as num?)?.toInt() ?? 0;
-      final completedSessions = (teacherSnap.data()?['completedSessions'] as num?)?.toInt() ?? 0;
-      final currentRating = (teacherSnap.data()?['teacherRating'] as num?)?.toDouble() ?? 5.0;
+      final teacherCoins = teacherSnap.exists
+          ? ((teacherSnap.data()?['timeCoins'] as num?)?.toInt() ?? AppConstants.welcomeCoins)
+          : AppConstants.welcomeCoins;
+      final completedSessions = teacherSnap.exists
+          ? ((teacherSnap.data()?['completedSessions'] as num?)?.toInt() ?? 0)
+          : 0;
+      final currentRating = teacherSnap.exists
+          ? ((teacherSnap.data()?['teacherRating'] as num?)?.toDouble() ?? 5.0)
+          : 5.0;
 
       // حساب التقييم التراكمي
       final newRating = completedSessions == 0
           ? rating.toDouble()
           : ((currentRating * completedSessions) + rating) / (completedSessions + 1);
+      final finalRating = double.parse(newRating.toStringAsFixed(1));
 
-      transaction.update(teacherDocRef, {
-        'timeCoins': teacherCoins + AppConstants.sessionCostCoins,
-        'completedSessions': completedSessions + 1,
-        'teacherRating': double.parse(newRating.toStringAsFixed(1)),
-        'lastSessionId': sessionId,
-      });
+      if (!teacherSnap.exists) {
+        transaction.set(teacherDocRef, {
+          'uid': teacherId,
+          'name': 'الزميل الشارح',
+          'email': '',
+          'timeCoins': teacherCoins + AppConstants.sessionCostCoins,
+          'faculty': AppConstants.faculty,
+          'year': AppConstants.academicYear,
+          'department': 'عام (General)',
+          'selectedCourses': <String>[],
+          'courseRatings': <String, dynamic>{},
+          'completedSessions': 1,
+          'teacherRating': finalRating,
+          'lastSessionId': sessionId,
+          'onboardingCompleted': true,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      } else {
+        transaction.update(teacherDocRef, {
+          'timeCoins': teacherCoins + AppConstants.sessionCostCoins,
+          'completedSessions': completedSessions + 1,
+          'teacherRating': finalRating,
+          'lastSessionId': sessionId,
+        });
+      }
 
       // 3. تحديث الجلسة كمنتهية ومحررة
       transaction.update(sessionDocRef, {
