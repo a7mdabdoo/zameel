@@ -8,6 +8,7 @@ import '../../../core/models/app_models.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/data/auth_service.dart';
 import '../../timebank/data/timebank_repository.dart';
+import 'widgets/session_chat_sheet.dart';
 
 class SessionDetailsLearnerScreen extends ConsumerStatefulWidget {
   final TimeBankSessionModel? session;
@@ -212,7 +213,27 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                 ),
               ),
 
-              const SizedBox(height: 36),
+              const SizedBox(height: 24),
+
+              // Chat Button
+              if (session != null) ...[
+                SizedBox(
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    onPressed: () => SessionChatSheet.show(context, session, teacherName),
+                    icon: const Icon(Icons.forum_outlined, color: AppColors.primary),
+                    label: Text(
+                      'محادثة لتنسيق اللقاء مع $teacherName 💬',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.primary),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
 
               // Confirm Button -> /session-rating (فقط إذا كانت معلقة في الضمان)
               if (isHeld) ...[

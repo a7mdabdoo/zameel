@@ -510,6 +510,40 @@ class TimeBankRepository {
     await firestore.collection('offers').doc(offer.id).set(offer.toMap());
   }
 
+  Stream<List<SessionMessageModel>> streamSessionMessages(String sessionId) {
+    final firestore = _firestore;
+    if (firestore == null || sessionId.isEmpty) {
+      return Stream.value([]);
+    }
+    return firestore
+        .collection('sessions')
+        .doc(sessionId)
+        .collection('messages')
+        .snapshots()
+        .map((snapshot) {
+      final list = snapshot.docs
+          .map((doc) => SessionMessageModel.fromMap(doc.data(), doc.id))
+          .toList();
+      list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      return list;
+    });
+  }
+
+  Future<void> sendSessionMessage(String sessionId, SessionMessageModel message) async {
+    final firestore = _firestore;
+    if (firestore == null || sessionId.isEmpty) return;
+    try {
+      await firestore
+          .collection('sessions')
+          .doc(sessionId)
+          .collection('messages')
+          .doc(message.id)
+          .set(message.toMap());
+    } catch (e) {
+      debugPrint('Send session message error: $e');
+    }
+  }
+
   Future<void> deleteOffer(String offerId) async {
     final firestore = _firestore;
     if (firestore == null || offerId.isEmpty) return;
@@ -667,6 +701,12 @@ final userTransactionsStreamProvider =
     StreamProvider.family<List<WalletTransactionModel>, String>((ref, userId) {
   final repo = ref.watch(timeBankRepositoryProvider);
   return repo.streamUserTransactions(userId);
+});
+
+final sessionMessagesStreamProvider =
+    StreamProvider.family<List<SessionMessageModel>, String>((ref, sessionId) {
+  final repo = ref.watch(timeBankRepositoryProvider);
+  return repo.streamSessionMessages(sessionId);
 });
 
 final allUsersStreamProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
