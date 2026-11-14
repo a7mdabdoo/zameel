@@ -197,16 +197,46 @@ class _MyOffersScreenState extends ConsumerState<MyOffersScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: AppColors.sage.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text(
-                        'متاح للحجز',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.deepSage),
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppColors.sage.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Text(
+                            'متاح للحجز',
+                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.deepSage),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 18),
+                          onPressed: () async {
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) => AlertDialog(
+                                title: const Text('حذف عرض الشرح'),
+                                content: Text('هل تريد حذف عرضك لشرح "${offer.courseName}"؟'),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('تراجع')),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+                                    onPressed: () => Navigator.pop(ctx, true),
+                                    child: const Text('تأكيد الحذف', style: TextStyle(color: Colors.white)),
+                                  ),
+                                ],
+                              ),
+                            );
+                            if (confirm == true) {
+                              await ref.read(timeBankRepositoryProvider).deleteOffer(offer.id);
+                            }
+                          },
+                        ),
+                      ],
                     ),
                     Text(
                       offer.courseName as String,

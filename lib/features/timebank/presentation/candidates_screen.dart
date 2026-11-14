@@ -6,8 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../core/models/app_models.dart';
-import '../../../features/auth/data/auth_service.dart';
 import '../../../features/timebank/data/timebank_repository.dart';
 
 class CandidatesScreen extends ConsumerWidget {
@@ -16,27 +14,7 @@ class CandidatesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(authServiceProvider).currentUser;
-    final currentUserId = user?.uid ?? '';
-
-    final availableOffersAsync = ref.watch(availableOffersStreamProvider);
-    final allOffers = availableOffersAsync.value ?? [];
-
-    // تصفية العروض المتاحة لتلك المادة واستبعاد عروض المستخدم نفسه
-    final courseOffers = allOffers.where((offer) {
-      final isNotSelf = offer.teacherId != currentUserId;
-      if (targetCourse != null) {
-        return isNotSelf && (offer.courseId == targetCourse!.id ||
-            offer.courseName.contains(targetCourse!.name) ||
-            targetCourse!.name.contains(offer.courseName));
-      }
-      return isNotSelf;
-    }).toList();
-
-    // إذا لم تكن هناك عروض منشورة في فايربيس بعد، نستخدم المرشحين الأقران المؤهلين بالخوارزمية الذكية
-    final displayOffers = courseOffers.isNotEmpty
-        ? courseOffers
-        : _getFallbackOffersFor(targetCourse);
+    final displayOffers = ref.watch(peerCandidatesProvider(targetCourse));
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -99,6 +77,7 @@ class CandidatesScreen extends ConsumerWidget {
                 itemCount: displayOffers.length,
                 itemBuilder: (context, index) {
                   final offer = displayOffers[index];
+                  final isRealPeer = !offer.id.startsWith('offer_peer_');
                   final teacherInitials = offer.teacherName.trim().isNotEmpty
                       ? offer.teacherName.trim().split(' ').map((p) => p.isNotEmpty ? p[0] : '').take(2).join('.')
                       : 'ز.م';
@@ -109,7 +88,10 @@ class CandidatesScreen extends ConsumerWidget {
                     decoration: BoxDecoration(
                       color: Theme.of(context).cardTheme.color,
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: AppColors.hairline),
+                      border: Border.all(
+                        color: isRealPeer ? AppColors.deepSage.withValues(alpha: 0.4) : AppColors.hairline,
+                        width: isRealPeer ? 1.5 : 1,
+                      ),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.03),
@@ -126,22 +108,31 @@ class CandidatesScreen extends ConsumerWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
-                                color: AppColors.primaryContainer.withValues(alpha: 0.6),
+                                color: isRealPeer
+                                    ? AppColors.sage.withValues(alpha: 0.2)
+                                    : AppColors.primaryContainer.withValues(alpha: 0.6),
                                 borderRadius: BorderRadius.circular(20),
+                                border: isRealPeer
+                                    ? Border.all(color: AppColors.deepSage.withValues(alpha: 0.3))
+                                    : null,
                               ),
-                              child: const Row(
+                              child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.verified_user_rounded, size: 14, color: AppColors.primary),
-                                  SizedBox(width: 4),
+                                  Icon(
+                                    isRealPeer ? Icons.stars_rounded : Icons.verified_user_rounded,
+                                    size: 14,
+                                    color: isRealPeer ? AppColors.deepSage : AppColors.primary,
+                                  ),
+                                  const SizedBox(width: 4),
                                   Text(
-                                    'عرض متاح',
+                                    isRealPeer ? 'زميل بالدفعة 🌟' : 'مرشح أكاديمي',
                                     style: TextStyle(
-                                      fontSize: 12,
+                                      fontSize: 11,
                                       fontWeight: FontWeight.bold,
-                                      color: AppColors.primary,
+                                      color: isRealPeer ? AppColors.deepSage : AppColors.primary,
                                     ),
                                   ),
                                 ],
@@ -232,60 +223,5 @@ class CandidatesScreen extends ConsumerWidget {
               ),
       ),
     );
-  }
-
-  List<TimeBankOfferModel> _getFallbackOffersFor(CourseSeed? course) {
-    final cName = course?.name ?? 'الجبر الخطي (Linear Algebra)';
-    final cCode = course?.code ?? 'MATH201';
-    final cId = course?.id ?? 'math201';
-    final cColor = course?.color ?? AppColors.courseTeal;
-
-    return [
-      TimeBankOfferModel(
-        id: 'offer_peer_omar_$cId',
-        teacherId: 'teacher_omar_khaled',
-        teacherName: 'عمر خالد',
-        courseId: cId,
-        courseName: cName,
-        courseCode: cCode,
-        topic: 'مفاهيم المادة الأساسية والتحويلات والمسائل العملية وحل أسئلة الامتحانات السابقة',
-        day: 'اليوم (السبت)',
-        time: '1:30 ظهراً',
-        durationMinutes: 60,
-        location: 'معمل 3 • مبنى الكلية',
-        courseColor: cColor,
-        isAvailable: true,
-      ),
-      TimeBankOfferModel(
-        id: 'offer_peer_sara_$cId',
-        teacherId: 'teacher_sara_ali',
-        teacherName: 'سارة علي',
-        courseId: cId,
-        courseName: cName,
-        courseCode: cCode,
-        topic: 'شرح مبسط وتلخيص خطوة بخطوة وحل الشيت كامل',
-        day: 'غداً (الأحد)',
-        time: '11:00 صباحاً',
-        durationMinutes: 60,
-        location: 'مكتبة الكلية • الطابق الثاني',
-        courseColor: cColor,
-        isAvailable: true,
-      ),
-      TimeBankOfferModel(
-        id: 'offer_peer_mahmoud_$cId',
-        teacherId: 'teacher_mahmoud_youssef',
-        teacherName: 'محمود يوسف',
-        courseId: cId,
-        courseName: cName,
-        courseCode: cCode,
-        topic: 'مراجعة شاملة وتجميعة أسئلة مكررة في الميدتيرم والفاينل',
-        day: 'الثلاثاء',
-        time: '2:00 ظهراً',
-        durationMinutes: 60,
-        location: 'ساحة الكلية • قاعة الاستذكار',
-        courseColor: cColor,
-        isAvailable: true,
-      ),
-    ];
   }
 }
