@@ -7,6 +7,10 @@ import 'core/constants/app_constants.dart';
 import 'core/state/app_state.dart';
 import 'core/l10n/app_localizations.dart';
 
+// ==========================================
+// نقطة البداية لتطبيق زَميل (Zameel App)
+// تهيئة خدمات Firebase وتشغيل واجهة التطبيق مع إدارة الحالة عبر Riverpod
+// ==========================================
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
@@ -23,6 +27,7 @@ void main() async {
   );
 }
 
+/// الويدجت الرئيسي للتطبيق مع دعم الثيم الفاتح/الداكن والتوجيه ودعم اللغة العربية
 class ZameelApp extends ConsumerWidget {
   const ZameelApp({super.key});
 
