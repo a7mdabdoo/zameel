@@ -399,6 +399,52 @@ class TimeBankSessionModel {
   }
 }
 
+// 4-أ. نموذج رسالة محادثة الجلسة (Session Chat Message)
+class SessionMessageModel {
+  final String id;
+  final String senderId;
+  final String senderName;
+  final String text;
+  final DateTime createdAt;
+
+  const SessionMessageModel({
+    required this.id,
+    required this.senderId,
+    required this.senderName,
+    required this.text,
+    required this.createdAt,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'senderId': senderId,
+      'senderName': senderName,
+      'text': text,
+      'createdAt': createdAt.toIso8601String(),
+    };
+  }
+
+  factory SessionMessageModel.fromMap(Map<String, dynamic> map, String id) {
+    DateTime parseDate(dynamic val) {
+      if (val == null) return DateTime.now();
+      if (val is String) return DateTime.tryParse(val) ?? DateTime.now();
+      try {
+        return (val as dynamic).toDate() as DateTime;
+      } catch (_) {}
+      return DateTime.now();
+    }
+
+    return SessionMessageModel(
+      id: id,
+      senderId: map['senderId'] as String? ?? '',
+      senderName: map['senderName'] as String? ?? 'زميل',
+      text: map['text'] as String? ?? '',
+      createdAt: parseDate(map['createdAt']),
+    );
+  }
+}
+
 // 5. نموذج عرض الشرح في بنك الوقت (Teaching Offer)
 class TimeBankOfferModel {
   final String id;
