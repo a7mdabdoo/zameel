@@ -141,7 +141,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/onboarding-rate',
-        builder: (context, state) => const OnboardingRateScreen(),
+        builder: (context, state) => OnboardingRateScreen(
+          courses: state.extra as List<CourseSeed>?,
+        ),
       ),
       GoRoute(
         path: '/study-block-details',

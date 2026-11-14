@@ -17,6 +17,7 @@ class UserModel {
   final List<String> selectedCourses;
   final Map<String, int> courseRatings; // 1 to 5
   final List<String> canTeachCourseIds;
+  final List<Map<String, dynamic>>? coursesData;
   final int completedSessions;
   final int studyHours;
   final double teacherRating;
@@ -34,6 +35,7 @@ class UserModel {
     this.selectedCourses = const [],
     this.courseRatings = const {},
     this.canTeachCourseIds = const [],
+    this.coursesData,
     this.completedSessions = 0,
     this.studyHours = 0,
     this.teacherRating = 5.0,
@@ -53,6 +55,7 @@ class UserModel {
       'selectedCourses': selectedCourses,
       'courseRatings': courseRatings,
       'canTeachCourseIds': canTeachCourseIds,
+      'coursesData': coursesData,
       'completedSessions': completedSessions,
       'studyHours': studyHours,
       'teacherRating': teacherRating,
@@ -73,6 +76,9 @@ class UserModel {
       selectedCourses: List<String>.from(map['selectedCourses'] ?? []),
       courseRatings: Map<String, int>.from(map['courseRatings'] ?? {}),
       canTeachCourseIds: List<String>.from(map['canTeachCourseIds'] ?? []),
+      coursesData: (map['coursesData'] as List<dynamic>?)
+          ?.map((e) => Map<String, dynamic>.from(e as Map))
+          .toList(),
       completedSessions: map['completedSessions'] as int? ?? 0,
       studyHours: map['studyHours'] as int? ?? 0,
       teacherRating: (map['teacherRating'] as num?)?.toDouble() ?? 5.0,
@@ -91,6 +97,7 @@ class UserModel {
     List<String>? selectedCourses,
     Map<String, int>? courseRatings,
     List<String>? canTeachCourseIds,
+    List<Map<String, dynamic>>? coursesData,
     int? completedSessions,
     int? studyHours,
     double? teacherRating,
@@ -108,6 +115,7 @@ class UserModel {
       selectedCourses: selectedCourses ?? this.selectedCourses,
       courseRatings: courseRatings ?? this.courseRatings,
       canTeachCourseIds: canTeachCourseIds ?? this.canTeachCourseIds,
+      coursesData: coursesData ?? this.coursesData,
       completedSessions: completedSessions ?? this.completedSessions,
       studyHours: studyHours ?? this.studyHours,
       teacherRating: teacherRating ?? this.teacherRating,

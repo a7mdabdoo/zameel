@@ -9,29 +9,47 @@ import '../../../core/theme/app_colors.dart';
 import '../../auth/data/auth_service.dart';
 
 class OnboardingRateScreen extends ConsumerStatefulWidget {
-  const OnboardingRateScreen({super.key});
+  final List<CourseSeed>? courses;
+
+  const OnboardingRateScreen({super.key, this.courses});
 
   @override
   ConsumerState<OnboardingRateScreen> createState() => _OnboardingRateScreenState();
 }
 
 class _OnboardingRateScreenState extends ConsumerState<OnboardingRateScreen> {
-  // خريطة التقييم: 1 = أحتاج مساعدة (مبتدئ), 2 = متوسط, 3 = مستعد للشرح (متمكن)
-  final Map<String, int> _ratings = {
-    'cs201': 3, // OOP متمكن
-    'cs202': 2, // Data Structures متوسط
-    'is201': 2, // Databases متوسط
-    'math201': 1, // Linear Algebra أحتاج مساعدة
-    'math202': 1, // Calculus أحتاج مساعدة
-    'cs203': 3, // Computer Org متمكن
-  };
-
+  late final List<CourseSeed> _courses;
+  late final Map<String, int> _ratings;
   bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _courses = widget.courses ?? AppConstants.seedCourses;
+    _ratings = {
+      for (final c in _courses)
+        c.id: _defaultRatingFor(c.id),
+    };
+  }
+
+  int _defaultRatingFor(String id) {
+    switch (id) {
+      case 'cs201': return 3; // OOP متمكن
+      case 'cs202': return 2; // Data Structures متوسط
+      case 'is201': return 2; // Databases متوسط
+      case 'math201': return 1; // Linear Algebra أحتاج مساعدة
+      case 'math202': return 1; // Calculus أحتاج مساعدة
+      case 'cs203': return 3; // Computer Org متمكن
+      default: return 2;      // افتراضي للمواد المضافة: متوسط
+    }
+  }
 
   Future<void> _finishOnboarding() async {
     setState(() => _isSaving = true);
     try {
       await ref.read(authServiceProvider).updateUserProfile(
+        selectedCourses: _courses.map((c) => c.id).toList(),
+        coursesData: _courses.map((c) => c.toMap()).toList(),
         courseRatings: _ratings,
         onboardingCompleted: true,
       );
@@ -96,9 +114,9 @@ class _OnboardingRateScreenState extends ConsumerState<OnboardingRateScreen> {
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-                itemCount: AppConstants.seedCourses.length,
+                itemCount: _courses.length,
                 itemBuilder: (context, index) {
-                  final course = AppConstants.seedCourses[index];
+                  final course = _courses[index];
                   final currentRate = _ratings[course.id] ?? 2;
 
                   return Container(
@@ -136,6 +154,25 @@ class _OnboardingRateScreenState extends ConsumerState<OnboardingRateScreen> {
                                 style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
                               ),
                             ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: course.creditHours >= 3 ? AppColors.primaryContainer.withValues(alpha: 0.6) : AppColors.surfaceAlt,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: course.creditHours >= 3 ? AppColors.primary.withValues(alpha: 0.3) : AppColors.hairline,
+                                ),
+                              ),
+                              child: Text(
+                                '${course.creditHours} س',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: course.creditHours >= 3 ? AppColors.primary : AppColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
                             Text(
                               course.code,
                               style: const TextStyle(fontSize: 11, color: AppColors.textTertiary),

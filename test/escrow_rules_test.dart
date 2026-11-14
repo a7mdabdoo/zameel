@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:zameel/core/algorithms/planner_algorithm.dart';
 import 'package:zameel/core/constants/app_constants.dart';
 import 'package:zameel/core/models/app_models.dart';
+import 'package:zameel/core/theme/app_colors.dart';
 
 /// محاكي منطق الضمان المالي لحركات بنك الوقت (Pure Escrow Domain Logic)
 class EscrowDecisionEngine {
@@ -220,6 +222,62 @@ void main() {
       expect(fromMap.costCoins, equals(1));
       expect(fromMap.escrowStatus, equals('held'));
       expect(fromMap.teacherName, equals('عمر'));
+    });
+  });
+
+  group('6. وزن الساعات المعتمدة في خوارزمية المذاكرة (Credit Hours Weighting)', () {
+    test('المادة 3 ساعات معتمدة تعطي أولوية أعلى بنسبة 50% مقارنة بمادة ساعتين', () {
+      const course3h = CourseSeed(
+        id: 'c3',
+        name: 'مادة 3 ساعات',
+        code: 'CS300',
+        color: AppColors.courseTeal,
+        creditHours: 3,
+      );
+      const course2h = CourseSeed(
+        id: 'c2',
+        name: 'مادة ساعتين',
+        code: 'CS200',
+        color: AppColors.courseSage,
+        creditHours: 2,
+      );
+
+      final input3h = CourseStudyInput(
+        course: course3h,
+        selfRating: 2,
+        daysUntilExam: 10,
+        topics: ['Topic 1'],
+      );
+      final input2h = CourseStudyInput(
+        course: course2h,
+        selfRating: 2,
+        daysUntilExam: 10,
+        topics: ['Topic 1'],
+      );
+
+      final priority3h = input3h.calculateInitialPriority();
+      final priority2h = input2h.calculateInitialPriority();
+
+      expect(priority3h, greaterThan(priority2h));
+      expect(priority3h / priority2h, closeTo(1.5, 0.01));
+    });
+
+    test('دعم تحويل CourseSeed من وإلى Map مع الساعات المعتمدة', () {
+      const course = CourseSeed(
+        id: 'custom_1',
+        name: 'ذكاء اصطناعي تطبيقي',
+        code: 'AI301',
+        color: AppColors.courseSand,
+        creditHours: 4,
+      );
+
+      final map = course.toMap();
+      expect(map['creditHours'], equals(4));
+
+      final restored = CourseSeed.fromMap(map);
+      expect(restored.id, equals('custom_1'));
+      expect(restored.name, equals('ذكاء اصطناعي تطبيقي'));
+      expect(restored.creditHours, equals(4));
     });
   });
 }
