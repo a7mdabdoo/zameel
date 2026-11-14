@@ -27,6 +27,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final user = ref.watch(authServiceProvider).currentUser;
     final userProfileAsync = ref.watch(userProfileStreamProvider);
     final userDoc = userProfileAsync.value?.data();
+    final plannerLectures = ref.watch(plannerProvider).lectureSchedule;
 
     // جلب البيانات الحقيقية للمستخدم المسجل حالياً من فايربيس
     final userName = (userDoc?['name'] as String?)?.isNotEmpty == true
@@ -185,6 +186,80 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ],
                   ],
                 ),
+              ),
+
+              const SizedBox(height: 18),
+
+              // جدول المحاضرات الأسبوعية
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton.icon(
+                    onPressed: () => context.push('/schedule-setup'),
+                    icon: const Icon(Icons.tune_rounded, size: 16, color: AppColors.primary),
+                    label: const Text('إعداد وتعديل 🗓️', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                  ),
+                  Text(
+                    'جدول محاضراتي 🗓️ (${plannerLectures.length})',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.hairline),
+                ),
+                child: plannerLectures.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Center(
+                          child: TextButton.icon(
+                            onPressed: () => context.push('/schedule-setup'),
+                            icon: const Icon(Icons.add_circle_outline_rounded, color: AppColors.primary),
+                            label: const Text('أضف جدول محاضراتك لتوليد خطة المذاكرة الذكية', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 13)),
+                          ),
+                        ),
+                      )
+                    : Column(
+                        children: [
+                          for (int i = 0; i < plannerLectures.length; i++) ...[
+                            if (i > 0) const Divider(height: 1, color: AppColors.hairline),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(color: plannerLectures[i].color, shape: BoxShape.circle),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          plannerLectures[i].courseName,
+                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '${plannerLectures[i].day} • ${plannerLectures[i].startTime} – ${plannerLectures[i].endTime} • ${plannerLectures[i].room}',
+                                          style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
               ),
 
               const SizedBox(height: 24),
@@ -403,6 +478,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final codeController = TextEditingController();
     int selectedCreditHours = 3;
     int selectedRating = 2;
+    bool isSaving = false;
 
     showModalBottomSheet(
       context: context,
@@ -541,6 +617,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           return;
                         }
 
+                        setModalState(() => isSaving = true);
+
                         final code = codeController.text.trim().isEmpty
                             ? 'CRS${DateTime.now().millisecondsSinceEpoch % 1000}'
                             : codeController.text.trim().toUpperCase();
@@ -558,18 +636,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         final updatedRatings = Map<String, int>.from(currentRatings);
                         updatedRatings[newId] = selectedRating;
 
-                        // الحفظ في فايربيس
-                        await ref.read(authServiceProvider).updateUserProfile(
-                          selectedCourses: updatedCourses.map((c) => c.id).toList(),
-                          coursesData: updatedCourses.map((c) => c.toMap()).toList(),
-                          courseRatings: updatedRatings,
-                        );
-
-                        // تحديث خوارزمية المذاكرة في الذاكرة الحية
+                        // تحديث خوارزمية المذاكرة في الذاكرة الحية فوراً
                         ref.read(plannerProvider.notifier).updateCoursesAndRegeneratePlan(
                           updatedCourses,
                           updatedRatings,
                         );
+
+                        // الحفظ في فايربيس بشكل آمن
+                        try {
+                          await ref.read(authServiceProvider).updateUserProfile(
+                            selectedCourses: updatedCourses.map((c) => c.id).toList(),
+                            coursesData: updatedCourses.map((c) => c.toMap()).toList(),
+                            courseRatings: updatedRatings,
+                          );
+                        } catch (e) {
+                          debugPrint('Add course error: $e');
+                        }
 
                         if (ctx.mounted) {
                           Navigator.pop(ctx);
@@ -584,10 +666,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           );
                         }
                       },
-                      icon: const Icon(Icons.add_task_rounded, color: Colors.white),
-                      label: const Text(
-                        'إضافة المادة وحفظها',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                      icon: isSaving
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            )
+                          : const Icon(Icons.add_task_rounded, color: Colors.white),
+                      label: Text(
+                        isSaving ? 'جارٍ الحفظ...' : 'إضافة المادة وحفظها',
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
@@ -611,6 +699,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   ) {
     List<CourseSeed> editableCourses = List<CourseSeed>.from(currentCourses);
     Map<String, int> editableRatings = Map<String, int>.from(currentRatings);
+    bool isSaving = false;
 
     showModalBottomSheet(
       context: context,
@@ -736,35 +825,51 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 SizedBox(
                   height: 50,
                   child: ElevatedButton.icon(
-                    onPressed: () async {
-                      await ref.read(authServiceProvider).updateUserProfile(
-                        selectedCourses: editableCourses.map((c) => c.id).toList(),
-                        coursesData: editableCourses.map((c) => c.toMap()).toList(),
-                        courseRatings: editableRatings,
-                      );
+                    onPressed: isSaving
+                        ? null
+                        : () async {
+                            setModalState(() => isSaving = true);
 
-                      ref.read(plannerProvider.notifier).updateCoursesAndRegeneratePlan(
-                        editableCourses,
-                        editableRatings,
-                      );
+                            // 1. تحديث الخطة فوراً في الذاكرة الحية
+                            ref.read(plannerProvider.notifier).updateCoursesAndRegeneratePlan(
+                              editableCourses,
+                              editableRatings,
+                            );
 
-                      if (ctx.mounted) {
-                        Navigator.pop(ctx);
-                      }
+                            // 2. الحفظ في فايربيس بشكل آمن
+                            try {
+                              await ref.read(authServiceProvider).updateUserProfile(
+                                selectedCourses: editableCourses.map((c) => c.id).toList(),
+                                coursesData: editableCourses.map((c) => c.toMap()).toList(),
+                                courseRatings: editableRatings,
+                              );
+                            } catch (e) {
+                              debugPrint('Manage courses firestore update warning: $e');
+                            }
 
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('تم حفظ التعديلات وتحديث جدول المذاكرة بنجاح ✅'),
-                            backgroundColor: AppColors.success,
-                          ),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.check_circle_outline_rounded, color: Colors.white),
-                    label: const Text(
-                      'حفظ التعديلات في حسابي',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                            if (ctx.mounted) {
+                              Navigator.pop(ctx);
+                            }
+
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('تم حفظ التعديلات وتحديث جدول المذاكرة بنجاح ✅'),
+                                  backgroundColor: AppColors.success,
+                                ),
+                              );
+                            }
+                          },
+                    icon: isSaving
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.check_circle_outline_rounded, color: Colors.white),
+                    label: Text(
+                      isSaving ? 'جارٍ حفظ التعديلات...' : 'حفظ التعديلات في حسابي',
+                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,

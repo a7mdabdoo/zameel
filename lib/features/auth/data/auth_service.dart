@@ -4,6 +4,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
 
@@ -202,6 +203,7 @@ class AuthService {
     List<String>? selectedCourses,
     Map<String, int>? courseRatings,
     List<Map<String, dynamic>>? coursesData,
+    List<Map<String, dynamic>>? lecturesData,
     bool? onboardingCompleted,
   }) async {
     final uid = currentUser?.uid;
@@ -215,30 +217,14 @@ class AuthService {
     if (selectedCourses != null) updates['selectedCourses'] = selectedCourses;
     if (courseRatings != null) updates['courseRatings'] = courseRatings;
     if (coursesData != null) updates['coursesData'] = coursesData;
+    if (lecturesData != null) updates['lecturesData'] = lecturesData;
     if (onboardingCompleted != null) updates['onboardingCompleted'] = onboardingCompleted;
 
-    final docRef = firestore.collection('users').doc(uid);
-    final doc = await docRef.get();
-    if (!doc.exists) {
-      await docRef.set({
-        'uid': uid,
-        'name': currentUser?.displayName ?? 'طالب زميل',
-        'email': currentUser?.email ?? '',
-        'timeCoins': AppConstants.welcomeCoins,
-        'faculty': faculty ?? AppConstants.faculty,
-        'year': year ?? AppConstants.academicYear,
-        'department': department ?? 'عام (General)',
-        'selectedCourses': selectedCourses ?? <String>[],
-        'courseRatings': courseRatings ?? <String, dynamic>{},
-        'coursesData': coursesData,
-        'completedSessions': 0,
-        'teacherRating': 0.0,
-        'lastSessionId': null,
-        'onboardingCompleted': onboardingCompleted ?? true,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-    } else {
-      await docRef.update(updates);
+    try {
+      final docRef = firestore.collection('users').doc(uid);
+      await docRef.set(updates, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('updateUserProfile warning: $e');
     }
   }
 

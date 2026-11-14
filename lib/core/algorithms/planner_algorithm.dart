@@ -85,10 +85,36 @@ class PlannerAlgorithm {
       ],
     };
 
+    // فترات بديلة للاستذكار الحر في حال تعارض مواعيد المحاضرات
+    final List<Map<String, String>> fallbackEveningSlots = [
+      {'start': '04:30 م', 'end': '05:15 م', 'room': 'مكتبة الكلية'},
+      {'start': '07:30 م', 'end': '08:15 م', 'room': 'المنزل'},
+      {'start': '08:30 م', 'end': '09:15 م', 'room': 'المنزل'},
+    ];
+
     int blockIdCounter = 1;
 
     for (final day in days) {
-      final availableSlots = standardSlots[day] ?? [];
+      final dayLectures = lectureSchedule.where((l) => l.day == day).toList();
+      final baseSlots = standardSlots[day] ?? [];
+
+      // استبعاد أي فترة تتعارض مع موعد محاضرة تم إدخالها يدوياً
+      final nonConflictingSlots = baseSlots.where((slot) {
+        return !_hasCollision(slot['start']!, slot['end']!, dayLectures);
+      }).toList();
+
+      // إذا كانت الفترات غير كافية بسبب كثافة المحاضرات، نستعين بالفترات المسائية المتاحة
+      final availableSlots = <Map<String, String>>[...nonConflictingSlots];
+      if (availableSlots.length < 2) {
+        for (final fb in fallbackEveningSlots) {
+          if (!_hasCollision(fb['start']!, fb['end']!, dayLectures) &&
+              !availableSlots.any((s) => s['start'] == fb['start'])) {
+            availableSlots.add(fb);
+            if (availableSlots.length >= 3) break;
+          }
+        }
+      }
+
       int dailyMinutesUsed = 0;
 
       for (final slot in availableSlots) {
@@ -187,5 +213,37 @@ class PlannerAlgorithm {
         topics: ['هيكلية المعالج ALU و Control Unit', 'مسجلات الذاكرة والـ Pipelining', 'لغة التجميع Assembly'],
       ),
     ];
+  }
+
+  /// تحويل صيغة الوقت النصية (مثلاً "09:00 ص" أو "01:30 م") إلى دقائق من منتصف الليل
+  static int _parseTimeToMinutes(String timeStr) {
+    try {
+      final clean = timeStr.trim().replaceAll('–', '-').replaceAll('—', '-');
+      final isPM = clean.contains('م') || clean.toUpperCase().contains('PM');
+      final digits = clean.replaceAll(RegExp(r'[^\d:]'), '');
+      final parts = digits.split(':');
+      if (parts.isEmpty) return 540;
+      var hour = int.tryParse(parts[0]) ?? 9;
+      final minute = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+      if (isPM && hour < 12) hour += 12;
+      if (!isPM && hour == 12) hour = 0;
+      return hour * 60 + minute;
+    } catch (_) {
+      return 540;
+    }
+  }
+
+  /// التحقق مما إذا كانت فترة المذاكرة تتعارض مع أي محاضرة في نفس اليوم
+  static bool _hasCollision(String slotStart, String slotEnd, List<ScheduleItemModel> dayLectures) {
+    final sStart = _parseTimeToMinutes(slotStart);
+    final sEnd = _parseTimeToMinutes(slotEnd);
+    for (final lec in dayLectures) {
+      final lStart = _parseTimeToMinutes(lec.startTime);
+      final lEnd = _parseTimeToMinutes(lec.endTime);
+      if (sStart < lEnd && sEnd > lStart) {
+        return true;
+      }
+    }
+    return false;
   }
 }

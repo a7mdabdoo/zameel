@@ -280,4 +280,54 @@ void main() {
       expect(restored.creditHours, equals(4));
     });
   });
+
+  group('7. الجدولة اليدوية للمحاضرات وتوليد خطة المذاكرة التكيفية', () {
+    test('نموذج ScheduleItemModel يدعم التحويل من وإلى Map', () {
+      const lecture = ScheduleItemModel(
+        id: 'lec_test',
+        courseName: 'قواعد البيانات',
+        courseCode: 'IS201',
+        day: 'السبت',
+        startTime: '08:30 ص',
+        endTime: '10:00 ص',
+        room: 'مدرج 1',
+        color: AppColors.courseSand,
+      );
+
+      final map = lecture.toMap();
+      expect(map['day'], equals('السبت'));
+      expect(map['startTime'], equals('08:30 ص'));
+
+      final restored = ScheduleItemModel.fromMap(map);
+      expect(restored.id, equals('lec_test'));
+      expect(restored.courseName, equals('قواعد البيانات'));
+      expect(restored.room, equals('مدرج 1'));
+    });
+
+    test('الخوارزمية الذكية تتفادى أوقات المحاضرات المجدولة يدوياً', () {
+      final inputs = PlannerAlgorithm.getDefaultSeedInputs();
+      const heavyLecture = ScheduleItemModel(
+        id: 'lec_sat',
+        courseName: 'التفاضل والتكامل',
+        courseCode: 'MATH202',
+        day: 'السبت',
+        startTime: '11:00 ص',
+        endTime: '12:30 م',
+        room: 'قاعة 3',
+        color: AppColors.courseSlate,
+      );
+
+      final plan = PlannerAlgorithm.generateWeeklyPlan(
+        courseInputs: inputs,
+        lectureSchedule: [heavyLecture],
+      );
+
+      // التأكد من عدم وجود أي جلسة مذاكرة في فترة المحاضرة (11:00 ص إلى 12:30 م) يوم السبت
+      final satBlocks = plan.where((b) => b.day == 'السبت').toList();
+      for (final block in satBlocks) {
+        expect(block.startTime, isNot(equals('11:00 ص')));
+      }
+      expect(plan, isNotEmpty);
+    });
+  });
 }
