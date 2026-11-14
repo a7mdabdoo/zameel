@@ -1,7 +1,8 @@
 // مطور 1
-// نماذج البيانات الأساسية لمنظومة «زَميل»
+// نماذج البيانات الأساسية لمنظومة «زَميل» المتوافقة مع Firestore والـ Escrow Transactions
 
 import 'package:flutter/material.dart';
+import '../constants/app_constants.dart';
 
 // 1. نموذج بيانات المستخدم
 class UserModel {
@@ -19,6 +20,7 @@ class UserModel {
   final int completedSessions;
   final int studyHours;
   final double teacherRating;
+  final bool onboardingCompleted;
 
   const UserModel({
     required this.uid,
@@ -28,13 +30,14 @@ class UserModel {
     required this.year,
     this.department = 'عام (General)',
     this.whatsappNumber,
-    this.timeCoins = 3,
+    this.timeCoins = AppConstants.welcomeCoins,
     this.selectedCourses = const [],
     this.courseRatings = const {},
     this.canTeachCourseIds = const [],
     this.completedSessions = 0,
     this.studyHours = 0,
     this.teacherRating = 5.0,
+    this.onboardingCompleted = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -53,6 +56,7 @@ class UserModel {
       'completedSessions': completedSessions,
       'studyHours': studyHours,
       'teacherRating': teacherRating,
+      'onboardingCompleted': onboardingCompleted,
     };
   }
 
@@ -61,17 +65,18 @@ class UserModel {
       uid: uid,
       name: map['name'] as String? ?? 'طالب زميل',
       email: map['email'] as String? ?? '',
-      faculty: map['faculty'] as String? ?? 'كلية الحاسبات والذكاء الاصطناعي',
-      year: map['year'] as String? ?? 'الفرقة الثانية',
+      faculty: map['faculty'] as String? ?? AppConstants.faculty,
+      year: map['year'] as String? ?? AppConstants.academicYear,
       department: map['department'] as String? ?? 'عام (General)',
       whatsappNumber: map['whatsappNumber'] as String?,
-      timeCoins: map['timeCoins'] as int? ?? 3,
+      timeCoins: map['timeCoins'] as int? ?? AppConstants.welcomeCoins,
       selectedCourses: List<String>.from(map['selectedCourses'] ?? []),
       courseRatings: Map<String, int>.from(map['courseRatings'] ?? {}),
       canTeachCourseIds: List<String>.from(map['canTeachCourseIds'] ?? []),
       completedSessions: map['completedSessions'] as int? ?? 0,
       studyHours: map['studyHours'] as int? ?? 0,
       teacherRating: (map['teacherRating'] as num?)?.toDouble() ?? 5.0,
+      onboardingCompleted: map['onboardingCompleted'] as bool? ?? false,
     );
   }
 
@@ -89,6 +94,7 @@ class UserModel {
     int? completedSessions,
     int? studyHours,
     double? teacherRating,
+    bool? onboardingCompleted,
   }) {
     return UserModel(
       uid: uid,
@@ -105,6 +111,7 @@ class UserModel {
       completedSessions: completedSessions ?? this.completedSessions,
       studyHours: studyHours ?? this.studyHours,
       teacherRating: teacherRating ?? this.teacherRating,
+      onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
     );
   }
 }
@@ -186,7 +193,7 @@ class ScheduleItemModel {
   });
 }
 
-// 4. نموذج جلسة بنك الوقت بين الأقران (Time Bank Session)
+// 4. نموذج جلسة بنك الوقت مع الضمان المعلق (Time Bank Session with Escrow)
 class TimeBankSessionModel {
   final String id;
   final String learnerId;
@@ -202,9 +209,14 @@ class TimeBankSessionModel {
   final int durationMinutes;
   final String location;
   final int costCoins;
-  final String status; // pending, confirmed, completed, cancelled
+  final String status; // pending, confirmed, completed, cancelled_by_learner, cancelled_by_teacher
+  final String escrowStatus; // held, released_to_teacher, refunded_to_learner
   final int rating;
   final String? reviewComment;
+  final DateTime? scheduledAt;
+  final DateTime? createdAt;
+  final String? cancellationReason;
+  final String? cancelledBy;
 
   const TimeBankSessionModel({
     required this.id,
@@ -220,16 +232,88 @@ class TimeBankSessionModel {
     required this.time,
     required this.durationMinutes,
     required this.location,
-    this.costCoins = 1,
+    this.costCoins = AppConstants.sessionCostCoins,
     this.status = 'confirmed',
+    this.escrowStatus = 'held',
     this.rating = 5,
     this.reviewComment,
+    this.scheduledAt,
+    this.createdAt,
+    this.cancellationReason,
+    this.cancelledBy,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'learnerId': learnerId,
+      'learnerName': learnerName,
+      'teacherId': teacherId,
+      'teacherName': teacherName,
+      'teacherInitials': teacherInitials,
+      'courseName': courseName,
+      'courseCode': courseCode,
+      'topic': topic,
+      'day': day,
+      'time': time,
+      'durationMinutes': durationMinutes,
+      'location': location,
+      'costCoins': costCoins,
+      'status': status,
+      'escrowStatus': escrowStatus,
+      'rating': rating,
+      'reviewComment': reviewComment,
+      'scheduledAt': scheduledAt?.toIso8601String(),
+      'createdAt': createdAt?.toIso8601String(),
+      'cancellationReason': cancellationReason,
+      'cancelledBy': cancelledBy,
+    };
+  }
+
+  factory TimeBankSessionModel.fromMap(Map<String, dynamic> map, String id) {
+    DateTime? parseDate(dynamic val) {
+      if (val == null) return null;
+      if (val is String) return DateTime.tryParse(val);
+      try {
+        return (val as dynamic).toDate() as DateTime;
+      } catch (_) {}
+      return null;
+    }
+
+    return TimeBankSessionModel(
+      id: id,
+      learnerId: map['learnerId'] as String? ?? '',
+      learnerName: map['learnerName'] as String? ?? '',
+      teacherId: map['teacherId'] as String? ?? '',
+      teacherName: map['teacherName'] as String? ?? '',
+      teacherInitials: map['teacherInitials'] as String? ?? '',
+      courseName: map['courseName'] as String? ?? '',
+      courseCode: map['courseCode'] as String? ?? '',
+      topic: map['topic'] as String? ?? '',
+      day: map['day'] as String? ?? '',
+      time: map['time'] as String? ?? '',
+      durationMinutes: map['durationMinutes'] as int? ?? 60,
+      location: map['location'] as String? ?? '',
+      costCoins: map['costCoins'] as int? ?? AppConstants.sessionCostCoins,
+      status: map['status'] as String? ?? 'confirmed',
+      escrowStatus: map['escrowStatus'] as String? ?? 'held',
+      rating: map['rating'] as int? ?? 5,
+      reviewComment: map['reviewComment'] as String?,
+      scheduledAt: parseDate(map['scheduledAt']),
+      createdAt: parseDate(map['createdAt']),
+      cancellationReason: map['cancellationReason'] as String?,
+      cancelledBy: map['cancelledBy'] as String?,
+    );
+  }
 
   TimeBankSessionModel copyWith({
     String? status,
+    String? escrowStatus,
     int? rating,
     String? reviewComment,
+    DateTime? scheduledAt,
+    String? cancellationReason,
+    String? cancelledBy,
   }) {
     return TimeBankSessionModel(
       id: id,
@@ -247,8 +331,13 @@ class TimeBankSessionModel {
       location: location,
       costCoins: costCoins,
       status: status ?? this.status,
+      escrowStatus: escrowStatus ?? this.escrowStatus,
       rating: rating ?? this.rating,
       reviewComment: reviewComment ?? this.reviewComment,
+      scheduledAt: scheduledAt ?? this.scheduledAt,
+      createdAt: createdAt,
+      cancellationReason: cancellationReason ?? this.cancellationReason,
+      cancelledBy: cancelledBy ?? this.cancelledBy,
     );
   }
 }
@@ -268,6 +357,7 @@ class TimeBankOfferModel {
   final String location;
   final Color courseColor;
   final bool isAvailable;
+  final DateTime? createdAt;
 
   const TimeBankOfferModel({
     required this.id,
@@ -283,7 +373,49 @@ class TimeBankOfferModel {
     required this.location,
     required this.courseColor,
     this.isAvailable = true,
+    this.createdAt,
   });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'teacherId': teacherId,
+      'teacherName': teacherName,
+      'courseId': courseId,
+      'courseName': courseName,
+      'courseCode': courseCode,
+      'topic': topic,
+      'day': day,
+      'time': time,
+      'durationMinutes': durationMinutes,
+      'location': location,
+      'courseColor': courseColor.toARGB32(),
+      'isAvailable': isAvailable,
+      'createdAt': createdAt?.toIso8601String(),
+    };
+  }
+
+  factory TimeBankOfferModel.fromMap(Map<String, dynamic> map, String id) {
+    final colorInt = map['courseColor'] as int?;
+    return TimeBankOfferModel(
+      id: id,
+      teacherId: map['teacherId'] as String? ?? '',
+      teacherName: map['teacherName'] as String? ?? '',
+      courseId: map['courseId'] as String? ?? '',
+      courseName: map['courseName'] as String? ?? '',
+      courseCode: map['courseCode'] as String? ?? '',
+      topic: map['topic'] as String? ?? '',
+      day: map['day'] as String? ?? '',
+      time: map['time'] as String? ?? '',
+      durationMinutes: map['durationMinutes'] as int? ?? 60,
+      location: map['location'] as String? ?? '',
+      courseColor: colorInt != null ? Color(colorInt) : const Color(0xFF2F8F89),
+      isAvailable: map['isAvailable'] as bool? ?? true,
+      createdAt: map['createdAt'] != null
+          ? DateTime.tryParse(map['createdAt'].toString())
+          : null,
+    );
+  }
 }
 
 // 6. نموذج حركة المحفظة (Wallet Transaction)
@@ -294,6 +426,10 @@ class WalletTransactionModel {
   final int amount;
   final bool isNegative;
   final IconData icon;
+  final String? userId;
+  final String? sessionId;
+  final String type; // welcome_gift, session_booking, session_earning, cancellation_refund, late_compensation
+  final DateTime? createdAt;
 
   const WalletTransactionModel({
     required this.id,
@@ -302,5 +438,65 @@ class WalletTransactionModel {
     required this.amount,
     required this.isNegative,
     required this.icon,
+    this.userId,
+    this.sessionId,
+    this.type = 'session_booking',
+    this.createdAt,
   });
+
+  static IconData getIconForType(String type) {
+    switch (type) {
+      case 'welcome_gift':
+        return Icons.card_giftcard_rounded;
+      case 'session_earning':
+        return Icons.volunteer_activism_outlined;
+      case 'session_booking':
+        return Icons.school_outlined;
+      case 'cancellation_refund':
+        return Icons.undo_rounded;
+      case 'late_compensation':
+        return Icons.shield_outlined;
+      default:
+        return Icons.wallet_outlined;
+    }
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'userId': userId,
+      'sessionId': sessionId,
+      'title': title,
+      'date': date,
+      'amount': amount,
+      'isNegative': isNegative,
+      'type': type,
+      'createdAt': createdAt?.toIso8601String(),
+    };
+  }
+
+  factory WalletTransactionModel.fromMap(Map<String, dynamic> map, String id) {
+    final txType = map['type'] as String? ?? 'session_booking';
+    DateTime? parseDate(dynamic val) {
+      if (val == null) return null;
+      if (val is String) return DateTime.tryParse(val);
+      try {
+        return (val as dynamic).toDate() as DateTime;
+      } catch (_) {}
+      return null;
+    }
+
+    return WalletTransactionModel(
+      id: id,
+      userId: map['userId'] as String?,
+      sessionId: map['sessionId'] as String?,
+      title: map['title'] as String? ?? '',
+      date: map['date'] as String? ?? '',
+      amount: map['amount'] as int? ?? 1,
+      isNegative: map['isNegative'] as bool? ?? false,
+      type: txType,
+      icon: getIconForType(txType),
+      createdAt: parseDate(map['createdAt']),
+    );
+  }
 }

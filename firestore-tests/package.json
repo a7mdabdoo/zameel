@@ -1,0 +1,19 @@
+{
+  "name": "zameel-firestore-rules-tests",
+  "version": "1.0.0",
+  "description": "Firestore Security Rules Unit Tests for Zameel",
+  "main": "rules.test.js",
+  "scripts": {
+    "test": "node ./node_modules/jest/bin/jest.js --runInBand --forceExit"
+  },
+  "jest": {
+    "testTimeout": 30000
+  },
+  "dependencies": {
+    "@firebase/rules-unit-testing": "^3.0.4",
+    "firebase-admin": "^13.0.2"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}

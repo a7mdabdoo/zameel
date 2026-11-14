@@ -33,6 +33,7 @@ class _OnboardingRateScreenState extends ConsumerState<OnboardingRateScreen> {
     try {
       await ref.read(authServiceProvider).updateUserProfile(
         courseRatings: _ratings,
+        onboardingCompleted: true,
       );
     } catch (_) {}
 

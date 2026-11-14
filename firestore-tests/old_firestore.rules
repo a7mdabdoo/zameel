@@ -1,0 +1,73 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // دالة مساعدة للتحقق من تسجيل الدخول
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // التحقق من هوية صاحب المستند
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // ==========================================
+    // 1. حسابات الطلاب (Users)
+    // ==========================================
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isOwner(userId)
+                    && request.resource.data.timeCoins == 2
+                    && request.resource.data.email == request.auth.token.email;
+
+      // الثغرة القديمة: allow update مفتوح لأي مستخدم مسجل
+      allow update: if isAuthenticated();
+
+      allow delete: if false;
+    }
+
+    // ==========================================
+    // 2. عروض الشرح في بنك الوقت (Offers)
+    // ==========================================
+    match /offers/{offerId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.teacherId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.teacherId == request.auth.uid;
+    }
+
+    // ==========================================
+    // 3. جلسات بنك الوقت ونظام الضمان (Sessions & Escrow)
+    // ==========================================
+    match /sessions/{sessionId} {
+      allow read: if isAuthenticated() && (
+        resource.data.learnerId == request.auth.uid ||
+        resource.data.teacherId == request.auth.uid
+      );
+
+      // الثغرة القديمة: الحجز لا يتحقق من خصم رصيد المتعلم ولا من رصيده
+      allow create: if isAuthenticated()
+                    && request.resource.data.learnerId == request.auth.uid
+                    && request.resource.data.costCoins == 1
+                    && request.resource.data.escrowStatus == 'held';
+
+      // الثغرة القديمة: التحديث مفتوح للطرفين دون قيود، فالمعلم يستطيع تحرير الضمان لنفسه
+      allow update: if isAuthenticated() && (
+        resource.data.learnerId == request.auth.uid ||
+        resource.data.teacherId == request.auth.uid
+      );
+
+      allow delete: if false;
+    }
+
+    // ==========================================
+    // 4. سجل حركات المحفظة المحاسبي (Wallet Transactions)
+    // ==========================================
+    match /wallet_transactions/{txId} {
+      allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+  }
+}
