@@ -395,35 +395,40 @@ class _OnboardingCoursesScreenState extends State<OnboardingCoursesScreen> {
                             ),
                             const SizedBox(width: 8),
                             // شارة عدد الساعات المعتمدة ومستوى الأهمية
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: isHighPriority
-                                    ? AppColors.pointsAmber.withValues(alpha: 0.15)
-                                    : AppColors.surfaceAlt,
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
+                            Flexible(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                decoration: BoxDecoration(
                                   color: isHighPriority
-                                      ? AppColors.pointsAmber.withValues(alpha: 0.4)
-                                      : AppColors.hairline,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (isHighPriority) ...[
-                                    const Icon(Icons.star_rounded, size: 12, color: AppColors.pointsAmber),
-                                    const SizedBox(width: 3),
-                                  ],
-                                  Text(
-                                    '${course.creditHours} ساعات معتمدة ${isHighPriority ? '(أهمية أعلى)' : ''}',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: isHighPriority ? FontWeight.bold : FontWeight.w500,
-                                      color: isHighPriority ? const Color(0xFF664700) : AppColors.textSecondary,
-                                    ),
+                                      ? AppColors.pointsAmber.withValues(alpha: 0.15)
+                                      : AppColors.surfaceAlt,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: isHighPriority
+                                        ? AppColors.pointsAmber.withValues(alpha: 0.4)
+                                        : AppColors.hairline,
                                   ),
-                                ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (isHighPriority) ...[
+                                      const Icon(Icons.star_rounded, size: 12, color: AppColors.pointsAmber),
+                                      const SizedBox(width: 3),
+                                    ],
+                                    Flexible(
+                                      child: Text(
+                                        '${course.creditHours} ساعات معتمدة${isHighPriority ? ' (أهمية أعلى)' : ''}',
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: isHighPriority ? FontWeight.bold : FontWeight.w500,
+                                          color: isHighPriority ? const Color(0xFF664700) : AppColors.textSecondary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],

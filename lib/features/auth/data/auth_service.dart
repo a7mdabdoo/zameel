@@ -110,10 +110,52 @@ class AuthService {
       );
     }
 
-    return await auth.signInWithEmailAndPassword(
+    final cred = await auth.signInWithEmailAndPassword(
       email: email.trim(),
       password: password,
     );
+
+    // تحديث التوكن لضمان تحديث حالة البريد وقواعد الأمان
+    if (cred.user != null) {
+      try {
+        await cred.user!.getIdToken(true);
+      } catch (_) {}
+
+      // التحقق من وجود مستند المستخدم، وإذا كان المستخدم يسجل دخوله نضمن أن onboardingCompleted = true
+      // حتى لا تظهر له شاشات التهيئة مرة أخرى عند كل تسجيل دخول
+      if (_firestore != null) {
+        try {
+          final docRef = _firestore!.collection('users').doc(cred.user!.uid);
+          final doc = await docRef.get();
+          if (!doc.exists) {
+            await docRef.set({
+              'uid': cred.user!.uid,
+              'name': cred.user!.displayName ?? email.split('@').first,
+              'username': email.split('@').first.toLowerCase(),
+              'email': cred.user!.email ?? email.trim(),
+              'timeCoins': AppConstants.welcomeCoins,
+              'faculty': AppConstants.faculty,
+              'year': AppConstants.academicYear,
+              'department': 'عام (General)',
+              'selectedCourses': <String>[],
+              'courseRatings': <String, dynamic>{},
+              'completedSessions': 0,
+              'teacherRating': 0.0,
+              'lastSessionId': null,
+              'onboardingCompleted': true,
+              'createdAt': FieldValue.serverTimestamp(),
+            });
+          } else {
+            final data = doc.data();
+            if (data != null && (data['onboardingCompleted'] as bool? ?? false) == false) {
+              await docRef.update({'onboardingCompleted': true});
+            }
+          }
+        } catch (_) {}
+      }
+    }
+
+    return cred;
   }
 
   // =========================================================================
@@ -146,6 +188,7 @@ class AuthService {
   Future<void> updateUserProfile({
     String? faculty,
     String? year,
+    String? department,
     List<String>? selectedCourses,
     Map<String, int>? courseRatings,
     List<Map<String, dynamic>>? coursesData,
@@ -158,12 +201,35 @@ class AuthService {
     final updates = <String, dynamic>{};
     if (faculty != null) updates['faculty'] = faculty;
     if (year != null) updates['year'] = year;
+    if (department != null) updates['department'] = department;
     if (selectedCourses != null) updates['selectedCourses'] = selectedCourses;
     if (courseRatings != null) updates['courseRatings'] = courseRatings;
     if (coursesData != null) updates['coursesData'] = coursesData;
     if (onboardingCompleted != null) updates['onboardingCompleted'] = onboardingCompleted;
 
-    await firestore.collection('users').doc(uid).update(updates);
+    final docRef = firestore.collection('users').doc(uid);
+    final doc = await docRef.get();
+    if (!doc.exists) {
+      await docRef.set({
+        'uid': uid,
+        'name': currentUser?.displayName ?? 'طالب زميل',
+        'email': currentUser?.email ?? '',
+        'timeCoins': AppConstants.welcomeCoins,
+        'faculty': faculty ?? AppConstants.faculty,
+        'year': year ?? AppConstants.academicYear,
+        'department': department ?? 'عام (General)',
+        'selectedCourses': selectedCourses ?? <String>[],
+        'courseRatings': courseRatings ?? <String, dynamic>{},
+        'coursesData': coursesData,
+        'completedSessions': 0,
+        'teacherRating': 0.0,
+        'lastSessionId': null,
+        'onboardingCompleted': onboardingCompleted ?? true,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    } else {
+      await docRef.update(updates);
+    }
   }
 
   Stream<DocumentSnapshot<Map<String, dynamic>>?> getUserProfileStream() {

@@ -2,20 +2,23 @@
 // فيجما: التهيئة: بياناتك - ذاكر وعلّم
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../auth/data/auth_service.dart';
 
-class OnboardingProfileScreen extends StatefulWidget {
+class OnboardingProfileScreen extends ConsumerStatefulWidget {
   const OnboardingProfileScreen({super.key});
 
   @override
-  State<OnboardingProfileScreen> createState() => _OnboardingProfileScreenState();
+  ConsumerState<OnboardingProfileScreen> createState() => _OnboardingProfileScreenState();
 }
 
-class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
+class _OnboardingProfileScreenState extends ConsumerState<OnboardingProfileScreen> {
   final String _selectedFaculty = 'كلية الحاسبات والذكاء الاصطناعي';
   final String _selectedYear = 'الفرقة الثانية';
   String _selectedDepartment = 'عام (General)';
+  bool _isSaving = false;
 
   final List<String> _departments = [
     'عام (General)',
@@ -24,6 +27,36 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
     'الذكاء الاصطناعي (AI)',
     'تكنولوجيا المعلومات (IT)',
   ];
+
+  Future<void> _skipOnboarding() async {
+    setState(() => _isSaving = true);
+    try {
+      await ref.read(authServiceProvider).updateUserProfile(
+        faculty: _selectedFaculty,
+        year: _selectedYear,
+        department: _selectedDepartment,
+        onboardingCompleted: true,
+      );
+    } catch (_) {}
+    if (mounted) {
+      context.go('/today');
+    }
+  }
+
+  Future<void> _proceedToCourses() async {
+    setState(() => _isSaving = true);
+    try {
+      await ref.read(authServiceProvider).updateUserProfile(
+        faculty: _selectedFaculty,
+        year: _selectedYear,
+        department: _selectedDepartment,
+      );
+    } catch (_) {}
+    if (mounted) {
+      setState(() => _isSaving = false);
+      context.push('/onboarding-courses');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,6 +70,20 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
           style: TextStyle(fontSize: 14, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
+        actions: [
+          TextButton(
+            onPressed: _isSaving ? null : _skipOnboarding,
+            child: const Text(
+              'تخطي',
+              style: TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -169,12 +216,14 @@ class _OnboardingProfileScreenState extends State<OnboardingProfileScreen> {
               SizedBox(
                 height: 52,
                 child: ElevatedButton.icon(
-                  onPressed: () => context.push('/onboarding-courses'),
+                  onPressed: _isSaving ? null : _proceedToCourses,
                   icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20),
-                  label: const Text(
-                    'التالي: اختيار المواد',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
+                  label: _isSaving
+                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      : const Text(
+                          'التالي: اختيار المواد',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
