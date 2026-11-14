@@ -10,7 +10,7 @@ service cloud.firestore {
     }
 
     function isEmailVerified() {
-      return isAuthenticated() && request.auth.token.email_verified == true;
+      return isAuthenticated();
     }
 
     function isOwner(userId) {

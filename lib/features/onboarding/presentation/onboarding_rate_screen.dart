@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/data/auth_service.dart';
+import '../../timebank/data/timebank_repository.dart';
 
 class OnboardingRateScreen extends ConsumerStatefulWidget {
   final List<CourseSeed>? courses;
@@ -53,6 +54,17 @@ class _OnboardingRateScreenState extends ConsumerState<OnboardingRateScreen> {
         courseRatings: _ratings,
         onboardingCompleted: true,
       );
+
+      final user = ref.read(authServiceProvider).currentUser;
+      final profileName = ref.read(userProfileStreamProvider).value?.data()?['name'] as String? ?? user?.displayName ?? 'زميل';
+      if (user != null) {
+        await ref.read(timeBankRepositoryProvider).syncTeachingOffersForUser(
+          userId: user.uid,
+          userName: profileName,
+          courses: _courses,
+          ratings: _ratings,
+        );
+      }
       if (mounted) {
         context.go('/today');
       }

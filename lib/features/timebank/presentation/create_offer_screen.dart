@@ -23,10 +23,12 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
   CourseSeed _selectedCourse = AppConstants.seedCourses[0]; // OOP
   final _topicController = TextEditingController();
   String _selectedDay = 'الأحد';
+  String _selectedTime = '12:00 ظهراً';
   String _location = 'مكتبة الكلية • قاعة الاستذكار 2';
   bool _isPublishing = false;
 
   final List<String> _days = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
+  final List<String> _times = ['10:00 صباحاً', '11:00 صباحاً', '12:00 ظهراً', '01:00 ظهراً', '02:00 مساءً', '03:00 مساءً', '04:00 مساءً', '05:00 مساءً'];
 
   @override
   void dispose() {
@@ -67,7 +69,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
         courseCode: _selectedCourse.code,
         topic: topic,
         day: _selectedDay,
-        time: '12:00 ظهراً',
+        time: _selectedTime,
         durationMinutes: 60,
         location: _location,
         courseColor: _selectedCourse.color,
@@ -99,6 +101,16 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final userProfileAsync = ref.watch(userProfileStreamProvider);
+    final userDoc = userProfileAsync.value?.data();
+    final customCoursesData = (userDoc?['coursesData'] as List<dynamic>?)
+        ?.map((m) => CourseSeed.fromMap(Map<String, dynamic>.from(m)))
+        .toList() ?? [];
+
+    final availableCourses = customCoursesData.isNotEmpty ? customCoursesData : AppConstants.seedCourses;
+    if (!availableCourses.any((c) => c.id == _selectedCourse.id)) {
+      _selectedCourse = availableCourses.first;
+    }
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -143,9 +155,9 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<CourseSeed>(
-                    value: _selectedCourse,
+                    value: availableCourses.contains(_selectedCourse) ? _selectedCourse : availableCourses.first,
                     isExpanded: true,
-                    items: AppConstants.seedCourses.map((c) {
+                    items: availableCourses.map((c) {
                       return DropdownMenuItem(
                         value: c,
                         child: Row(
@@ -183,26 +195,65 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
 
               const SizedBox(height: 20),
 
-              // Day
-              Text('اليوم المناسب لك', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardTheme.color,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.hairline),
-                ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedDay,
-                    isExpanded: true,
-                    items: _days.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
-                    onChanged: (val) {
-                      if (val != null) setState(() => _selectedDay = val);
-                    },
+              // Day & Time Row
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('اليوم المناسب', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardTheme.color,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.hairline),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedDay,
+                              isExpanded: true,
+                              items: _days.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
+                              onChanged: (val) {
+                                if (val != null) setState(() => _selectedDay = val);
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('الوقت المناسب', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).cardTheme.color,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: AppColors.hairline),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedTime,
+                              isExpanded: true,
+                              items: _times.map((t) => DropdownMenuItem(value: t, child: Text(t, style: const TextStyle(fontSize: 12)))).toList(),
+                              onChanged: (val) {
+                                if (val != null) setState(() => _selectedTime = val);
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
 
               const SizedBox(height: 20),

@@ -292,7 +292,13 @@ class TodayScreen extends ConsumerWidget {
 
                 InkWell(
                   borderRadius: BorderRadius.circular(18),
-                  onTap: () => context.push('/session-learner'),
+                  onTap: () {
+                    if (confirmedSession.teacherId == userId) {
+                      context.push('/session-teacher', extra: confirmedSession);
+                    } else {
+                      context.push('/session-learner', extra: confirmedSession);
+                    }
+                  },
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -329,7 +335,9 @@ class TodayScreen extends ConsumerWidget {
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
                                     Text(
-                                      '${confirmedSession.teacherName} يشرح لك ${confirmedSession.courseName}',
+                                      confirmedSession.teacherId == userId
+                                          ? 'أنت تشرح لـ ${confirmedSession.learnerName} ${confirmedSession.courseName}'
+                                          : '${confirmedSession.teacherName} يشرح لك ${confirmedSession.courseName}',
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,
@@ -347,7 +355,11 @@ class TodayScreen extends ConsumerWidget {
                                   backgroundColor: AppColors.primaryContainer,
                                   radius: 20,
                                   child: Text(
-                                    confirmedSession.teacherInitials,
+                                    confirmedSession.teacherId == userId
+                                        ? (confirmedSession.learnerName.trim().isNotEmpty
+                                            ? confirmedSession.learnerName.trim().split(' ').map((p) => p.isNotEmpty ? p[0] : '').take(2).join('.')
+                                            : 'ز.م')
+                                        : confirmedSession.teacherInitials,
                                     style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary, fontSize: 13),
                                   ),
                                 ),
@@ -364,12 +376,20 @@ class TodayScreen extends ConsumerWidget {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                               decoration: BoxDecoration(
-                                color: AppColors.error.withValues(alpha: 0.1),
+                                color: confirmedSession.teacherId == userId
+                                    ? AppColors.pointsAmber.withValues(alpha: 0.15)
+                                    : AppColors.error.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                '-${confirmedSession.costCoins} عملة وقت',
-                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.error),
+                                confirmedSession.teacherId == userId
+                                    ? '+${confirmedSession.costCoins} عملة وقت (مكافأة)'
+                                    : '-${confirmedSession.costCoins} عملة وقت (في الضمان)',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: confirmedSession.teacherId == userId ? const Color(0xFF664700) : AppColors.error,
+                                ),
                               ),
                             ),
                             Row(
