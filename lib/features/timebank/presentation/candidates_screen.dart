@@ -78,6 +78,10 @@ class CandidatesScreen extends ConsumerWidget {
                 itemBuilder: (context, index) {
                   final offer = displayOffers[index];
                   final isRealPeer = !offer.id.startsWith('offer_peer_');
+                  final isOnline = offer.location.contains('أونلاين') ||
+                      offer.location.contains('http') ||
+                      offer.location.contains('zoom') ||
+                      offer.location.contains('meet');
                   final teacherInitials = offer.teacherName.trim().isNotEmpty
                       ? offer.teacherName.trim().split(' ').map((p) => p.isNotEmpty ? p[0] : '').take(2).join('.')
                       : 'ز.م';
@@ -107,36 +111,54 @@ class CandidatesScreen extends ConsumerWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: isRealPeer
-                                    ? AppColors.sage.withValues(alpha: 0.2)
-                                    : AppColors.primaryContainer.withValues(alpha: 0.6),
-                                borderRadius: BorderRadius.circular(20),
-                                border: isRealPeer
-                                    ? Border.all(color: AppColors.deepSage.withValues(alpha: 0.3))
-                                    : null,
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    isRealPeer ? Icons.stars_rounded : Icons.verified_user_rounded,
-                                    size: 14,
-                                    color: isRealPeer ? AppColors.deepSage : AppColors.primary,
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: isRealPeer
+                                        ? AppColors.sage.withValues(alpha: 0.2)
+                                        : AppColors.primaryContainer.withValues(alpha: 0.6),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: isRealPeer
+                                        ? Border.all(color: AppColors.deepSage.withValues(alpha: 0.3))
+                                        : null,
                                   ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    isRealPeer ? 'زميل بالدفعة 🌟' : 'مرشح أكاديمي',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: isRealPeer ? AppColors.deepSage : AppColors.primary,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        isRealPeer ? Icons.stars_rounded : Icons.verified_user_rounded,
+                                        size: 14,
+                                        color: isRealPeer ? AppColors.deepSage : AppColors.primary,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        isRealPeer ? 'زميل بالدفعة 🌟' : 'مرشح أكاديمي',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: isRealPeer ? AppColors.deepSage : AppColors.primary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                if (isOnline) ...[
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: const Text(
+                                      '💻 أونلاين',
+                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primary),
                                     ),
                                   ),
                                 ],
-                              ),
+                              ],
                             ),
                             Row(
                               children: [
@@ -186,11 +208,17 @@ class CandidatesScreen extends ConsumerWidget {
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.access_time_filled_rounded, size: 16, color: AppColors.primary),
+                              Icon(
+                                isOnline ? Icons.videocam_rounded : Icons.access_time_filled_rounded,
+                                size: 16,
+                                color: AppColors.primary,
+                              ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
-                                  'الموعد: ${offer.day} • ${offer.time} (${offer.location})',
+                                  isOnline
+                                      ? 'الموعد: ${offer.day} • ${offer.time} (أونلاين عبر الرابط 💻)'
+                                      : 'الموعد: ${offer.day} • ${offer.time} (${offer.location})',
                                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary),
                                 ),
                               ),

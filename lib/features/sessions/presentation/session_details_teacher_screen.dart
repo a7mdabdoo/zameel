@@ -2,6 +2,7 @@
 // فيجما: تفاصيل الجلسة - عرض الشارح (الربط الحي بالضمان والفايربيز)
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/models/app_models.dart';
@@ -207,12 +208,60 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                     const Divider(height: 20, color: AppColors.hairline),
                     _RowItem('المدة المقررة', duration),
                     const Divider(height: 20, color: AppColors.hairline),
-                    _RowItem('المكان المحدد', location),
+                    _RowItem('المكان / طريقة اللقاء', location.contains('أونلاين') || location.contains('http') || location.contains('zoom') || location.contains('meet') ? 'أونلاين (Zoom / Google Meet) 💻' : location),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
+
+              if (location.contains('http') || location.contains('meet') || location.contains('zoom') || location.contains('أونلاين')) ...[
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Row(
+                        children: [
+                          Icon(Icons.videocam_rounded, color: AppColors.primary, size: 20),
+                          SizedBox(width: 8),
+                          Text(
+                            'رابط جلسة الشرح الأونلاين',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primary),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      SelectableText(
+                        location.replaceAll('أونلاين:', '').trim(),
+                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      ),
+                      const SizedBox(height: 10),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Clipboard.setData(ClipboardData(text: location.replaceAll('أونلاين:', '').trim()));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('تم نسخ رابط الاجتماع (Zoom / Meet) بنجاح 📋')),
+                          );
+                        },
+                        icon: const Icon(Icons.copy_rounded, size: 16, color: Colors.white),
+                        label: const Text('نسخ رابط الاجتماع', style: TextStyle(color: Colors.white, fontSize: 13)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ] else
+                const SizedBox(height: 8),
 
               // Chat Button
               if (session != null) ...[

@@ -190,7 +190,18 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                     const Divider(height: 20, color: AppColors.hairline),
                     _buildDetailRow(context, Icons.calendar_today_outlined, 'الموعد', dayTime),
                     const Divider(height: 20, color: AppColors.hairline),
-                    _buildDetailRow(context, Icons.location_on_outlined, 'المكان', location),
+                    _buildDetailRow(
+                      context,
+                      (location.contains('أونلاين') || location.contains('http') || location.contains('meet') || location.contains('zoom'))
+                          ? Icons.videocam_rounded
+                          : Icons.location_on_outlined,
+                      (location.contains('أونلاين') || location.contains('http') || location.contains('meet') || location.contains('zoom'))
+                          ? 'طريقة اللقاء'
+                          : 'المكان',
+                      (location.contains('أونلاين') || location.contains('http') || location.contains('meet') || location.contains('zoom'))
+                          ? 'أونلاين عن بُعد (Zoom / Meet) 💻'
+                          : location,
+                    ),
                   ],
                 ),
               ),

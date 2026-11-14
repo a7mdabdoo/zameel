@@ -141,10 +141,32 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
                   }),
 
                   if (dayLectures.isEmpty && dayBlocks.isEmpty)
-                    const Center(
+                    Center(
                       child: Padding(
-                        padding: EdgeInsets.all(32.0),
-                        child: Text('يوم راحة أو لا توجد مواعيد مسجلة'),
+                        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
+                        child: Column(
+                          children: [
+                            const Icon(Icons.calendar_month_outlined, size: 48, color: AppColors.textSecondary),
+                            const SizedBox(height: 12),
+                            const Text(
+                              'لا توجد مواعيد مسجلة لهذا اليوم',
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'يمكنك إضافة محاضراتك لتوليد خطة المذاكرة الأسبوعية تلقائياً.',
+                              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 14),
+                            ElevatedButton.icon(
+                              onPressed: () => context.push('/schedule-setup'),
+                              icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
+                              label: const Text('إعداد جدول المحاضرات', style: TextStyle(color: Colors.white, fontSize: 13)),
+                              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
 
