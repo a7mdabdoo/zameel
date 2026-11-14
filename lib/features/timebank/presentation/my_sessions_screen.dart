@@ -290,7 +290,15 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(costText, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: costColor)),
-                Text('$time • $location', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '$time • $location',
+                    style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.left,
+                  ),
+                ),
               ],
             ),
           ),

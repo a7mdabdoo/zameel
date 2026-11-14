@@ -254,10 +254,7 @@ service cloud.firestore {
 
       // محادثة ورسائل تنسيق الجلسة بين الطالبين
       match /messages/{messageId} {
-        allow read, create: if isAuthenticated() && (
-          get(/databases/$(database)/documents/sessions/$(sessionId)).data.learnerId == request.auth.uid ||
-          get(/databases/$(database)/documents/sessions/$(sessionId)).data.teacherId == request.auth.uid
-        );
+        allow read, create: if isAuthenticated();
         allow update, delete: if false;
       }
     }
