@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../theme/app_colors.dart';
 import '../constants/app_constants.dart';
 import '../algorithms/planner_algorithm.dart';
 import '../algorithms/matching_algorithm.dart';
@@ -59,13 +60,51 @@ class PlannerState {
 }
 
 class PlannerNotifier extends Notifier<PlannerState> {
+  static final List<ScheduleItemModel> _defaultLectures = [
+    const ScheduleItemModel(
+      id: 'lec_1',
+      courseName: 'التفاضل والتكامل (Calculus)',
+      courseCode: 'MATH202',
+      day: 'السبت',
+      startTime: '09:00 ص',
+      endTime: '10:30 ص',
+      room: 'قاعة 3',
+      color: AppColors.courseSlate,
+    ),
+    const ScheduleItemModel(
+      id: 'lec_2',
+      courseName: 'تنظيم الحواسب (Computer Org)',
+      courseCode: 'CS203',
+      day: 'الأحد',
+      startTime: '08:30 ص',
+      endTime: '10:00 ص',
+      room: 'مدرج 2',
+      color: AppColors.courseDustPlum,
+    ),
+    const ScheduleItemModel(
+      id: 'lec_3',
+      courseName: 'هياكل البيانات (Data Structures)',
+      courseCode: 'CS202',
+      day: 'الاثنين',
+      startTime: '10:00 ص',
+      endTime: '11:30 ص',
+      room: 'معمل الحاسب 1',
+      color: AppColors.courseSage,
+    ),
+  ];
+
   @override
   PlannerState build() {
-    return const PlannerState(
-      studyBlocks: [],
-      lectureSchedule: [],
-      completedBlocksCount: 0,
-      totalWeeklyTarget: 0,
+    final generatedBlocks = PlannerAlgorithm.generateWeeklyPlan(
+      courseInputs: PlannerAlgorithm.getDefaultSeedInputs(),
+      lectureSchedule: _defaultLectures,
+    );
+
+    return PlannerState(
+      studyBlocks: generatedBlocks,
+      lectureSchedule: _defaultLectures,
+      completedBlocksCount: 7,
+      totalWeeklyTarget: generatedBlocks.isNotEmpty ? generatedBlocks.length : 12,
     );
   }
 
