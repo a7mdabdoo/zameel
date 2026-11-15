@@ -365,5 +365,62 @@ service cloud.firestore {
       // السجل المحاسبي غير قابل للتعديل أو الحذف إطلاقاً (Immutable Ledger)
       allow update, delete: if false;
     }
+
+    // ==========================================
+    // 5. أقفال المواعيد لمنع الحجز المزدوج (Slot Locks)
+    // ==========================================
+    match /slotLocks/{lockId} {
+      allow read: if isAuthenticated();
+
+      // إنشاء القفل: حصرياً بالتزامن مع إنشاء جلسة في نفس المعاملة (existsAfter)
+      // مع صيغة معرف حتمية {uid}_{slotEpochMs}، وحالة أولية 'active'
+      allow create: if isEmailVerified()
+        && !exists(/databases/$(database)/documents/slotLocks/$(lockId))
+        && 'uid' in request.resource.data
+        && 'slotEpochMs' in request.resource.data
+        && 'sessionId' in request.resource.data
+        && 'status' in request.resource.data
+        && request.resource.data.status == 'active'
+        && request.resource.data.slotEpochMs is int
+        && request.resource.data.uid is string
+        && lockId == request.resource.data.uid + '_' + string(request.resource.data.slotEpochMs)
+        && existsAfter(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId));
+
+      // تحديث حالة القفل: مسموح فقط بالتحول الحتمي المرتبط بانتقال حالة الجلسة
+      // مع ثبات المعرفات الأصلية uid و slotEpochMs
+      allow update: if isEmailVerified()
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.slotEpochMs == resource.data.slotEpochMs
+        && (
+          // تحول إلى 'used' عند إتمام الجلسة بنجاح أو تعويض المعلم
+          (
+            resource.data.status == 'active'
+            && request.resource.data.status == 'used'
+            && request.resource.data.sessionId == resource.data.sessionId
+            && getAfter(/databases/$(database)/documents/sessions/$(resource.data.sessionId)).data.escrowStatus == 'released_to_teacher'
+          )
+          ||
+          // تحول إلى 'released' عند إلغاء أو رفض أو انتهاء الجلسة واسترداد المتعلم
+          (
+            resource.data.status == 'active'
+            && request.resource.data.status == 'released'
+            && request.resource.data.sessionId == resource.data.sessionId
+            && (
+              getAfter(/databases/$(database)/documents/sessions/$(resource.data.sessionId)).data.escrowStatus == 'refunded_to_learner'
+              || getAfter(/databases/$(database)/documents/sessions/$(resource.data.sessionId)).data.status in ['cancelled_by_teacher', 'cancelled_by_learner', 'rejected', 'expired']
+            )
+          )
+          ||
+          // تحول إلى 'active' عند إعادة حجز موعد تم إلغاؤه مسبقاً (released -> active)
+          (
+            resource.data.status == 'released'
+            && request.resource.data.status == 'active'
+            && existsAfter(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId))
+          )
+        );
+
+      // لا يسمح بحذف أقفال المواعيد إطلاقاً
+      allow delete: if false;
+    }
   }
 }

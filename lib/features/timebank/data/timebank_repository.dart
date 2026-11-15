@@ -55,14 +55,37 @@ class TimeBankRepository {
         currentEscrowStatus: null,
       );
 
-      // 2. خصم العملة وتحديث رصيد المتعلّم مع ربط الجلسة
+      // 2. قراءة أقفال المواعيد المزدوجة (Slot Locks) للتحقق من خلوها
+      final lockIds = session.scheduledAt != null
+          ? TimeBankPureLogic.getLockDocIds(
+              learnerId: session.learnerId,
+              teacherId: session.teacherId,
+              scheduledAt: session.scheduledAt!,
+              durationMinutes: session.durationMinutes,
+            )
+          : <String>[];
+
+      final lockSnaps = <DocumentSnapshot>[];
+      for (final lockId in lockIds) {
+        final lockRef = firestore.collection('slotLocks').doc(lockId);
+        final snap = await transaction.get(lockRef);
+        lockSnaps.add(snap);
+      }
+
+      if (TimeBankPureLogic.hasActiveLock(
+        lockSnaps.where((s) => s.exists).map((s) => s.data() as Map<String, dynamic>?),
+      )) {
+        throw Exception('عفواً، هذا الموعد محجوز بالفعل أو يوجد تعارض في جدولك أو جدول المعلم');
+      }
+
+      // 3. خصم العملة وتحديث رصيد المتعلّم مع ربط الجلسة
       final updatedCoins = currentCoins - AppConstants.sessionCostCoins;
       transaction.update(learnerDocRef, {
         'timeCoins': updatedCoins,
         'lastSessionId': session.id,
       });
 
-      // 3. إنشاء مستند الجلسة مع حالة ضمان معلّق (Escrow Held)
+      // 4. إنشاء مستند الجلسة مع حالة ضمان معلّق (Escrow Held)
       final sessionData = session.toMap();
       sessionData['costCoins'] = AppConstants.sessionCostCoins;
       sessionData['escrowStatus'] = 'held';
@@ -73,7 +96,7 @@ class TimeBankRepository {
       }
       transaction.set(sessionDocRef, sessionData);
 
-      // 4. تسجيل حركة المحفظة (خصم للضمان)
+      // 5. تسجيل حركة المحفظة (خصم للضمان)
       final txData = WalletTransactionModel(
         id: txId,
         userId: session.learnerId,
@@ -88,6 +111,34 @@ class TimeBankRepository {
       ).toMap();
       txData['createdAt'] = FieldValue.serverTimestamp();
       transaction.set(txDocRef, txData);
+
+      // 6. إنشاء أقفال المواعيد (Slot Locks)
+      if (session.scheduledAt != null) {
+        final slotEpochs = TimeBankPureLogic.getSessionSlotEpochs(
+          scheduledAt: session.scheduledAt!,
+          durationMinutes: session.durationMinutes,
+        );
+        for (final epoch in slotEpochs) {
+          final learnerLockRef = firestore.collection('slotLocks').doc('${session.learnerId}_$epoch');
+          final teacherLockRef = firestore.collection('slotLocks').doc('${session.teacherId}_$epoch');
+
+          transaction.set(learnerLockRef, {
+            'uid': session.learnerId,
+            'slotEpochMs': epoch,
+            'sessionId': session.id,
+            'status': 'active',
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+
+          transaction.set(teacherLockRef, {
+            'uid': session.teacherId,
+            'slotEpochMs': epoch,
+            'sessionId': session.id,
+            'status': 'active',
+            'createdAt': FieldValue.serverTimestamp(),
+          });
+        }
+      }
     });
 
     return session.copyWith(
@@ -146,6 +197,32 @@ class TimeBankRepository {
         throw Exception('حساب المعلم غير موجود');
       }
 
+      // قراءة أقفال المواعيد إن وجدت لتحديثها كـ used
+      final existingLockRefs = <DocumentReference>[];
+      final durationMinutes = (sessionData['durationMinutes'] as num?)?.toInt() ?? 60;
+      final scheduledAtRaw = sessionData['scheduledAt'];
+      DateTime? scheduledAt;
+      if (scheduledAtRaw is Timestamp) {
+        scheduledAt = scheduledAtRaw.toDate();
+      } else if (scheduledAtRaw is String) {
+        scheduledAt = DateTime.tryParse(scheduledAtRaw);
+      }
+      if (scheduledAt != null) {
+        final lockIds = TimeBankPureLogic.getLockDocIds(
+          learnerId: sessionLearnerId,
+          teacherId: teacherId,
+          scheduledAt: scheduledAt,
+          durationMinutes: durationMinutes,
+        );
+        for (final id in lockIds) {
+          final ref = firestore.collection('slotLocks').doc(id);
+          final snap = await transaction.get(ref);
+          if (snap.exists) {
+            existingLockRefs.add(ref);
+          }
+        }
+      }
+
       final teacherData = teacherSnap.data()!;
       final teacherCoins = (teacherData['timeCoins'] as num?)?.toInt() ?? AppConstants.welcomeCoins;
       final completedSessions = (teacherData['completedSessions'] as num?)?.toInt() ?? 0;
@@ -192,6 +269,14 @@ class TimeBankRepository {
       ).toMap();
       txData['createdAt'] = FieldValue.serverTimestamp();
       transaction.set(txDocRef, txData);
+
+      // 5. تحديث أقفال المواعيد إلى used
+      for (final ref in existingLockRefs) {
+        transaction.update(ref, {
+          'status': 'used',
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
     });
   }
 
@@ -292,6 +377,25 @@ class TimeBankRepository {
       final learnerDocRef = firestore.collection('users').doc(learnerId);
       final teacherDocRef = firestore.collection('users').doc(teacherId);
 
+      // قراءة أقفال المواعيد إن وجدت لتحديثها كـ released أو used
+      final existingLockRefs = <DocumentReference>[];
+      final durationMinutes = (sessionData['durationMinutes'] as num?)?.toInt() ?? 60;
+      if (scheduledAt != null) {
+        final lockIds = TimeBankPureLogic.getLockDocIds(
+          learnerId: learnerId,
+          teacherId: teacherId,
+          scheduledAt: scheduledAt,
+          durationMinutes: durationMinutes,
+        );
+        for (final id in lockIds) {
+          final ref = firestore.collection('slotLocks').doc(id);
+          final snap = await transaction.get(ref);
+          if (snap.exists) {
+            existingLockRefs.add(ref);
+          }
+        }
+      }
+
       if (decision.outcome == CancellationOutcome.fullRefundToLearner) {
         final learnerSnap = await transaction.get(learnerDocRef);
         final learnerCoins = (learnerSnap.data()?['timeCoins'] as num?)?.toInt() ?? 0;
@@ -327,6 +431,14 @@ class TimeBankRepository {
         ).toMap();
         txData['createdAt'] = FieldValue.serverTimestamp();
         transaction.set(txDocRef, txData);
+
+        // إطلاق أقفال المواعيد لتصبح متاحة مجدداً (released)
+        for (final ref in existingLockRefs) {
+          transaction.update(ref, {
+            'status': 'released',
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
       } else {
         // إلغاء متأخر (أقل من ساعتين أو تخلف): العملة تذهب للمعلم تعويضاً عن وقته المحجوز
         final teacherSnap = await transaction.get(teacherDocRef);
@@ -361,6 +473,14 @@ class TimeBankRepository {
         ).toMap();
         txData['createdAt'] = FieldValue.serverTimestamp();
         transaction.set(txDocRef, txData);
+
+        // تثبيت أقفال المواعيد كـ used
+        for (final ref in existingLockRefs) {
+          transaction.update(ref, {
+            'status': 'used',
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
       }
     });
   }
