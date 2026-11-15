@@ -683,4 +683,41 @@ void main() {
       expect(decision.compensatedTeacherCoins, equals(1));
     });
   });
+
+  // =========================================================================
+  // المجموعة 12: تم الشرح والإتمام بعد حلول الموعد (Teacher Done & ScheduledAt Completion)
+  // =========================================================================
+  group('TimeBankPureLogic - Teacher Done & ScheduledAt Completion', () {
+    final scheduledAt = DateTime(2026, 11, 21, 14, 0);
+
+    test('validateCompletionTransition succeeds when completing at or after scheduledAt', () {
+      DateTime clockAfter() => DateTime(2026, 11, 21, 14, 30); // بعد الموعد بـ 30 دقيقة
+
+      expect(
+        () => TimeBankPureLogic.validateCompletionTransition(
+          currentEscrowStatus: 'held',
+          currentStatus: 'confirmed',
+          rating: 5,
+          scheduledAt: scheduledAt,
+          clock: clockAfter,
+        ),
+        returnsNormally,
+      );
+    });
+
+    test('validateCompletionTransition throws StateError when attempting completion before scheduledAt', () {
+      DateTime clockBefore() => DateTime(2026, 11, 21, 13, 0); // قبل الموعد بساعة
+
+      expect(
+        () => TimeBankPureLogic.validateCompletionTransition(
+          currentEscrowStatus: 'held',
+          currentStatus: 'confirmed',
+          rating: 5,
+          scheduledAt: scheduledAt,
+          clock: clockBefore,
+        ),
+        throwsStateError,
+      );
+    });
+  });
 }

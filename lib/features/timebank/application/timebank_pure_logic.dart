@@ -187,6 +187,8 @@ class TimeBankPureLogic {
     required String currentEscrowStatus,
     required String currentStatus,
     required int rating,
+    DateTime? scheduledAt,
+    DateTime Function()? clock,
   }) {
     if (currentEscrowStatus != 'held') {
       throw StateError('Cannot complete a session whose escrow status is not held (current: $currentEscrowStatus)');
@@ -196,6 +198,12 @@ class TimeBankPureLogic {
     }
     if (rating < 1 || rating > 5) {
       throw ArgumentError.value(rating, 'rating', 'Completion rating must be an integer between 1 and 5');
+    }
+    if (scheduledAt != null) {
+      final now = (clock ?? defaultClock)();
+      if (now.isBefore(scheduledAt)) {
+        throw StateError('Cannot complete a session before its scheduled time');
+      }
     }
   }
 

@@ -310,6 +310,58 @@ class TimeBankRepository {
   }
 
   // =========================================================================
+  // 1-ج. تسجيل المعلم "تم الشرح" بعد حلول الموعد (teacherMarkedDoneAt)
+  // =========================================================================
+  Future<void> markSessionDoneByTeacher({
+    required String sessionId,
+    required String teacherId,
+    DateTime? currentTime,
+  }) async {
+    final firestore = _firestore;
+    if (firestore == null) {
+      throw FirebaseException(
+        plugin: 'firestore',
+        message: 'Firebase Firestore is not initialized',
+      );
+    }
+
+    final sessionDocRef = firestore.collection('sessions').doc(sessionId);
+
+    await firestore.runTransaction((transaction) async {
+      final snap = await transaction.get(sessionDocRef);
+      if (!snap.exists) throw Exception('الجلسة غير موجودة');
+
+      final data = snap.data()!;
+      if (data['teacherId'] != teacherId) {
+        throw Exception('الشارح صاحب الجلسة فقط هو المخول بتأكيد تقديم الشرح');
+      }
+      if (data['status'] != 'confirmed') {
+        throw Exception('يجب أن تكون الجلسة مؤكدة لتسجيل إتمام الشرح');
+      }
+      if (data['escrowStatus'] != 'held') {
+        throw Exception('الضمان غير معلق لهذه الجلسة');
+      }
+
+      final scheduledAtRaw = data['scheduledAt'];
+      DateTime? scheduledAt;
+      if (scheduledAtRaw is Timestamp) {
+        scheduledAt = scheduledAtRaw.toDate();
+      } else if (scheduledAtRaw is String) {
+        scheduledAt = DateTime.tryParse(scheduledAtRaw);
+      }
+
+      final now = currentTime ?? DateTime.now();
+      if (scheduledAt != null && now.isBefore(scheduledAt)) {
+        throw Exception('لا يمكنك تسجيل "تم الشرح" إلا بعد حلول موعد الجلسة المحدد');
+      }
+
+      transaction.update(sessionDocRef, {
+        'teacherMarkedDoneAt': FieldValue.serverTimestamp(),
+      });
+    });
+  }
+
+  // =========================================================================
   // 2. إتمام الجلسة وإطلاق العملة للمعلم (Complete & Release Escrow)
   // =========================================================================
   Future<void> completeSessionAndReleaseEscrow({
@@ -345,11 +397,20 @@ class TimeBankRepository {
         throw Exception('المتعلّم صاحب الجلسة فقط هو المخوّل بتأكيد الإتمام');
       }
 
+      final scheduledAtRaw = sessionData['scheduledAt'];
+      DateTime? scheduledAt;
+      if (scheduledAtRaw is Timestamp) {
+        scheduledAt = scheduledAtRaw.toDate();
+      } else if (scheduledAtRaw is String) {
+        scheduledAt = DateTime.tryParse(scheduledAtRaw);
+      }
+
       final currentStatus = sessionSnap.data()?['status'] as String? ?? 'confirmed';
       TimeBankPureLogic.validateCompletionTransition(
         currentEscrowStatus: currentEscrow,
         currentStatus: currentStatus,
         rating: rating,
+        scheduledAt: scheduledAt,
       );
 
       // 2. قراءة بيانات المعلّم وإضافة العملة لرصيده
@@ -362,13 +423,6 @@ class TimeBankRepository {
       // قراءة أقفال المواعيد إن وجدت لتحديثها كـ used
       final existingLockRefs = <DocumentReference>[];
       final durationMinutes = (sessionData['durationMinutes'] as num?)?.toInt() ?? 60;
-      final scheduledAtRaw = sessionData['scheduledAt'];
-      DateTime? scheduledAt;
-      if (scheduledAtRaw is Timestamp) {
-        scheduledAt = scheduledAtRaw.toDate();
-      } else if (scheduledAtRaw is String) {
-        scheduledAt = DateTime.tryParse(scheduledAtRaw);
-      }
       if (scheduledAt != null) {
         final lockIds = TimeBankPureLogic.getLockDocIds(
           learnerId: sessionLearnerId,
