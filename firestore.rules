@@ -162,6 +162,24 @@ service cloud.firestore {
         && ('createdAt' in request.resource.data && request.resource.data.createdAt != null);
     }
 
+    // 7. التحقق من صحة واكتمال بيانات عروض الشرح (Offers Rules)
+    function isValidOfferData(data) {
+      return data.teacherId is string
+        && data.teacherName is string && data.teacherName.size() > 0
+        && data.courseId is string && data.courseId.size() > 0
+        && data.courseName is string && data.courseName.size() > 0
+        && data.courseCode is string && data.courseCode.size() > 0
+        && data.topic is string && data.topic.size() > 0
+        && data.day is string && data.day.size() > 0
+        && data.time is string && data.time.size() > 0
+        && data.durationMinutes in [30, 60]
+        && data.location is string
+        && (!('mode' in data) || data.mode in ['online', 'in_person'])
+        && !('meetingUrl' in data)
+        && !('meetingLink' in data)
+        && !('link' in data);
+    }
+
     // ==========================================
     // 1. حسابات الطلاب (Users)
     // ==========================================
@@ -203,8 +221,15 @@ service cloud.firestore {
     // ==========================================
     match /offers/{offerId} {
       allow read: if isAuthenticated();
-      allow create: if isEmailVerified() && request.resource.data.teacherId == request.auth.uid;
-      allow update, delete: if isEmailVerified() && resource.data.teacherId == request.auth.uid;
+      allow create: if isEmailVerified()
+        && request.resource.data.teacherId == request.auth.uid
+        && isValidOfferData(request.resource.data);
+      allow update: if isEmailVerified()
+        && resource.data.teacherId == request.auth.uid
+        && request.resource.data.teacherId == resource.data.teacherId
+        && isValidOfferData(request.resource.data);
+      allow delete: if isEmailVerified()
+        && resource.data.teacherId == request.auth.uid;
     }
 
     // ==========================================

@@ -1456,4 +1456,141 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
       authedDb.collection('transactions').doc(txId).delete()
     );
   });
+
+  // =========================================================================
+  // القسم العاشر: قواعد عروض الشرح (Offers Rules Tests)
+  // =========================================================================
+
+  test('قواعد العروض 1: نجاح إنشاء عرض شرح وتحديثه مع durationMinutes في {30, 60}', async () => {
+    const teacherId = 'offer_teacher_valid';
+    const offerId = 'offer_valid_1';
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+
+    const offerData = {
+      teacherId: teacherId,
+      teacherName: 'أحمد',
+      courseId: 'math101',
+      courseName: 'تفاضل وتكامل',
+      courseCode: 'MATH101',
+      topic: 'قواعد الاشتقاق',
+      day: 'الاثنين',
+      time: '01:00 ظهراً',
+      durationMinutes: 30,
+      location: 'مكتبة الكلية',
+      isAvailable: true,
+    };
+
+    // إنشاء بنجاح
+    await assertSucceeds(
+      teacherDb.collection('offers').doc(offerId).set(offerData)
+    );
+
+    // تحديث بنجاح مع تغيير المدة إلى 60
+    await assertSucceeds(
+      teacherDb.collection('offers').doc(offerId).update({
+        durationMinutes: 60,
+        topic: 'تطبيقات على القيم العظمى',
+      })
+    );
+  });
+
+  test('قواعد العروض 2: حظر تعديل teacherId عند تحديث العرض (teacherId is immutable)', async () => {
+    const teacherId = 'offer_teacher_orig';
+    const offerId = 'offer_immutable_teacher';
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('offers').doc(offerId).set({
+        teacherId: teacherId,
+        teacherName: 'المعلم الأصلي',
+        courseId: 'cs101',
+        courseName: 'برمجة 1',
+        courseCode: 'CS101',
+        topic: 'المصفوفات',
+        day: 'الثلاثاء',
+        time: '02:00 م',
+        durationMinutes: 60,
+        location: 'معمل الحاسب',
+        isAvailable: true,
+      });
+    });
+
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+
+    // محاولة تغيير teacherId لشخص آخر تفشل
+    await assertFails(
+      teacherDb.collection('offers').doc(offerId).update({
+        teacherId: 'hacker_teacher',
+      })
+    );
+  });
+
+  test('قواعد العروض 3: رفض إنشاء عرض بمدة غير مقبولة (durationMinutes not in {30, 60})', async () => {
+    const teacherId = 'offer_teacher_duration';
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+
+    const invalidOffer = {
+      teacherId: teacherId,
+      teacherName: 'معلم',
+      courseId: 'cs102',
+      courseName: 'هياكل بيانات',
+      courseCode: 'CS102',
+      topic: 'الأشجار',
+      day: 'الأربعاء',
+      time: '11:00 ص',
+      durationMinutes: 45, // غير مسموح
+      location: 'مكتبة',
+      isAvailable: true,
+    };
+
+    await assertFails(
+      teacherDb.collection('offers').doc('offer_invalid_dur').set(invalidOffer)
+    );
+  });
+
+  test('قواعد العروض 4: رفض إنشاء عرض بحقول مطلوبة ناقصة أو فارغة', async () => {
+    const teacherId = 'offer_teacher_missing';
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+
+    const missingTopicOffer = {
+      teacherId: teacherId,
+      teacherName: 'معلم',
+      courseId: 'cs103',
+      courseName: 'قواعد بيانات',
+      courseCode: 'CS103',
+      topic: '', // فارغ
+      day: 'الخميس',
+      time: '12:00 م',
+      durationMinutes: 60,
+      location: 'مكتبة',
+      isAvailable: true,
+    };
+
+    await assertFails(
+      teacherDb.collection('offers').doc('offer_missing_topic').set(missingTopicOffer)
+    );
+  });
+
+  test('قواعد العروض 5: حظر تخزين رابط الاجتماع في عروض الشرح (No meeting link in offers)', async () => {
+    const teacherId = 'offer_teacher_link';
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+
+    // محاولة إرفاق meetingUrl في العرض العام تفشل
+    await assertFails(
+      teacherDb.collection('offers').doc('offer_with_link').set({
+        teacherId: teacherId,
+        teacherName: 'معلم',
+        courseId: 'cs104',
+        courseName: 'شبكات',
+        courseCode: 'CS104',
+        topic: 'بروتوكولات',
+        day: 'الأحد',
+        time: '10:00 ص',
+        durationMinutes: 60,
+        location: 'أونلاين',
+        meetingUrl: 'https://meet.google.com/abc-defg-hij',
+        isAvailable: true,
+      })
+    );
+  });
 });
