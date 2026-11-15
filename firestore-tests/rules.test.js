@@ -443,7 +443,8 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
         t.update(learnerDb.collection('users').doc(teacherId), {
           timeCoins: 3,
           completedSessions: 1,
-          teacherRating: 5.0,
+          ratingSum: 5,
+          ratingCount: 1,
           lastSessionId: sessionId,
         });
 
@@ -970,12 +971,21 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
 
   test('تأكيد البريد 2: المستخدم غير المؤكد يفشل في إرسال رسالة في الجلسة، والمؤكد ينجح', async () => {
     const sessionId = 'session_verify_chat';
-    const learnerId = 'unverified_learner_chat';
+    const unverifiedLearner = 'unverified_learner_chat';
+    const verifiedLearner = 'verified_learner_chat';
     const teacherId = 'teacher_chat';
 
     await testEnv.withSecurityRulesDisabled(async (context) => {
-      await context.firestore().collection('sessions').doc(sessionId).set({
-        learnerId: learnerId,
+      const adminDb = context.firestore();
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: unverifiedLearner,
+        teacherId: teacherId,
+        costCoins: 1,
+        status: 'confirmed',
+        escrowStatus: 'held',
+      });
+      await adminDb.collection('sessions').doc('session_verify_chat_2').set({
+        learnerId: verifiedLearner,
         teacherId: teacherId,
         costCoins: 1,
         status: 'confirmed',
@@ -983,13 +993,13 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
       });
     });
 
-    const unverifiedDb = testEnv.authenticatedContext(learnerId, { email_verified: false }).firestore();
-    const verifiedDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+    const unverifiedDb = testEnv.authenticatedContext(unverifiedLearner, { email_verified: false }).firestore();
+    const verifiedDb = testEnv.authenticatedContext(verifiedLearner, { email_verified: true }).firestore();
 
     // غير المؤكد يفشل
     await assertFails(
       unverifiedDb.collection('sessions').doc(sessionId).collection('messages').doc('msg_fail').set({
-        senderId: learnerId,
+        senderId: unverifiedLearner,
         senderName: 'Learner',
         text: 'رسالة من بريد غير مؤكد',
         createdAt: new Date().toISOString(),
@@ -998,11 +1008,255 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
 
     // المؤكد ينجح
     await assertSucceeds(
-      verifiedDb.collection('sessions').doc(sessionId).collection('messages').doc('msg_pass').set({
-        senderId: learnerId,
+      verifiedDb.collection('sessions').doc('session_verify_chat_2').collection('messages').doc('msg_pass').set({
+        senderId: verifiedLearner,
         senderName: 'Learner',
         text: 'رسالة من بريد مؤكد',
         createdAt: new Date().toISOString(),
+      })
+    );
+  });
+
+  // =========================================================================
+  // القسم الثامن: نزاهة نظام التقييم (Rating Integrity Tests)
+  // =========================================================================
+
+  test('نزاهة التقييم 1: منع حجز جلسة بقيمة تقييم ابتدائية (rating must be null at booking)', async () => {
+    const learnerId = 'learner_rating_book';
+    const teacherId = 'teacher_rating_book';
+    const sessionId = 'session_rating_book_1';
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(learnerId).set({
+        uid: learnerId,
+        timeCoins: 2,
+        completedSessions: 0,
+        ratingSum: 0,
+        ratingCount: 0,
+      });
+      await adminDb.collection('users').doc(teacherId).set({
+        uid: teacherId,
+        timeCoins: 2,
+        completedSessions: 0,
+        ratingSum: 0,
+        ratingCount: 0,
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+
+    // محاولة حجز جلسة مع إرسال rating = 5 تفشل
+    await assertFails(
+      learnerDb.runTransaction(async (t) => {
+        t.update(learnerDb.collection('users').doc(learnerId), {
+          timeCoins: 1,
+          lastSessionId: sessionId,
+        });
+        t.set(learnerDb.collection('sessions').doc(sessionId), {
+          id: sessionId,
+          learnerId: learnerId,
+          teacherId: teacherId,
+          costCoins: 1,
+          status: 'confirmed',
+          escrowStatus: 'held',
+          rating: 5,
+        });
+        t.set(learnerDb.collection('transactions').doc(`tx_${sessionId}`), {
+          id: `tx_${sessionId}`,
+          userId: learnerId,
+          sessionId: sessionId,
+          amount: 1,
+          isNegative: true,
+          type: 'session_booking',
+        });
+      })
+    );
+
+    // الحجز بدون تقييم (rating: null أو غير موجود) ينجح
+    await assertSucceeds(
+      learnerDb.runTransaction(async (t) => {
+        t.update(learnerDb.collection('users').doc(learnerId), {
+          timeCoins: 1,
+          lastSessionId: sessionId,
+        });
+        t.set(learnerDb.collection('sessions').doc(sessionId), {
+          id: sessionId,
+          learnerId: learnerId,
+          teacherId: teacherId,
+          costCoins: 1,
+          status: 'confirmed',
+          escrowStatus: 'held',
+          rating: null,
+        });
+        t.set(learnerDb.collection('transactions').doc(`tx_${sessionId}`), {
+          id: `tx_${sessionId}`,
+          userId: learnerId,
+          sessionId: sessionId,
+          amount: 1,
+          isNegative: true,
+          type: 'session_booking',
+        });
+      })
+    );
+  });
+
+  test('نزاهة التقييم 2: عند إتمام الجلسة يزيد ratingCount بـ 1 و ratingSum بقيمة التقييم بدقة', async () => {
+    const learnerId = 'learner_rating_comp';
+    const teacherId = 'teacher_rating_comp';
+    const sessionId = 'session_rating_comp_1';
+    const txId = 'tx_rating_comp_1';
+    const scheduledTime = new Date(Date.now() + 2 * 3600 * 1000);
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(learnerId).set({
+        uid: learnerId,
+        timeCoins: 1,
+        completedSessions: 0,
+        ratingSum: 0,
+        ratingCount: 0,
+      });
+      await adminDb.collection('users').doc(teacherId).set({
+        uid: teacherId,
+        timeCoins: 2,
+        completedSessions: 1,
+        ratingSum: 5,
+        ratingCount: 1,
+      });
+      await adminDb.collection('sessions').doc(sessionId).set({
+        id: sessionId,
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'confirmed',
+        scheduledAt: scheduledTime,
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+
+    // تقييم 4 نجوم: يجب أن يصبح ratingSum = 5 + 4 = 9 و ratingCount = 1 + 1 = 2
+    await assertSucceeds(
+      learnerDb.runTransaction(async (t) => {
+        t.update(learnerDb.collection('users').doc(teacherId), {
+          timeCoins: 3,
+          completedSessions: 2,
+          ratingSum: 9,
+          ratingCount: 2,
+          lastSessionId: sessionId,
+        });
+        t.update(learnerDb.collection('sessions').doc(sessionId), {
+          learnerId: learnerId,
+          teacherId: teacherId,
+          costCoins: 1,
+          scheduledAt: scheduledTime,
+          status: 'completed',
+          escrowStatus: 'released_to_teacher',
+          rating: 4,
+          reviewComment: 'شرح ممتاز',
+        });
+        t.set(learnerDb.collection('transactions').doc(txId), {
+          id: txId,
+          userId: teacherId,
+          sessionId: sessionId,
+          amount: 1,
+          isNegative: false,
+          type: 'session_earning',
+        });
+      })
+    );
+  });
+
+  test('نزاهة التقييم 3: فشل المعاملة إذا تلاعب العميل بمجموع التقييم (ratingSum mismatch)', async () => {
+    const learnerId = 'learner_rating_cheat';
+    const teacherId = 'teacher_rating_cheat';
+    const sessionId = 'session_rating_cheat_1';
+    const txId = 'tx_rating_cheat_1';
+    const scheduledTime = new Date(Date.now() + 2 * 3600 * 1000);
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(learnerId).set({
+        uid: learnerId,
+        timeCoins: 1,
+        completedSessions: 0,
+        ratingSum: 0,
+        ratingCount: 0,
+      });
+      await adminDb.collection('users').doc(teacherId).set({
+        uid: teacherId,
+        timeCoins: 2,
+        completedSessions: 0,
+        ratingSum: 0,
+        ratingCount: 0,
+      });
+      await adminDb.collection('sessions').doc(sessionId).set({
+        id: sessionId,
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'confirmed',
+        scheduledAt: scheduledTime,
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+
+    // التقييم في الجلسة هو 3 ولكن العميل يحاول إضافة 5 إلى ratingSum
+    await assertFails(
+      learnerDb.runTransaction(async (t) => {
+        t.update(learnerDb.collection('users').doc(teacherId), {
+          timeCoins: 3,
+          completedSessions: 1,
+          ratingSum: 5, // غير مطابق للجلسة (3)
+          ratingCount: 1,
+          lastSessionId: sessionId,
+        });
+        t.update(learnerDb.collection('sessions').doc(sessionId), {
+          learnerId: learnerId,
+          teacherId: teacherId,
+          costCoins: 1,
+          scheduledAt: scheduledTime,
+          status: 'completed',
+          escrowStatus: 'released_to_teacher',
+          rating: 3,
+          reviewComment: 'جيد',
+        });
+        t.set(learnerDb.collection('transactions').doc(txId), {
+          id: txId,
+          userId: teacherId,
+          sessionId: sessionId,
+          amount: 1,
+          isNegative: false,
+          type: 'session_earning',
+        });
+      })
+    );
+  });
+
+  test('نزاهة التقييم 4: منع أي مستخدم من تعديل تقييمه التراكمي ratingSum / ratingCount مباشرة', async () => {
+    const userId = 'user_self_rate';
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(userId).set({
+        uid: userId,
+        timeCoins: 2,
+        completedSessions: 0,
+        ratingSum: 0,
+        ratingCount: 0,
+      });
+    });
+
+    const authedDb = testEnv.authenticatedContext(userId, { email_verified: true }).firestore();
+
+    // محاولة تزوير التقييم
+    await assertFails(
+      authedDb.collection('users').doc(userId).update({
+        ratingSum: 50,
+        ratingCount: 10,
       })
     );
   });

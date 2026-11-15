@@ -21,8 +21,11 @@ class UserModel {
   final List<Map<String, dynamic>>? coursesData;
   final int completedSessions;
   final int studyHours;
-  final double teacherRating;
+  final int ratingSum;
+  final int ratingCount;
   final bool onboardingCompleted;
+
+  double get teacherRating => ratingCount > 0 ? (ratingSum / ratingCount) : 5.0;
 
   const UserModel({
     required this.uid,
@@ -39,7 +42,8 @@ class UserModel {
     this.coursesData,
     this.completedSessions = 0,
     this.studyHours = 0,
-    this.teacherRating = 5.0,
+    this.ratingSum = 0,
+    this.ratingCount = 0,
     this.onboardingCompleted = false,
   });
 
@@ -59,7 +63,8 @@ class UserModel {
       'coursesData': coursesData,
       'completedSessions': completedSessions,
       'studyHours': studyHours,
-      'teacherRating': teacherRating,
+      'ratingSum': ratingSum,
+      'ratingCount': ratingCount,
       'onboardingCompleted': onboardingCompleted,
     };
   }
@@ -85,7 +90,8 @@ class UserModel {
           .toList(),
       completedSessions: (map['completedSessions'] as num?)?.toInt() ?? 0,
       studyHours: (map['studyHours'] as num?)?.toInt() ?? 0,
-      teacherRating: (map['teacherRating'] as num?)?.toDouble() ?? 5.0,
+      ratingSum: (map['ratingSum'] as num?)?.toInt() ?? 0,
+      ratingCount: (map['ratingCount'] as num?)?.toInt() ?? 0,
       onboardingCompleted: map['onboardingCompleted'] as bool? ?? false,
     );
   }
@@ -104,7 +110,8 @@ class UserModel {
     List<Map<String, dynamic>>? coursesData,
     int? completedSessions,
     int? studyHours,
-    double? teacherRating,
+    int? ratingSum,
+    int? ratingCount,
     bool? onboardingCompleted,
   }) {
     return UserModel(
@@ -122,7 +129,8 @@ class UserModel {
       coursesData: coursesData ?? this.coursesData,
       completedSessions: completedSessions ?? this.completedSessions,
       studyHours: studyHours ?? this.studyHours,
-      teacherRating: teacherRating ?? this.teacherRating,
+      ratingSum: ratingSum ?? this.ratingSum,
+      ratingCount: ratingCount ?? this.ratingCount,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
     );
   }
@@ -271,7 +279,7 @@ class TimeBankSessionModel {
   final int costCoins;
   final String status; // pending, confirmed, completed, cancelled_by_learner, cancelled_by_teacher
   final String escrowStatus; // held, released_to_teacher, refunded_to_learner
-  final int rating;
+  final int? rating;
   final String? reviewComment;
   final DateTime? scheduledAt;
   final DateTime? createdAt;
@@ -295,7 +303,7 @@ class TimeBankSessionModel {
     this.costCoins = AppConstants.sessionCostCoins,
     this.status = 'confirmed',
     this.escrowStatus = 'held',
-    this.rating = 5,
+    this.rating,
     this.reviewComment,
     this.scheduledAt,
     this.createdAt,
@@ -357,7 +365,7 @@ class TimeBankSessionModel {
       costCoins: (map['costCoins'] as num?)?.toInt() ?? AppConstants.sessionCostCoins,
       status: map['status'] as String? ?? 'confirmed',
       escrowStatus: map['escrowStatus'] as String? ?? 'held',
-      rating: (map['rating'] as num?)?.toInt() ?? 5,
+      rating: (map['rating'] as num?)?.toInt(),
       reviewComment: map['reviewComment'] as String?,
       scheduledAt: parseDate(map['scheduledAt']),
       createdAt: parseDate(map['createdAt']),
