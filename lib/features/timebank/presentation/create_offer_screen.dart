@@ -78,6 +78,33 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
       return;
     }
 
+    if (!user.emailVerified) {
+      final nowVerified = await ref.read(authServiceProvider).reloadUserAndCheckVerified();
+      if (!nowVerified) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('يجب تأكيد بريدك الإلكتروني أولاً لنشر عروض الشرح'),
+              action: SnackBarAction(
+                label: 'أنا أكدت بريدي',
+                textColor: Colors.amber,
+                onPressed: () async {
+                  final v = await ref.read(authServiceProvider).reloadUserAndCheckVerified();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(v ? 'تم التحقق من بريدك بنجاح! يمكنك الآن النشر 🎉' : 'لم يتم التأكيد بعد، يرجى مراجعة بريدك 📩')),
+                    );
+                  }
+                },
+              ),
+              duration: const Duration(seconds: 6),
+            ),
+          );
+        }
+        return;
+      }
+    }
+
     setState(() => _isPublishing = true);
 
     try {

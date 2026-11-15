@@ -931,4 +931,79 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
       })
     );
   });
+
+  // =========================================================================
+  // القسم السابع: اشتراط تأكيد البريد الإلكتروني (Email Verification Tests)
+  // =========================================================================
+
+  test('تأكيد البريد 1: المستخدم غير المؤكد يفشل في نشر عرض شرح، والمؤكد ينجح', async () => {
+    const unverifiedUid = 'unverified_teacher';
+    const verifiedUid = 'verified_teacher';
+
+    const unverifiedDb = testEnv.authenticatedContext(unverifiedUid, { email_verified: false }).firestore();
+    const verifiedDb = testEnv.authenticatedContext(verifiedUid, { email_verified: true }).firestore();
+
+    const offerData = (uid) => ({
+      teacherId: uid,
+      teacherName: 'Teacher',
+      courseId: 'cs201',
+      courseName: 'OOP',
+      courseCode: 'CS201',
+      topic: 'Classes',
+      day: 'الأحد',
+      time: '12:00 م',
+      durationMinutes: 60,
+      location: 'مكتبة',
+      isAvailable: true,
+    });
+
+    // غير المؤكد يفشل
+    await assertFails(
+      unverifiedDb.collection('offers').doc('offer_unver').set(offerData(unverifiedUid))
+    );
+
+    // المؤكد ينجح
+    await assertSucceeds(
+      verifiedDb.collection('offers').doc('offer_ver').set(offerData(verifiedUid))
+    );
+  });
+
+  test('تأكيد البريد 2: المستخدم غير المؤكد يفشل في إرسال رسالة في الجلسة، والمؤكد ينجح', async () => {
+    const sessionId = 'session_verify_chat';
+    const learnerId = 'unverified_learner_chat';
+    const teacherId = 'teacher_chat';
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        status: 'confirmed',
+        escrowStatus: 'held',
+      });
+    });
+
+    const unverifiedDb = testEnv.authenticatedContext(learnerId, { email_verified: false }).firestore();
+    const verifiedDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+
+    // غير المؤكد يفشل
+    await assertFails(
+      unverifiedDb.collection('sessions').doc(sessionId).collection('messages').doc('msg_fail').set({
+        senderId: learnerId,
+        senderName: 'Learner',
+        text: 'رسالة من بريد غير مؤكد',
+        createdAt: new Date().toISOString(),
+      })
+    );
+
+    // المؤكد ينجح
+    await assertSucceeds(
+      verifiedDb.collection('sessions').doc(sessionId).collection('messages').doc('msg_pass').set({
+        senderId: learnerId,
+        senderName: 'Learner',
+        text: 'رسالة من بريد مؤكد',
+        createdAt: new Date().toISOString(),
+      })
+    );
+  });
 });

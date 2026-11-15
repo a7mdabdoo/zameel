@@ -55,6 +55,33 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
     final user = ref.read(authServiceProvider).currentUser;
     if (user == null) return;
 
+    if (!user.emailVerified) {
+      final nowVerified = await ref.read(authServiceProvider).reloadUserAndCheckVerified();
+      if (!nowVerified) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('يجب تأكيد بريدك الإلكتروني أولاً لإرسال الرسائل في المحادثة'),
+              action: SnackBarAction(
+                label: 'أنا أكدت بريدي',
+                textColor: Colors.amber,
+                onPressed: () async {
+                  final v = await ref.read(authServiceProvider).reloadUserAndCheckVerified();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(v ? 'تم التحقق من بريدك بنجاح! يمكنك إرسال الرسائل الآن 🎉' : 'لم يتم التأكيد بعد، يرجى مراجعة بريدك 📩')),
+                    );
+                  }
+                },
+              ),
+              duration: const Duration(seconds: 6),
+            ),
+          );
+        }
+        return;
+      }
+    }
+
     final profileAsync = ref.read(userProfileStreamProvider);
     final senderName = profileAsync.value?.data()?['name'] as String? ?? user.displayName ?? 'زميل';
 

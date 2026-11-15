@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/data/auth_service.dart';
-import '../../timebank/data/timebank_repository.dart';
 
 class OnboardingRateScreen extends ConsumerStatefulWidget {
   final List<CourseSeed>? courses;

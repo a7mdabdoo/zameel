@@ -38,6 +38,35 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       return;
     }
 
+    if (!user.emailVerified) {
+      final nowVerified = await ref.read(authServiceProvider).reloadUserAndCheckVerified();
+      if (!nowVerified) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('يجب تأكيد بريدك الإلكتروني أولاً لحجز الجلسات وحماية رصيدك'),
+              action: SnackBarAction(
+                label: 'أنا أكدت بريدي',
+                textColor: Colors.amber,
+                onPressed: () async {
+                  final v = await ref.read(authServiceProvider).reloadUserAndCheckVerified();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(v ? 'تم التحقق من بريدك بنجاح! يمكنك الآن الحجز 🎉' : 'لم يتم التأكيد بعد، يرجى مراجعة بريدك 📩')),
+                    );
+                  }
+                },
+              ),
+              duration: const Duration(seconds: 6),
+            ),
+          );
+        }
+        return;
+      }
+    }
+
+    if (!mounted) return;
+
     if (currentCoins < AppConstants.sessionCostCoins) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('رصيدك لا يكفي لحجز الجلسة (المطلوب: 1 عملة وقت)')),
