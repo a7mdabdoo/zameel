@@ -315,12 +315,24 @@ service cloud.firestore {
             && getAfterUser(resource.data.learnerId).lastSessionId == sessionId
           )
           ||
-          // الحالة أ: المتعلم يؤكد إتمام الجلسة ويطلق الضمان للمعلم (مشروط بزيادة رصيد المعلم بـ 1 في نفس المعاملة)
+          // الحالة 0-د: المعلم يحدد "تم الشرح" (teacherMarkedDoneAt) بعد حلول الموعد scheduledAt بدون أي حركة مالية
+          (
+            resource.data.teacherId == request.auth.uid
+            && resource.data.status == 'confirmed'
+            && request.resource.data.status == resource.data.status
+            && request.resource.data.escrowStatus == resource.data.escrowStatus
+            && (!('scheduledAt' in resource.data) || !(resource.data.scheduledAt is timestamp) || request.time >= resource.data.scheduledAt)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['teacherMarkedDoneAt'])
+            && request.resource.data.teacherMarkedDoneAt is timestamp
+          )
+          ||
+          // الحالة أ: المتعلم يؤكد إتمام الجلسة ويطلق الضمان للمعلم بعد حلول الموعد (مشروط بزيادة رصيد المعلم بـ 1 في نفس المعاملة)
           (
             resource.data.learnerId == request.auth.uid
             && resource.data.status == 'confirmed'
             && request.resource.data.escrowStatus == 'released_to_teacher'
             && request.resource.data.status == 'completed'
+            && (!('scheduledAt' in resource.data) || !(resource.data.scheduledAt is timestamp) || request.time >= resource.data.scheduledAt)
             && request.resource.data.rating is int
             && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
             && getAfterUser(resource.data.teacherId).timeCoins == getUser(resource.data.teacherId).timeCoins + 1

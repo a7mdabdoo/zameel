@@ -114,6 +114,33 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
     }
   }
 
+  Future<void> _markDone(TimeBankSessionModel session) async {
+    final user = ref.read(authServiceProvider).currentUser;
+    if (user == null) return;
+
+    setState(() => _isProcessingAction = true);
+    try {
+      await ref.read(timeBankRepositoryProvider).markSessionDoneByTeacher(
+            sessionId: session.id,
+            teacherId: user.uid,
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم تسجيل "تم الشرح" بنجاح! بانتظار تأكيد الزميل 🎉')),
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر تسجيل تم الشرح: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessingAction = false);
+    }
+  }
+
   Future<void> _showEditMeetingUrlDialog(TimeBankSessionModel session) async {
     final controller = TextEditingController(text: session.meetingUrl ?? '');
     String? errorText;
@@ -549,6 +576,48 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                 ),
                 const SizedBox(height: 14),
               ] else if (isHeld) ...[
+                if (session != null && session.status == 'confirmed') ...[
+                  if (session.teacherMarkedDoneAt != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.check_circle_outline_rounded, color: AppColors.primary, size: 20),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'قمت بتسجيل "تم الشرح" بنجاح ✓ بانتظار تأكيد وتقييم الزميل',
+                              style: TextStyle(fontSize: 12, color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ] else if (session.scheduledAt == null || DateTime.now().isAfter(session.scheduledAt!)) ...[
+                    SizedBox(
+                      height: 52,
+                      child: ElevatedButton.icon(
+                        onPressed: _isProcessingAction ? null : () => _markDone(session),
+                        icon: const Icon(Icons.school_rounded, color: Colors.white),
+                        label: Text(
+                          _isProcessingAction ? 'جاري التأكيد...' : 'تم الشرح بنجاح 🎓',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                ],
                 SizedBox(
                   height: 48,
                   child: OutlinedButton.icon(

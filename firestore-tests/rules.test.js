@@ -404,7 +404,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
     const teacherId = 'teacher_real';
     const sessionId = 'session_complete_real_2';
     const txId = `${sessionId}_release`;
-    const scheduledTime = new Date(Date.now() + 86400000);
+    const scheduledTime = new Date(Date.now() - 3600000); // الجلسة انتهى موعدها مسبقاً وتخضع للإتمام
 
     await testEnv.withSecurityRulesDisabled(async (context) => {
       const adminDb = context.firestore();
@@ -1109,7 +1109,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
     const teacherId = 'teacher_rating_comp';
     const sessionId = 'session_rating_comp_1';
     const txId = `${sessionId}_release`;
-    const scheduledTime = new Date(Date.now() + 2 * 3600 * 1000);
+    const scheduledTime = new Date(Date.now() - 3600000); // الجلسة انتهى موعدها مسبقاً وتخضع للإتمام والتقييم
 
     await testEnv.withSecurityRulesDisabled(async (context) => {
       const adminDb = context.firestore();
@@ -2399,5 +2399,116 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
     });
 
     await assertSucceeds(batch.commit());
+  });
+
+  // =========================================================================
+  // تم الشرح والإتمام بعد حلول الموعد (Teacher Done & ScheduledAt Completion)
+  // =========================================================================
+  test('تم الشرح 1: المعلم يسجل "تم الشرح" (teacherMarkedDoneAt) بعد حلول موعد الجلسة', async () => {
+    const teacherId = 'teacher_done_ok';
+    const learnerId = 'learner_done_ok';
+    const sessionId = 'session_done_ok';
+    // موعد في الماضي (قبل دقيقة واحدة)
+    const pastScheduledAt = new Date(Date.now() - 60 * 1000);
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'confirmed',
+        scheduledAt: pastScheduledAt,
+      });
+    });
+
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+
+    await assertSucceeds(
+      teacherDb.collection('sessions').doc(sessionId).update({
+        teacherMarkedDoneAt: new Date(),
+      })
+    );
+  });
+
+  test('تم الشرح 2: رفض تسجيل "تم الشرح" من قِبل المعلم قبل حلول موعد الجلسة', async () => {
+    const teacherId = 'teacher_done_too_early';
+    const learnerId = 'learner_done_too_early';
+    const sessionId = 'session_done_too_early';
+    // موعد في المستقبل (بعد ساعتين)
+    const futureScheduledAt = new Date(Date.now() + 2 * 3600 * 1000);
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'confirmed',
+        scheduledAt: futureScheduledAt,
+      });
+    });
+
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+
+    await assertFails(
+      teacherDb.collection('sessions').doc(sessionId).update({
+        teacherMarkedDoneAt: new Date(),
+      })
+    );
+  });
+
+  test('إتمام الجلسة 3: رفض إتمام الجلسة وإطلاق الضمان من قِبل المتعلم قبل حلول موعد الجلسة', async () => {
+    const teacherId = 'teacher_complete_too_early';
+    const learnerId = 'learner_complete_too_early';
+    const sessionId = 'session_complete_too_early';
+    // موعد مستقبلي
+    const futureScheduledAt = new Date(Date.now() + 2 * 3600 * 1000);
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(teacherId).set({
+        timeCoins: 2,
+        completedSessions: 0,
+        ratingSum: 0,
+        ratingCount: 0,
+      });
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'confirmed',
+        scheduledAt: futureScheduledAt,
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+    const batch = learnerDb.batch();
+
+    batch.update(learnerDb.collection('users').doc(teacherId), {
+      timeCoins: 3,
+      completedSessions: 1,
+      ratingSum: 5,
+      ratingCount: 1,
+      lastSessionId: sessionId,
+    });
+
+    batch.update(learnerDb.collection('sessions').doc(sessionId), {
+      status: 'completed',
+      escrowStatus: 'released_to_teacher',
+      rating: 5,
+    });
+
+    batch.set(learnerDb.collection('transactions').doc(`${sessionId}_release`), {
+      userId: teacherId,
+      sessionId: sessionId,
+      amount: 1,
+      type: 'release',
+    });
+
+    await assertFails(batch.commit());
   });
 });
