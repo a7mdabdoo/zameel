@@ -955,6 +955,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
       time: '12:00 م',
       durationMinutes: 60,
       location: 'مكتبة',
+      slots: [{ weekday: 1, startMin: 600, endMin: 720 }],
       isAvailable: true,
     });
 
@@ -1477,6 +1478,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
       time: '01:00 ظهراً',
       durationMinutes: 30,
       location: 'مكتبة الكلية',
+      slots: [{ weekday: 2, startMin: 780, endMin: 840 }],
       isAvailable: true,
     };
 
@@ -1511,6 +1513,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
         time: '02:00 م',
         durationMinutes: 60,
         location: 'معمل الحاسب',
+        slots: [{ weekday: 3, startMin: 840, endMin: 900 }],
         isAvailable: true,
       });
     });
@@ -1540,6 +1543,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
       time: '11:00 ص',
       durationMinutes: 45, // غير مسموح
       location: 'مكتبة',
+      slots: [{ weekday: 4, startMin: 660, endMin: 720 }],
       isAvailable: true,
     };
 
@@ -1563,6 +1567,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
       time: '12:00 م',
       durationMinutes: 60,
       location: 'مكتبة',
+      slots: [{ weekday: 5, startMin: 720, endMin: 780 }],
       isAvailable: true,
     };
 
@@ -1588,7 +1593,106 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
         time: '10:00 ص',
         durationMinutes: 60,
         location: 'أونلاين',
+        slots: [{ weekday: 1, startMin: 600, endMin: 720 }],
         meetingUrl: 'https://meet.google.com/abc-defg-hij',
+        isAvailable: true,
+      })
+    );
+  });
+
+  test('قواعد العروض 6: التحقق من فترات الإتاحة slots - إنشاء عرض بـ slots صالحة ينجح', async () => {
+    const teacherId = 'offer_teacher_slots_ok';
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+
+    const validOfferWithSlots = {
+      teacherId: teacherId,
+      teacherName: 'معلم السلوتس',
+      courseId: 'cs201',
+      courseName: 'برمجة كائنية',
+      courseCode: 'CS201',
+      topic: 'الوراثة والتعددية',
+      durationMinutes: 60,
+      location: 'المكتبة المركزية',
+      slots: [
+        { weekday: 0, startMin: 600, endMin: 720 }, // السبت 10:00 - 12:00
+        { weekday: 1, startMin: 780, endMin: 900 }, // الأحد 13:00 - 15:00
+      ],
+      isAvailable: true,
+    };
+
+    await assertSucceeds(
+      teacherDb.collection('offers').doc('offer_slots_ok').set(validOfferWithSlots)
+    );
+  });
+
+  test('قواعد العروض 7: التحقق من فترات الإتاحة slots - إنشاء عرض بدون slots أو بقائمة فارغة يفشل', async () => {
+    const teacherId = 'offer_teacher_no_slots';
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+
+    // 1. بدون slots
+    await assertFails(
+      teacherDb.collection('offers').doc('offer_no_slots').set({
+        teacherId: teacherId,
+        teacherName: 'معلم',
+        courseId: 'cs201',
+        courseName: 'برمجة كائنية',
+        courseCode: 'CS201',
+        topic: 'شرح موضوع',
+        durationMinutes: 60,
+        location: 'معمل',
+        isAvailable: true,
+      })
+    );
+
+    // 2. مع slots فارغة
+    await assertFails(
+      teacherDb.collection('offers').doc('offer_empty_slots').set({
+        teacherId: teacherId,
+        teacherName: 'معلم',
+        courseId: 'cs201',
+        courseName: 'برمجة كائنية',
+        courseCode: 'CS201',
+        topic: 'شرح موضوع',
+        durationMinutes: 60,
+        location: 'معمل',
+        slots: [],
+        isAvailable: true,
+      })
+    );
+  });
+
+  test('قواعد العروض 8: التحقق من فترات الإتاحة slots - إنشاء عرض بـ weekday خارج 0-6 أو endMin <= startMin يفشل', async () => {
+    const teacherId = 'offer_teacher_bad_slots';
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+
+    // 1. weekday = 7 (خارج 0-6)
+    await assertFails(
+      teacherDb.collection('offers').doc('offer_bad_weekday').set({
+        teacherId: teacherId,
+        teacherName: 'معلم',
+        courseId: 'cs201',
+        courseName: 'برمجة كائنية',
+        courseCode: 'CS201',
+        topic: 'شرح موضوع',
+        durationMinutes: 60,
+        location: 'معمل',
+        slots: [{ weekday: 7, startMin: 600, endMin: 720 }],
+        isAvailable: true,
+      })
+    );
+
+    // 2. endMin <= startMin
+    await assertFails(
+      teacherDb.collection('offers').doc('offer_bad_times').set({
+        teacherId: teacherId,
+        teacherName: 'معلم',
+        courseId: 'cs201',
+        courseName: 'برمجة كائنية',
+        courseCode: 'CS201',
+        topic: 'شرح موضوع',
+        durationMinutes: 60,
+        location: 'معمل',
+        slots: [{ weekday: 1, startMin: 720, endMin: 600 }],
         isAvailable: true,
       })
     );

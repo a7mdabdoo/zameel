@@ -474,6 +474,70 @@ class SessionMessageModel {
   }
 }
 
+// 4-أ. فترات الإتاحة الأسبوعية لعرض الشرح (Weekly Availability Slot)
+class OfferTimeSlot {
+  final int weekday; // 0 = السبت, 1 = الأحد, ..., 6 = الجمعة (أسبوع التطبيق)
+  final int startMin; // الدقائق من منتصف الليل (0 - 1439) بتوقيت Africa/Cairo
+  final int endMin;   // الدقائق من منتصف الليل (0 - 1439) بتوقيت Africa/Cairo
+
+  const OfferTimeSlot({
+    required this.weekday,
+    required this.startMin,
+    required this.endMin,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'weekday': weekday,
+      'startMin': startMin,
+      'endMin': endMin,
+    };
+  }
+
+  factory OfferTimeSlot.fromMap(Map<String, dynamic> map) {
+    return OfferTimeSlot(
+      weekday: (map['weekday'] as num?)?.toInt() ?? 0,
+      startMin: (map['startMin'] as num?)?.toInt() ?? 0,
+      endMin: (map['endMin'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  String get weekdayName => appWeekdayNames[weekday] ?? 'السبت';
+
+  String get formattedRange {
+    return '$weekdayName • ${formatMinutes(startMin)} – ${formatMinutes(endMin)}';
+  }
+
+  static String formatMinutes(int minutes) {
+    final h24 = minutes ~/ 60;
+    final m = minutes % 60;
+    final period = h24 >= 12 ? 'م' : 'ص';
+    final h12 = h24 == 0 ? 12 : (h24 > 12 ? h24 - 12 : h24);
+    final mStr = m.toString().padLeft(2, '0');
+    return '$h12:$mStr $period';
+  }
+
+  static const Map<int, String> appWeekdayNames = {
+    0: 'السبت',
+    1: 'الأحد',
+    2: 'الاثنين',
+    3: 'الثلاثاء',
+    4: 'الأربعاء',
+    5: 'الخميس',
+    6: 'الجمعة',
+  };
+
+  static const Map<String, int> appWeekdayIndexes = {
+    'السبت': 0,
+    'الأحد': 1,
+    'الاثنين': 2,
+    'الثلاثاء': 3,
+    'الأربعاء': 4,
+    'الخميس': 5,
+    'الجمعة': 6,
+  };
+}
+
 // 5. نموذج عرض الشرح في بنك الوقت (Teaching Offer)
 class TimeBankOfferModel {
   final String id;
@@ -490,6 +554,7 @@ class TimeBankOfferModel {
   final String mode; // online, in_person
   final Color courseColor;
   final bool isAvailable;
+  final List<OfferTimeSlot> slots;
   final DateTime? createdAt;
 
   const TimeBankOfferModel({
@@ -507,6 +572,7 @@ class TimeBankOfferModel {
     this.mode = 'in_person',
     required this.courseColor,
     this.isAvailable = true,
+    this.slots = const [],
     this.createdAt,
   });
 
@@ -526,12 +592,17 @@ class TimeBankOfferModel {
       'mode': mode,
       'courseColor': courseColor.toARGB32(),
       'isAvailable': isAvailable,
+      'slots': slots.map((s) => s.toMap()).toList(),
       'createdAt': createdAt?.toIso8601String(),
     };
   }
 
   factory TimeBankOfferModel.fromMap(Map<String, dynamic> map, String id) {
     final colorInt = (map['courseColor'] as num?)?.toInt();
+    final parsedSlots = (map['slots'] as List<dynamic>?)
+        ?.map((s) => OfferTimeSlot.fromMap(Map<String, dynamic>.from(s as Map)))
+        .toList() ?? [];
+
     return TimeBankOfferModel(
       id: id,
       teacherId: map['teacherId'] as String? ?? '',
@@ -547,6 +618,7 @@ class TimeBankOfferModel {
       mode: map['mode'] as String? ?? 'in_person',
       courseColor: colorInt != null ? Color(colorInt) : const Color(0xFF2F8F89),
       isAvailable: map['isAvailable'] as bool? ?? true,
+      slots: parsedSlots,
       createdAt: map['createdAt'] != null
           ? DateTime.tryParse(map['createdAt'].toString())
           : null,

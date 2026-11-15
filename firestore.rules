@@ -170,14 +170,16 @@ service cloud.firestore {
         && data.courseName is string && data.courseName.size() > 0
         && data.courseCode is string && data.courseCode.size() > 0
         && data.topic is string && data.topic.size() > 0
-        && data.day is string && data.day.size() > 0
-        && data.time is string && data.time.size() > 0
         && data.durationMinutes in [30, 60]
         && data.location is string
         && (!('mode' in data) || data.mode in ['online', 'in_person'])
         && !('meetingUrl' in data)
         && !('meetingLink' in data)
-        && !('link' in data);
+        && !('link' in data)
+        && ('slots' in data && data.slots is list && data.slots.size() > 0 && data.slots.size() <= 20)
+        && data.slots[0].weekday is int && data.slots[0].weekday >= 0 && data.slots[0].weekday <= 6
+        && data.slots[0].startMin is int && data.slots[0].startMin >= 0 && data.slots[0].startMin < 1440
+        && data.slots[0].endMin is int && data.slots[0].endMin > data.slots[0].startMin && data.slots[0].endMin <= 1440;
     }
 
     function isValidMeetingUrl(url) {

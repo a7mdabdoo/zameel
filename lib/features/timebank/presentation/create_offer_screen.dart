@@ -23,13 +23,21 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
   CourseSeed _selectedCourse = AppConstants.seedCourses[0]; // OOP
   final _topicController = TextEditingController();
   final _offlineLocationController = TextEditingController(text: 'مكتبة الكلية • قاعة الاستذكار 2');
-  String _selectedDay = 'الأحد';
-  String _selectedTime = '12:00 ظهراً';
   bool _isOnline = false;
   bool _isPublishing = false;
 
-  final List<String> _days = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
-  final List<String> _times = ['10:00 صباحاً', '11:00 صباحاً', '12:00 ظهراً', '01:00 ظهراً', '02:00 مساءً', '03:00 مساءً', '04:00 مساءً', '05:00 مساءً'];
+  // فترات الإتاحة الأسبوعية (Africa/Cairo)
+  final List<OfferTimeSlot> _slots = [
+    const OfferTimeSlot(weekday: 1, startMin: 600, endMin: 720), // الأحد 10:00 ص - 12:00 م
+  ];
+
+  int _pickerWeekday = 1; // الأحد
+  int _pickerStartMin = 600; // 10:00 ص
+  int _pickerEndMin = 720;   // 12:00 م
+
+  static final List<int> _availableMinutes = [
+    for (int m = 480; m <= 1260; m += 30) m, // من 08:00 إلى 21:00
+  ];
 
   @override
   void dispose() {
@@ -38,11 +46,65 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
     super.dispose();
   }
 
+  void _addSlot() {
+    if (_pickerEndMin <= _pickerStartMin) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('وقت نهاية الفترة يجب أن يكون بعد وقت البداية')),
+      );
+      return;
+    }
+    if (_pickerEndMin - _pickerStartMin < 30) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('أقل مدة لفترة الإتاحة هي 30 دقيقة')),
+      );
+      return;
+    }
+
+    final exists = _slots.any((s) =>
+        s.weekday == _pickerWeekday &&
+        s.startMin == _pickerStartMin &&
+        s.endMin == _pickerEndMin);
+
+    if (exists) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('هذه الفترة مضافة بالفعل')),
+      );
+      return;
+    }
+
+    setState(() {
+      _slots.add(OfferTimeSlot(
+        weekday: _pickerWeekday,
+        startMin: _pickerStartMin,
+        endMin: _pickerEndMin,
+      ));
+    });
+  }
+
+  void _removeSlot(int index) {
+    if (_slots.length <= 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يجب الإبقاء على فترة إتاحة واحدة على الأقل')),
+      );
+      return;
+    }
+    setState(() {
+      _slots.removeAt(index);
+    });
+  }
+
   Future<void> _publishOffer() async {
     final topic = _topicController.text.trim();
     if (topic.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('يرجى كتابة الموضوع الذي ستشرحه لزملائك')),
+      );
+      return;
+    }
+
+    if (_slots.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يرجى تحديد فترة إتاحة أسبوعية واحدة على الأقل للشرح')),
       );
       return;
     }
@@ -103,6 +165,9 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
       final profileName = profileAsync.value?.data()?['name'] as String? ?? user.displayName ?? 'زميل';
 
       final offerId = 'offer_${DateTime.now().millisecondsSinceEpoch}_${user.uid.substring(0, 5)}';
+      final daySummary = _slots.map((s) => s.weekdayName).toSet().join('، ');
+      final timeSummary = _slots.map((s) => '${OfferTimeSlot.formatMinutes(s.startMin)} – ${OfferTimeSlot.formatMinutes(s.endMin)}').join(' | ');
+
       final newOffer = TimeBankOfferModel(
         id: offerId,
         teacherId: user.uid,
@@ -111,13 +176,14 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
         courseName: _selectedCourse.name,
         courseCode: _selectedCourse.code,
         topic: topic,
-        day: _selectedDay,
-        time: _selectedTime,
+        day: daySummary,
+        time: timeSummary,
         durationMinutes: 60,
         mode: _isOnline ? 'online' : 'in_person',
         location: finalLocation,
         courseColor: _selectedCourse.color,
         isAvailable: true,
+        slots: _slots,
         createdAt: DateTime.now(),
       );
 
@@ -239,65 +305,183 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
 
               const SizedBox(height: 20),
 
-              // Day & Time Row
+              // فترات الإتاحة الأسبوعية للشرح (Africa/Cairo)
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('اليوم المناسب', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).cardTheme.color,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppColors.hairline),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: _selectedDay,
-                              isExpanded: true,
-                              items: _days.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
-                              onChanged: (val) {
-                                if (val != null) setState(() => _selectedDay = val);
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
+                  Text(
+                    'فترات الإتاحة الأسبوعية (Africa/Cairo) ⏰',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('الوقت المناسب', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
-                        const SizedBox(height: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).cardTheme.color,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppColors.hairline),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: _selectedTime,
-                              isExpanded: true,
-                              items: _times.map((t) => DropdownMenuItem(value: t, child: Text(t, style: const TextStyle(fontSize: 12)))).toList(),
-                              onChanged: (val) {
-                                if (val != null) setState(() => _selectedTime = val);
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                  Text(
+                    '${_slots.length} فترات محددة',
+                    style: const TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.bold),
                   ),
                 ],
+              ),
+              const SizedBox(height: 8),
+
+              // قائمة الفترات الحالية
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardTheme.color,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.hairline),
+                ),
+                child: Column(
+                  children: [
+                    ..._slots.asMap().entries.map((entry) {
+                      final idx = entry.key;
+                      final slot = entry.value;
+                      return Container(
+                        margin: EdgeInsets.only(bottom: idx == _slots.length - 1 ? 0 : 8),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).scaffoldBackgroundColor,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.hairline),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.access_time_rounded, size: 16, color: AppColors.primary),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                slot.formattedRange,
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            if (_slots.length > 1)
+                              IconButton(
+                                icon: const Icon(Icons.close_rounded, size: 16, color: AppColors.error),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                onPressed: () => _removeSlot(idx),
+                              ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // صندوق إضافة فترة جديدة
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardTheme.color,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.hairline),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('إضافة فترة إتاحة أخرى:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        // اليوم
+                        Expanded(
+                          flex: 3,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: AppColors.hairline),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<int>(
+                                value: _pickerWeekday,
+                                isExpanded: true,
+                                items: OfferTimeSlot.appWeekdayNames.entries.map((e) {
+                                  return DropdownMenuItem<int>(
+                                    value: e.key,
+                                    child: Text(e.value, style: const TextStyle(fontSize: 12)),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) setState(() => _pickerWeekday = val);
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        // من
+                        Expanded(
+                          flex: 3,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: AppColors.hairline),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<int>(
+                                value: _pickerStartMin,
+                                isExpanded: true,
+                                items: _availableMinutes.where((m) => m < 1260).map((m) {
+                                  return DropdownMenuItem<int>(
+                                    value: m,
+                                    child: Text('من ${OfferTimeSlot.formatMinutes(m)}', style: const TextStyle(fontSize: 10)),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) setState(() => _pickerStartMin = val);
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        // إلى
+                        Expanded(
+                          flex: 3,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: AppColors.hairline),
+                            ),
+                            child: DropdownButtonHideUnderline(
+                              child: DropdownButton<int>(
+                                value: _pickerEndMin,
+                                isExpanded: true,
+                                items: _availableMinutes.where((m) => m > _pickerStartMin).map((m) {
+                                  return DropdownMenuItem<int>(
+                                    value: m,
+                                    child: Text('إلى ${OfferTimeSlot.formatMinutes(m)}', style: const TextStyle(fontSize: 10)),
+                                  );
+                                }).toList(),
+                                onChanged: (val) {
+                                  if (val != null) setState(() => _pickerEndMin = val);
+                                },
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        // زر الإضافة
+                        IconButton(
+                          style: IconButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                          icon: const Icon(Icons.add, color: Colors.white, size: 20),
+                          onPressed: _addSlot,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
 
               const SizedBox(height: 20),
