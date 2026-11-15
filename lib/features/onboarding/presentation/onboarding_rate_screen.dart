@@ -55,16 +55,6 @@ class _OnboardingRateScreenState extends ConsumerState<OnboardingRateScreen> {
         onboardingCompleted: true,
       );
 
-      final user = ref.read(authServiceProvider).currentUser;
-      final profileName = ref.read(userProfileStreamProvider).value?.data()?['name'] as String? ?? user?.displayName ?? 'زميل';
-      if (user != null) {
-        await ref.read(timeBankRepositoryProvider).syncTeachingOffersForUser(
-          userId: user.uid,
-          userName: profileName,
-          courses: _courses,
-          ratings: _ratings,
-        );
-      }
       if (mounted) {
         context.go('/today');
       }

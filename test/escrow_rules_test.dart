@@ -332,40 +332,33 @@ void main() {
   });
 
   group('8. ربط الحسابات واكتشاف عروض الشرح والزملاء المتاحين (Peer Discovery & Cross-Account Linking)', () {
-    test('الزميل الذي يحدد "مستعد للشرح" في حسابه يظهر تلقائياً كمرشح للحسابات الأخرى', () {
-      final user1 = {
-        'uid': 'account_1',
-        'name': 'أحمد محمد',
-        'courseRatings': {'cs201': 3, 'math201': 1},
-      };
+    test('المرشحون يأتون فقط من مستندات offers الحقيقية والزميل الآخر يظهر كمرشح', () {
+      final realOffers = [
+        const TimeBankOfferModel(
+          id: 'offer_real_1',
+          teacherId: 'account_1',
+          teacherName: 'أحمد محمد',
+          courseId: 'cs201',
+          courseName: 'البرمجة الكائنية (OOP)',
+          courseCode: 'CS201',
+          topic: 'مستعد للشرح ومساعدة الزملاء في أهم النقاط والتطبيقات 💡',
+          day: 'متاح للتنسيق',
+          time: 'حسب الاتفاق مع الزميل',
+          durationMinutes: 60,
+          location: 'مكتبة الكلية / أونلاين',
+          courseColor: AppColors.courseTeal,
+        ),
+      ];
 
       final targetCourse = AppConstants.seedCourses[0]; // cs201 (OOP)
-
-      // محاكاة استكشاف الأقران من كولكشن users
-      final candidates = <TimeBankOfferModel>[];
       final currentUserId = 'account_2'; // الحساب الثاني الذي يبحث عن شرح
 
-      if (user1['uid'] != currentUserId) {
-        final ratings = (user1['courseRatings'] as Map<String, int>?) ?? {};
-        if (ratings[targetCourse.id] == 3) {
-          candidates.add(TimeBankOfferModel(
-            id: 'peer_ready_${user1['uid']}_${targetCourse.id}',
-            teacherId: user1['uid'] as String,
-            teacherName: user1['name'] as String,
-            courseId: targetCourse.id,
-            courseName: targetCourse.name,
-            courseCode: targetCourse.code,
-            topic: 'مستعد للشرح ومساعدة الزملاء في أهم النقاط والتطبيقات 💡',
-            day: 'متاح للتنسيق',
-            time: 'حسب الاتفاق مع الزميل',
-            durationMinutes: 60,
-            location: 'مكتبة الكلية / أونلاين',
-            courseColor: targetCourse.color,
-            isAvailable: true,
-            createdAt: DateTime.now(),
-          ));
-        }
-      }
+      final candidates = realOffers.where((offer) {
+        if (offer.teacherId == currentUserId) return false;
+        return offer.courseId == targetCourse.id ||
+            offer.courseName.contains(targetCourse.name) ||
+            targetCourse.name.contains(offer.courseName);
+      }).toList();
 
       expect(candidates, isNotEmpty);
       expect(candidates.first.teacherId, equals('account_1'));
@@ -374,32 +367,30 @@ void main() {
     });
 
     test('المستخدم لا يظهر لنفسه كمرشح للشرح إطلاقاً', () {
-      final user1 = {
-        'uid': 'account_1',
-        'name': 'أحمد محمد',
-        'courseRatings': {'cs201': 3},
-      };
-
-      final targetCourse = AppConstants.seedCourses[0];
-      final candidates = <TimeBankOfferModel>[];
-      final currentUserId = 'account_1'; // نفس الحساب يبحث لنفسه
-
-      if (user1['uid'] != currentUserId) {
-        candidates.add(TimeBankOfferModel(
-          id: 'test',
-          teacherId: user1['uid'] as String,
-          teacherName: user1['name'] as String,
-          courseId: targetCourse.id,
-          courseName: targetCourse.name,
-          courseCode: targetCourse.code,
+      final realOffers = [
+        const TimeBankOfferModel(
+          id: 'offer_real_1',
+          teacherId: 'account_1',
+          teacherName: 'أحمد محمد',
+          courseId: 'cs201',
+          courseName: 'البرمجة الكائنية (OOP)',
+          courseCode: 'CS201',
           topic: 'topic',
           day: 'day',
           time: 'time',
           durationMinutes: 60,
           location: 'loc',
-          courseColor: targetCourse.color,
-        ));
-      }
+          courseColor: AppColors.courseTeal,
+        ),
+      ];
+
+      final targetCourse = AppConstants.seedCourses[0];
+      final currentUserId = 'account_1'; // نفس الحساب يبحث لنفسه
+
+      final candidates = realOffers.where((offer) {
+        if (offer.teacherId == currentUserId) return false;
+        return offer.courseId == targetCourse.id;
+      }).toList();
 
       expect(candidates, isEmpty);
     });

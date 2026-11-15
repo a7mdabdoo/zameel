@@ -135,12 +135,12 @@ service cloud.firestore {
     // 1. حسابات الطلاب (Users)
     // ==========================================
     match /users/{userId} {
-      allow read: if isAuthenticated();
+      allow get: if isAuthenticated();
+      allow list: if false;
 
       // إنشاء الحساب الأولي: برصيد 2 عملة تماماً، وتقييم صفر
       allow create: if isOwner(userId)
                     && request.resource.data.timeCoins == 2
-                    && request.resource.data.email == request.auth.token.email
                     && request.resource.data.completedSessions == 0
                     && (request.resource.data.teacherRating == 0 || request.resource.data.teacherRating == 0.0);
 

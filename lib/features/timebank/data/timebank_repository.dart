@@ -572,120 +572,6 @@ class TimeBankRepository {
       debugPrint('Delete offer error: $e');
     }
   }
-
-  Stream<List<Map<String, dynamic>>> streamAllUsers() {
-    final firestore = _firestore;
-    if (firestore == null) {
-      return Stream.value([]);
-    }
-    return firestore.collection('users').snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) {
-        final data = Map<String, dynamic>.from(doc.data());
-        data['uid'] = doc.id;
-        return data;
-      }).toList();
-    });
-  }
-
-  Future<void> syncTeachingOffersForUser({
-    required String userId,
-    required String userName,
-    required List<CourseSeed> courses,
-    required Map<String, int> ratings,
-  }) async {
-    final firestore = _firestore;
-    if (firestore == null || userId.isEmpty) return;
-
-    try {
-      final batch = firestore.batch();
-      for (final course in courses) {
-        final rate = ratings[course.id] ?? 2;
-        final docRef = firestore.collection('offers').doc('offer_auto_${userId}_${course.id}');
-        if (rate == 3) {
-          final autoOffer = TimeBankOfferModel(
-            id: 'offer_auto_${userId}_${course.id}',
-            teacherId: userId,
-            teacherName: userName.trim().isNotEmpty ? userName : 'زميل دراسة',
-            courseId: course.id,
-            courseName: course.name,
-            courseCode: course.code,
-            topic: 'مستعد للشرح ومراجعة أهم المفاهيم والتطبيقات 💡',
-            day: 'متاح للتنسيق',
-            time: 'حسب الاتفاق مع الزميل',
-            durationMinutes: 60,
-            location: 'مكتبة الكلية / أونلاين',
-            courseColor: course.color,
-            isAvailable: true,
-            createdAt: DateTime.now(),
-          );
-          batch.set(docRef, autoOffer.toMap());
-        } else {
-          batch.delete(docRef);
-        }
-      }
-      await batch.commit();
-    } catch (e) {
-      debugPrint('Sync teaching offers error: $e');
-    }
-  }
-
-  static List<TimeBankOfferModel> getFallbackOffersFor(CourseSeed? course) {
-    final cName = course?.name ?? 'الجبر الخطي (Linear Algebra)';
-    final cCode = course?.code ?? 'MATH201';
-    final cId = course?.id ?? 'math201';
-    final cColor = course?.color ?? AppColors.courseTeal;
-
-    return [
-      TimeBankOfferModel(
-        id: 'offer_peer_omar_$cId',
-        teacherId: 'teacher_omar_khaled',
-        teacherName: 'عمر خالد',
-        courseId: cId,
-        courseName: cName,
-        courseCode: cCode,
-        topic: 'مراجعة شاملة وحل شيتات وتطبيقات عملية',
-        day: 'الأحد',
-        time: '12:00 ظهراً',
-        durationMinutes: 60,
-        location: 'مكتبة الكلية • قاعة الاستذكار 2',
-        courseColor: cColor,
-        isAvailable: true,
-        createdAt: DateTime.now(),
-      ),
-      TimeBankOfferModel(
-        id: 'offer_peer_sara_$cId',
-        teacherId: 'teacher_sara_ali',
-        teacherName: 'سارة علي',
-        courseId: cId,
-        courseName: cName,
-        courseCode: cCode,
-        topic: 'شرح مفصل للمفاهيم الأساسية وحل نماذج الامتحانات',
-        day: 'الثلاثاء',
-        time: '02:00 مساءً',
-        durationMinutes: 60,
-        location: 'معمل الحاسب 3 • مبنى د',
-        courseColor: cColor,
-        isAvailable: true,
-        createdAt: DateTime.now(),
-      ),
-      TimeBankOfferModel(
-        id: 'offer_peer_mahmoud_$cId',
-        teacherId: 'teacher_mahmoud_youssef',
-        teacherName: 'محمود يوسف',
-        courseId: cId,
-        courseName: cName,
-        courseCode: cCode,
-        topic: 'تطبيقات برمجية وحل مسائل صعبة خطوة بخطوة',
-        day: 'الخميس',
-        time: '01:00 ظهراً',
-        durationMinutes: 60,
-        location: 'كافتيريا الكلية • الجلسات الهادئة',
-        courseColor: cColor,
-        isAvailable: true,
-        createdAt: DateTime.now(),
-      ),
-    ];
-  }
 }
 
 final timeBankRepositoryProvider = Provider<TimeBankRepository>((ref) {
@@ -728,23 +614,15 @@ final sessionMessagesStreamProvider =
   return repo.streamSessionMessages(sessionId);
 });
 
-final allUsersStreamProvider = StreamProvider<List<Map<String, dynamic>>>((ref) {
-  final repo = ref.watch(timeBankRepositoryProvider);
-  return repo.streamAllUsers();
-});
-
 final peerCandidatesProvider =
     Provider.family<List<TimeBankOfferModel>, CourseSeed?>((ref, targetCourse) {
   final user = ref.watch(authServiceProvider).currentUser;
   final currentUserId = user?.uid ?? '';
 
   final offersAsync = ref.watch(availableOffersStreamProvider);
-  final usersAsync = ref.watch(allUsersStreamProvider);
-
   final rawOffers = offersAsync.value ?? [];
-  final rawUsers = usersAsync.value ?? [];
 
-  // 1. تصفية العروض المتاحة من كولكشن offers واستبعاد عروض المستخدم نفسه
+  // تصفية العروض المتاحة من مستندات offers الحقيقية فقط واستبعاد عروض المستخدم نفسه
   final directOffers = rawOffers.where((offer) {
     if (offer.teacherId == currentUserId) return false;
     if (targetCourse != null) {
@@ -755,65 +633,5 @@ final peerCandidatesProvider =
     return true;
   }).toList();
 
-  final coveredKeys = directOffers.map((o) => '${o.teacherId}_${o.courseId}').toSet();
-  final peerProfileOffers = <TimeBankOfferModel>[];
-
-  // 2. فحص كولكشن users للبحث عن أي زميل حدد في حسابه "مستعد للشرح" (rating == 3)
-  for (final u in rawUsers) {
-    final uid = u['uid'] as String? ?? '';
-    if (uid.isEmpty || uid == currentUserId) continue;
-
-    final name = (u['name'] as String?)?.trim();
-    final teacherName = (name != null && name.isNotEmpty) ? name : 'زميل دراسة بالدفعة';
-    final ratings = (u['courseRatings'] as Map<dynamic, dynamic>?) ?? {};
-
-    ratings.forEach((cId, rate) {
-      if (rate == 3) {
-        final courseId = cId.toString();
-        // مطابقة المادة
-        bool matches = targetCourse == null;
-        CourseSeed matchedSeed = AppConstants.seedCourses.firstWhere(
-          (c) => c.id == courseId,
-          orElse: () => CourseSeed(
-            id: courseId,
-            name: courseId,
-            code: courseId.toUpperCase(),
-            color: AppColors.courseTeal,
-          ),
-        );
-
-        if (targetCourse != null) {
-          matches = (courseId == targetCourse.id ||
-              matchedSeed.name.contains(targetCourse.name) ||
-              targetCourse.name.contains(matchedSeed.name));
-        }
-
-        final key = '${uid}_$courseId';
-        if (matches && !coveredKeys.contains(key)) {
-          coveredKeys.add(key);
-          peerProfileOffers.add(TimeBankOfferModel(
-            id: 'peer_ready_${uid}_$courseId',
-            teacherId: uid,
-            teacherName: teacherName,
-            courseId: targetCourse?.id ?? matchedSeed.id,
-            courseName: targetCourse?.name ?? matchedSeed.name,
-            courseCode: targetCourse?.code ?? matchedSeed.code,
-            topic: 'مستعد للشرح ومساعدة الزملاء في أهم النقاط والتطبيقات 💡',
-            day: 'متاح للتنسيق',
-            time: 'حسب الاتفاق مع الزميل',
-            durationMinutes: 60,
-            location: 'مكتبة الكلية / أونلاين',
-            courseColor: targetCourse?.color ?? matchedSeed.color,
-            isAvailable: true,
-            createdAt: DateTime.now(),
-          ));
-        }
-      }
-    });
-  }
-
-  final combined = [...directOffers, ...peerProfileOffers];
-
-  // لا نعرض أي عروض افتراضية أو مواعيد وهمية - فقط ما يضيفه الطلاب بأنفسهم
-  return combined;
+  return directOffers;
 });

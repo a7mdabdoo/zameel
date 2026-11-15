@@ -703,6 +703,46 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
     );
   });
 
+  test('خصوصية المستخدمين 1: السماح بقراءة مستند مستخدم فردي ومنع سرد (list) كافة المستخدمين', async () => {
+    const userId = 'target_user_1';
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('users').doc(userId).set({
+        uid: userId,
+        name: 'طالب مستهدف',
+        timeCoins: 2,
+        completedSessions: 0,
+        teacherRating: 0.0,
+      });
+    });
+
+    const authedDb = testEnv.authenticatedContext('any_auth_user', { email_verified: true }).firestore();
+
+    // قراءة مستند مفرد (get) مسموحة
+    await assertSucceeds(
+      authedDb.collection('users').doc(userId).get()
+    );
+
+    // سرد كل المستخدمين (list) ممنوع لحماية الخصوصية ومنع سحب البيانات
+    await assertFails(
+      authedDb.collection('users').get()
+    );
+  });
+
+  test('خصوصية المستخدمين 2: نجاح إنشاء حساب مستخدم بدون تخزين الإيميل في Firestore', async () => {
+    const newUid = 'fresh_signup_uid';
+    const newDb = testEnv.authenticatedContext(newUid, { email_verified: false }).firestore();
+
+    await assertSucceeds(
+      newDb.collection('users').doc(newUid).set({
+        uid: newUid,
+        name: 'طالب جديد',
+        timeCoins: 2,
+        completedSessions: 0,
+        teacherRating: 0.0,
+      })
+    );
+  });
+
   test('أسماء المستخدمين (موقوفة): منع أي قراءة أو كتابة على مجموعة usernames المحذوفة', async () => {
     const unauthedDb = testEnv.unauthenticatedContext().firestore();
     const authedDb = testEnv.authenticatedContext('student_ali', { email_verified: true }).firestore();

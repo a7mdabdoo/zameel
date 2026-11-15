@@ -37,9 +37,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ? user!.displayName!
             : (user?.email?.split('@').first ?? 'طالب زميل'));
 
-    final userEmail = (userDoc?['email'] as String?)?.isNotEmpty == true
-        ? (userDoc!['email'] as String)
-        : (user?.email?.isNotEmpty == true ? user!.email! : '');
+    final userEmail = user?.email ?? '';
 
     final faculty = userDoc?['faculty'] as String? ?? AppConstants.faculty;
     final year = userDoc?['year'] as String? ?? AppConstants.academicYear;
@@ -650,17 +648,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             coursesData: updatedCourses.map((c) => c.toMap()).toList(),
                             courseRatings: updatedRatings,
                           );
-
-                          final user = ref.read(authServiceProvider).currentUser;
-                          final profileName = ref.read(userProfileStreamProvider).value?.data()?['name'] as String? ?? user?.displayName ?? 'زميل';
-                          if (user != null) {
-                            await ref.read(timeBankRepositoryProvider).syncTeachingOffersForUser(
-                              userId: user.uid,
-                              userName: profileName,
-                              courses: updatedCourses,
-                              ratings: updatedRatings,
-                            );
-                          }
                         } catch (e) {
                           debugPrint('Add course error: $e');
                         }
@@ -855,17 +842,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 coursesData: editableCourses.map((c) => c.toMap()).toList(),
                                 courseRatings: editableRatings,
                               );
-
-                              final user = ref.read(authServiceProvider).currentUser;
-                              final profileName = ref.read(userProfileStreamProvider).value?.data()?['name'] as String? ?? user?.displayName ?? 'زميل';
-                              if (user != null) {
-                                await ref.read(timeBankRepositoryProvider).syncTeachingOffersForUser(
-                                  userId: user.uid,
-                                  userName: profileName,
-                                  courses: editableCourses,
-                                  ratings: editableRatings,
-                                );
-                              }
                             } catch (e) {
                               debugPrint('Manage courses firestore update warning: $e');
                             }
