@@ -7,7 +7,9 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/models/app_models.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/state/app_state.dart';
 import '../../auth/data/auth_service.dart';
+import '../application/timebank_pure_logic.dart';
 import '../data/timebank_repository.dart';
 
 class BookingScreen extends ConsumerStatefulWidget {
@@ -20,12 +22,30 @@ class BookingScreen extends ConsumerStatefulWidget {
 
 class _BookingScreenState extends ConsumerState<BookingScreen> {
   bool _isBooking = false;
+  late int _selectedDuration;
+  DateTime? _selectedSlotDateTime;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDuration = widget.offer?.durationMinutes ?? 60;
+    if (_selectedDuration != 30 && _selectedDuration != 60) {
+      _selectedDuration = 60;
+    }
+  }
 
   Future<void> _handleBookSession(int currentCoins) async {
     final offer = widget.offer;
     if (offer == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('بيانات العرض غير متوفرة')),
+      );
+      return;
+    }
+
+    if (_selectedSlotDateTime == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('يرجى اختيار موعد محدد ومناسب للجلسة')),
       );
       return;
     }
@@ -80,6 +100,13 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       final profileAsync = ref.read(userProfileStreamProvider);
       final profileName = profileAsync.value?.data()?['name'] as String? ?? user.displayName ?? 'زميل';
 
+      final chosenStart = _selectedSlotDateTime!;
+      final chosenWeekday = (chosenStart.weekday + 1) % 7;
+      final chosenDayName = OfferTimeSlot.appWeekdayNames[chosenWeekday] ?? 'السبت';
+      final startMin = chosenStart.hour * 60 + chosenStart.minute;
+      final endMin = startMin + _selectedDuration;
+      final chosenTimeFormatted = '${OfferTimeSlot.formatMinutes(startMin)} – ${OfferTimeSlot.formatMinutes(endMin)}';
+
       final sessionId = 'sess_${DateTime.now().millisecondsSinceEpoch}_${user.uid.substring(0, 5)}';
       final session = TimeBankSessionModel(
         id: sessionId,
@@ -93,16 +120,16 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         courseName: offer.courseName,
         courseCode: offer.courseCode,
         topic: offer.topic,
-        day: offer.day,
-        time: offer.time,
-        durationMinutes: offer.durationMinutes,
+        day: chosenDayName,
+        time: chosenTimeFormatted,
+        durationMinutes: _selectedDuration,
         location: offer.location,
         mode: offer.mode,
         costCoins: AppConstants.sessionCostCoins,
         status: 'confirmed',
         escrowStatus: 'held',
         rating: null,
-        scheduledAt: DateTime.now().add(const Duration(hours: 24)),
+        scheduledAt: chosenStart, // حقيقي ومخزن كـ Timestamp
         createdAt: DateTime.now(),
       );
 
@@ -134,14 +161,48 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     final userDoc = userProfileAsync.value?.data();
     final coins = (userDoc?['timeCoins'] as num?)?.toInt() ?? 2;
 
+    final planner = ref.watch(plannerProvider);
+    final teacherSlots = widget.offer?.slots ?? [];
+    final effectiveSlots = teacherSlots.isNotEmpty
+        ? teacherSlots
+        : [
+            OfferTimeSlot(
+              weekday: OfferTimeSlot.appWeekdayIndexes[widget.offer?.day ?? 'الأحد'] ?? 1,
+              startMin: 600,
+              endMin: 720,
+            ),
+          ];
+
+    final availableBookableSlots = TimeBankPureLogic.generateBookableSlots(
+      teacherSlots: effectiveSlots,
+      durationMinutes: _selectedDuration,
+      learnerLectures: planner.lectureSchedule,
+      learnerStudyBlocks: planner.studyBlocks,
+    );
+
+    if (_selectedSlotDateTime != null && !availableBookableSlots.any((s) => s.dateTime == _selectedSlotDateTime)) {
+      _selectedSlotDateTime = null;
+    }
+    if (_selectedSlotDateTime == null && availableBookableSlots.isNotEmpty) {
+      _selectedSlotDateTime = availableBookableSlots.first.dateTime;
+    }
+
     final teacherName = offer?.teacherName ?? 'زميل دراسة';
     final teacherInitials = teacherName.trim().isNotEmpty
         ? teacherName.trim().split(' ').map((p) => p.isNotEmpty ? p[0] : '').take(2).join('.')
         : 'ز.م';
     final courseName = offer?.courseName ?? 'المادة الدراسية';
     final topic = offer?.topic ?? 'شرح موضوع دراسي وتطبيق عملي';
-    final dayTime = offer != null ? '${offer.day} • ${offer.time} (${offer.durationMinutes} دقيقة)' : 'ميعاد متفق عليه';
     final location = offer?.location ?? 'مبنى الكلية';
+
+    String selectedSlotText = 'يرجى اختيار موعد متاح';
+    if (_selectedSlotDateTime != null) {
+      final chosenWeekday = (_selectedSlotDateTime!.weekday + 1) % 7;
+      final dayName = OfferTimeSlot.appWeekdayNames[chosenWeekday] ?? '';
+      final startMin = _selectedSlotDateTime!.hour * 60 + _selectedSlotDateTime!.minute;
+      final endMin = startMin + _selectedDuration;
+      selectedSlotText = '$dayName ${_selectedSlotDateTime!.day}/${_selectedSlotDateTime!.month} • ${OfferTimeSlot.formatMinutes(startMin)} – ${OfferTimeSlot.formatMinutes(endMin)} ($_selectedDuration دقيقة)';
+    }
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -204,6 +265,146 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
 
               const SizedBox(height: 20),
 
+              // Duration selector (30 or 60 minutes)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardTheme.color,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.hairline),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'مدة الجلسة المطلوبة ⏱️',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ChoiceChip(
+                            label: const Center(child: Text('60 دقيقة (ساعة كاملة)')),
+                            selected: _selectedDuration == 60,
+                            selectedColor: AppColors.primary.withValues(alpha: 0.18),
+                            labelStyle: TextStyle(
+                              color: _selectedDuration == 60 ? AppColors.primary : Theme.of(context).colorScheme.onSurface,
+                              fontWeight: _selectedDuration == 60 ? FontWeight.bold : FontWeight.normal,
+                            ),
+                            onSelected: (val) {
+                              if (val) setState(() => _selectedDuration = 60);
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ChoiceChip(
+                            label: const Center(child: Text('30 دقيقة (نصف ساعة)')),
+                            selected: _selectedDuration == 30,
+                            selectedColor: AppColors.primary.withValues(alpha: 0.18),
+                            labelStyle: TextStyle(
+                              color: _selectedDuration == 30 ? AppColors.primary : Theme.of(context).colorScheme.onSurface,
+                              fontWeight: _selectedDuration == 30 ? FontWeight.bold : FontWeight.normal,
+                            ),
+                            onSelected: (val) {
+                              if (val) setState(() => _selectedDuration = 30);
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Concrete slot picker (Between 2 hours & 14 days ahead, hiding overlapping slots)
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).cardTheme.color,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.hairline),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'اختر موعد الجلسة المحدد 📅',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
+                        ),
+                        Text(
+                          '${availableBookableSlots.length} مواعيد شاغرة',
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'المواعيد المستبعدة تلقائياً: ما قبل ساعتين، وما بعد 14 يوماً، وما يتعارض مع محاضراتك.',
+                      style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 12),
+                    if (availableBookableSlots.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(Icons.info_outline, color: AppColors.error, size: 20),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'لا توجد مواعيد متاحة تتوافق مع جدول محاضراتك خلال الـ 14 يوماً القادمة.',
+                                style: TextStyle(fontSize: 12, color: AppColors.error),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).scaffoldBackgroundColor,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.hairline),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<DateTime>(
+                            value: _selectedSlotDateTime,
+                            isExpanded: true,
+                            hint: const Text('اختر الموعد المناسب لك'),
+                            items: availableBookableSlots.map((slot) {
+                              return DropdownMenuItem<DateTime>(
+                                value: slot.dateTime,
+                                child: Text(
+                                  '${slot.dateFormatted} • ${slot.timeFormatted}',
+                                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (val) {
+                              if (val != null) setState(() => _selectedSlotDateTime = val);
+                            },
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
               // Session details card
               Container(
                 padding: const EdgeInsets.all(18),
@@ -218,7 +419,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                     const Divider(height: 20, color: AppColors.hairline),
                     _buildDetailRow(context, Icons.topic_outlined, 'الموضوع', topic),
                     const Divider(height: 20, color: AppColors.hairline),
-                    _buildDetailRow(context, Icons.calendar_today_outlined, 'الموعد', dayTime),
+                    _buildDetailRow(context, Icons.calendar_today_outlined, 'الموعد المختار', selectedSlotText),
                     const Divider(height: 20, color: AppColors.hairline),
                     _buildDetailRow(
                       context,

@@ -1062,6 +1062,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
           status: 'confirmed',
           escrowStatus: 'held',
           rating: 5,
+          scheduledAt: new Date(Date.now() + 86400000),
         });
         t.set(learnerDb.collection('transactions').doc(`${sessionId}_booking`), {
           id: `${sessionId}_booking`,
@@ -1089,6 +1090,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
           status: 'confirmed',
           escrowStatus: 'held',
           rating: null,
+          scheduledAt: new Date(Date.now() + 86400000),
         });
         t.set(learnerDb.collection('transactions').doc(`${sessionId}_booking`), {
           id: `${sessionId}_booking`,
@@ -1874,5 +1876,132 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
         status: 'completed',
       })
     );
+  });
+
+  // =========================================================================
+  // القسم الثاني عشر: الحجز بموعد محدد نافذة 2 ساعة إلى 14 يوماً (Concrete Slot Window Tests)
+  // =========================================================================
+
+  test('حجز بموعد محدد 1: إنشاء جلسة بموعد مستقبلي محدد (24 ساعة قادمة) ينجح', async () => {
+    const learnerId = 'learner_concrete_ok';
+    const teacherId = 'teacher_concrete_ok';
+    const sessionId = 'session_concrete_ok';
+    const validScheduledAt = new Date(Date.now() + 24 * 3600 * 1000); // 24 ساعة
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(learnerId).set({
+        timeCoins: 2,
+        completedSessions: 0,
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+    const batch = learnerDb.batch();
+
+    batch.update(learnerDb.collection('users').doc(learnerId), {
+      timeCoins: 1,
+      lastSessionId: sessionId,
+    });
+
+    batch.set(learnerDb.collection('sessions').doc(sessionId), {
+      learnerId: learnerId,
+      teacherId: teacherId,
+      costCoins: 1,
+      escrowStatus: 'held',
+      status: 'confirmed',
+      scheduledAt: validScheduledAt,
+    });
+
+    batch.set(learnerDb.collection('transactions').doc(`${sessionId}_booking`), {
+      userId: learnerId,
+      sessionId: sessionId,
+      amount: 1,
+      type: 'booking',
+    });
+
+    await assertSucceeds(batch.commit());
+  });
+
+  test('حجز بموعد محدد 2: رفض إنشاء جلسة بموعد أقل من ساعتين قادمة (scheduledAt < 2 hours)', async () => {
+    const learnerId = 'learner_concrete_too_soon';
+    const teacherId = 'teacher_concrete_too_soon';
+    const sessionId = 'session_concrete_too_soon';
+    const tooSoonScheduledAt = new Date(Date.now() + 30 * 60 * 1000); // نصف ساعة فقط
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(learnerId).set({
+        timeCoins: 2,
+        completedSessions: 0,
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+    const batch = learnerDb.batch();
+
+    batch.update(learnerDb.collection('users').doc(learnerId), {
+      timeCoins: 1,
+      lastSessionId: sessionId,
+    });
+
+    batch.set(learnerDb.collection('sessions').doc(sessionId), {
+      learnerId: learnerId,
+      teacherId: teacherId,
+      costCoins: 1,
+      escrowStatus: 'held',
+      status: 'confirmed',
+      scheduledAt: tooSoonScheduledAt,
+    });
+
+    batch.set(learnerDb.collection('transactions').doc(`${sessionId}_booking`), {
+      userId: learnerId,
+      sessionId: sessionId,
+      amount: 1,
+      type: 'booking',
+    });
+
+    await assertFails(batch.commit());
+  });
+
+  test('حجز بموعد محدد 3: رفض إنشاء جلسة بموعد أبعد من 15 يوماً (scheduledAt > 15 days)', async () => {
+    const learnerId = 'learner_concrete_too_far';
+    const teacherId = 'teacher_concrete_too_far';
+    const sessionId = 'session_concrete_too_far';
+    const tooFarScheduledAt = new Date(Date.now() + 20 * 24 * 3600 * 1000); // 20 يوماً
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(learnerId).set({
+        timeCoins: 2,
+        completedSessions: 0,
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+    const batch = learnerDb.batch();
+
+    batch.update(learnerDb.collection('users').doc(learnerId), {
+      timeCoins: 1,
+      lastSessionId: sessionId,
+    });
+
+    batch.set(learnerDb.collection('sessions').doc(sessionId), {
+      learnerId: learnerId,
+      teacherId: teacherId,
+      costCoins: 1,
+      escrowStatus: 'held',
+      status: 'confirmed',
+      scheduledAt: tooFarScheduledAt,
+    });
+
+    batch.set(learnerDb.collection('transactions').doc(`${sessionId}_booking`), {
+      userId: learnerId,
+      sessionId: sessionId,
+      amount: 1,
+      type: 'booking',
+    });
+
+    await assertFails(batch.commit());
   });
 });

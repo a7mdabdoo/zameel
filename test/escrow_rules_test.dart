@@ -462,4 +462,76 @@ void main() {
       expect(candidates, isEmpty);
     });
   });
+
+  group('9. الحجز بموعد محدد واستبعاد التعارضات (Concrete Slot Generation & Overlap Filtering)', () {
+    test('توليد مواعيد الحجز: استبعاد المواعيد الأقرب من ساعتين والأبعد من 14 يوماً', () {
+      // نفترض أن الساعة الآن: السبت 10:00 ص
+      final fixedNow = DateTime(2026, 11, 21, 10, 0); // Saturday (weekday: 6 -> appWeekday 0)
+      final teacherSlots = [
+        const OfferTimeSlot(weekday: 0, startMin: 600, endMin: 840), // السبت من 10:00 ص إلى 02:00 م
+      ];
+
+      final slots = TimeBankPureLogic.generateBookableSlots(
+        teacherSlots: teacherSlots,
+        durationMinutes: 60,
+        learnerLectures: [],
+        learnerStudyBlocks: [],
+        clock: () => fixedNow,
+      );
+
+      // موعد 10:00 ص و 10:30 ص و 11:00 ص و 11:30 ص في نفس اليوم تبعد أقل من ساعتين (12:00 م فما بعد هي المسموحة)
+      for (final slot in slots) {
+        expect(slot.dateTime.isAfter(fixedNow.add(const Duration(hours: 2))) ||
+            slot.dateTime.isAtSameMomentAs(fixedNow.add(const Duration(hours: 2))), isTrue);
+        expect(slot.dateTime.isBefore(fixedNow.add(const Duration(days: 14))), isTrue);
+      }
+
+      // أول موعد متاح في نفس اليوم سيكون الساعة 12:00 م
+      final todaySlots = slots.where((s) => s.dateTime.day == 21).toList();
+      expect(todaySlots, isNotEmpty);
+      expect(todaySlots.first.dateTime.hour, equals(12));
+      expect(todaySlots.first.dateTime.minute, equals(0));
+    });
+
+    test('إخفاء مواعيد الشرح التي تتعارض مع محاضرات أو كتل مذاكرة المتعلم', () {
+      // نفترض الساعة الآن: الجمعة 08:00 م (قبل السبت بـ 14 ساعة)
+      final fixedNow = DateTime(2026, 11, 20, 20, 0);
+      final teacherSlots = [
+        const OfferTimeSlot(weekday: 0, startMin: 600, endMin: 780), // السبت من 10:00 ص إلى 01:00 م
+      ];
+
+      // المتعلم لديه محاضرة السبت من 10:00 ص إلى 11:30 ص
+      final learnerLectures = [
+        const ScheduleItemModel(
+          id: 'lec_1',
+          courseName: 'هياكل بيانات',
+          courseCode: 'CS202',
+          day: 'السبت',
+          startTime: '10:00 ص',
+          endTime: '11:30 ص',
+          room: 'قاعة 1',
+          color: AppColors.courseSage,
+        ),
+      ];
+
+      final slots = TimeBankPureLogic.generateBookableSlots(
+        teacherSlots: teacherSlots,
+        durationMinutes: 60,
+        learnerLectures: learnerLectures,
+        learnerStudyBlocks: [],
+        clock: () => fixedNow,
+      );
+
+      // الفترات الممكنة لمعلم تبدأ من 10:00 إلى 12:00
+      // 10:00 - 11:00 يتعارض مع المحاضرة (10:00 - 11:30) -> محجوب
+      // 10:30 - 11:30 يتعارض مع المحاضرة -> محجوب
+      // 11:00 - 12:00 يتعارض مع المحاضرة -> محجوب
+      // 11:30 - 12:30 لا يتعارض مع المحاضرة -> متاح!
+      // 12:00 - 01:00 لا يتعارض مع المحاضرة -> متاح!
+      expect(slots.any((s) => s.dateTime.hour == 10), isFalse);
+      expect(slots.any((s) => s.dateTime.hour == 11 && s.dateTime.minute == 0), isFalse);
+      expect(slots.any((s) => s.dateTime.hour == 11 && s.dateTime.minute == 30), isTrue);
+      expect(slots.any((s) => s.dateTime.hour == 12 && s.dateTime.minute == 0), isTrue);
+    });
+  });
 }

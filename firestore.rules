@@ -256,6 +256,10 @@ service cloud.firestore {
         && request.resource.data.costCoins == 1
         && request.resource.data.escrowStatus == 'held'
         && request.resource.data.status == 'confirmed'
+        && ('scheduledAt' in request.resource.data)
+        && request.resource.data.scheduledAt is timestamp
+        && request.resource.data.scheduledAt >= request.time + duration.value(2, 'h')
+        && request.resource.data.scheduledAt <= request.time + duration.value(15, 'd')
         && (!('rating' in request.resource.data) || request.resource.data.rating == null)
         && (!('meetingUrl' in request.resource.data) || request.resource.data.meetingUrl == null)
         && (!('mode' in request.resource.data) || request.resource.data.mode in ['online', 'in_person'])
