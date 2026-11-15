@@ -15,7 +15,9 @@ class TimeBankRepository {
       if (Firebase.apps.isNotEmpty) {
         return FirebaseFirestore.instance;
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('TimeBankRepository: Failed to get FirebaseFirestore instance: $e');
+    }
     return null;
   }
 
@@ -37,30 +39,6 @@ class TimeBankRepository {
     final sessionDocRef = firestore.collection('sessions').doc(session.id);
     final txId = '${session.id}_booking';
     final txDocRef = firestore.collection('transactions').doc(txId);
-
-    // التأكد التلقائي من وجود مستند المتعلّم برصيد الترحيب 2 عملة
-    try {
-      final checkSnap = await learnerDocRef.get();
-      if (!checkSnap.exists) {
-        await learnerDocRef.set({
-          'uid': session.learnerId,
-          'name': session.learnerName,
-          'email': '',
-          'timeCoins': AppConstants.welcomeCoins,
-          'faculty': AppConstants.faculty,
-          'year': AppConstants.academicYear,
-          'department': 'عام (General)',
-          'selectedCourses': <String>[],
-          'courseRatings': <String, dynamic>{},
-          'completedSessions': 0,
-          'ratingSum': 0,
-          'ratingCount': 0,
-          'lastSessionId': null,
-          'onboardingCompleted': true,
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-      }
-    } catch (_) {}
 
     await firestore.runTransaction((transaction) async {
       // 1. قراءة بيانات المتعلّم للتحقق من الرصيد
@@ -521,13 +499,10 @@ class TimeBankRepository {
     await firestore.collection('offers').doc(offer.id).set(offer.toMap());
   }
 
-  final Map<String, List<SessionMessageModel>> _localMessages = {};
-
   Stream<List<SessionMessageModel>> streamSessionMessages(String sessionId) {
     final firestore = _firestore;
-    final cached = _localMessages[sessionId] ?? [];
     if (firestore == null || sessionId.isEmpty) {
-      return Stream.value(cached);
+      return Stream.value([]);
     }
     return firestore
         .collection('sessions')
@@ -535,32 +510,26 @@ class TimeBankRepository {
         .collection('messages')
         .snapshots()
         .map((snapshot) {
-      final remoteList = snapshot.docs
+      final list = snapshot.docs
           .map((doc) => SessionMessageModel.fromMap(doc.data(), doc.id))
           .toList();
-      final idSet = remoteList.map((m) => m.id).toSet();
-      final merged = [...remoteList];
-      for (final localMsg in (_localMessages[sessionId] ?? [])) {
-        if (!idSet.contains(localMsg.id)) {
-          merged.add(localMsg);
-        }
-      }
-      merged.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-      return merged;
-    }).handleError((error) {
-      debugPrint('Firestore messages stream error (falling back to local): $error');
-      return _localMessages[sessionId] ?? [];
+      list.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+      return list;
     });
   }
 
   Future<void> sendSessionMessage(String sessionId, SessionMessageModel message) async {
-    // 1. إضافة الرسالة فوراً في الذاكرة المحلية لتظهر في واجهة المستخدم لحظياً
-    _localMessages.putIfAbsent(sessionId, () => []).add(message);
-
     final firestore = _firestore;
-    if (firestore == null || sessionId.isEmpty) return;
+    if (firestore == null) {
+      throw FirebaseException(
+        plugin: 'firestore',
+        message: 'Firebase Firestore is not initialized',
+      );
+    }
+    if (sessionId.isEmpty) {
+      throw ArgumentError('sessionId cannot be empty');
+    }
 
-    // 2. محاولة الحفظ في فايربيس
     try {
       await firestore
           .collection('sessions')
@@ -576,11 +545,17 @@ class TimeBankRepository {
 
   Future<void> deleteOffer(String offerId) async {
     final firestore = _firestore;
-    if (firestore == null || offerId.isEmpty) return;
+    if (firestore == null || offerId.isEmpty) {
+      throw FirebaseException(
+        plugin: 'firestore',
+        message: 'Firebase Firestore is not initialized or invalid offerId',
+      );
+    }
     try {
       await firestore.collection('offers').doc(offerId).delete();
     } catch (e) {
       debugPrint('Delete offer error: $e');
+      rethrow;
     }
   }
 }

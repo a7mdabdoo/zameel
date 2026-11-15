@@ -14,7 +14,9 @@ class AuthService {
       if (Firebase.apps.isNotEmpty) {
         return FirebaseAuth.instance;
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('AuthService: Failed to get FirebaseAuth instance: $e');
+    }
     return null;
   }
 
@@ -23,7 +25,9 @@ class AuthService {
       if (Firebase.apps.isNotEmpty) {
         return FirebaseFirestore.instance;
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('AuthService: Failed to get FirebaseFirestore instance: $e');
+    }
     return null;
   }
 
@@ -72,7 +76,9 @@ class AuthService {
       // إرسال رسالة التأكيد إلى البريد الإلكتروني فوراً
       try {
         await cred.user!.sendEmailVerification();
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('AuthService: Failed to send initial email verification: $e');
+      }
 
       // إنشاء مستند المستخدم الأولي برصيد ترحيبي 2 عملة وتقييم 0
       await firestore.collection('users').doc(cred.user!.uid).set({
@@ -120,7 +126,9 @@ class AuthService {
     if (cred.user != null) {
       try {
         await cred.user!.getIdToken(true);
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('AuthService: Failed to force refresh ID token on signIn: $e');
+      }
 
       // التحقق من وجود مستند المستخدم، وإذا كان المستخدم يسجل دخوله نضمن أن onboardingCompleted = true
       // حتى لا تظهر له شاشات التهيئة مرة أخرى عند كل تسجيل دخول
@@ -159,7 +167,9 @@ class AuthService {
               await docRef.update(updates);
             }
           }
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('AuthService: Failed to sync user doc during signIn: $e');
+        }
       }
     }
 
@@ -221,7 +231,8 @@ class AuthService {
       final docRef = firestore.collection('users').doc(uid);
       await docRef.set(updates, SetOptions(merge: true));
     } catch (e) {
-      debugPrint('updateUserProfile warning: $e');
+      debugPrint('updateUserProfile error: $e');
+      rethrow;
     }
   }
 

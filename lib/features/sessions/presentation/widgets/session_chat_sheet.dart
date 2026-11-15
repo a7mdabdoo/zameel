@@ -31,7 +31,6 @@ class SessionChatSheet extends ConsumerStatefulWidget {
 class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
-  final List<SessionMessageModel> _localPending = [];
   bool _isSending = false;
 
   final List<String> _quickChips = [
@@ -94,10 +93,7 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
       createdAt: DateTime.now(),
     );
 
-    setState(() {
-      _isSending = true;
-      _localPending.add(message);
-    });
+    setState(() => _isSending = true);
     _textController.clear();
 
     try {
@@ -113,10 +109,12 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
     } catch (e) {
       debugPrint('Error sending message to firestore: $e');
       if (mounted) {
+        _textController.text = clean;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('⚠️ تم حفظ الرسالة محلياً. لمزامنتها مع زميلك، تأكد من نشر قواعد Firestore في لوحة Firebase Console.'),
-            duration: Duration(seconds: 4),
+          SnackBar(
+            content: Text('تعذر إرسال الرسالة: $e'),
+            backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 4),
           ),
         );
       }
@@ -130,15 +128,7 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
     final user = ref.watch(authServiceProvider).currentUser;
     final myUid = user?.uid ?? '';
     final messagesAsync = ref.watch(sessionMessagesStreamProvider(widget.session.id));
-    final streamMessages = messagesAsync.value ?? [];
-
-    final idSet = streamMessages.map((m) => m.id).toSet();
-    final messages = [...streamMessages];
-    for (final p in _localPending) {
-      if (!idSet.contains(p.id)) {
-        messages.add(p);
-      }
-    }
+    final messages = [...(messagesAsync.value ?? [])];
     messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
     final effectiveChips = <String>[..._quickChips];
