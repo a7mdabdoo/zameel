@@ -23,7 +23,6 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
   CourseSeed _selectedCourse = AppConstants.seedCourses[0]; // OOP
   final _topicController = TextEditingController();
   final _offlineLocationController = TextEditingController(text: 'مكتبة الكلية • قاعة الاستذكار 2');
-  final _meetingLinkController = TextEditingController();
   String _selectedDay = 'الأحد';
   String _selectedTime = '12:00 ظهراً';
   bool _isOnline = false;
@@ -36,7 +35,6 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
   void dispose() {
     _topicController.dispose();
     _offlineLocationController.dispose();
-    _meetingLinkController.dispose();
     super.dispose();
   }
 
@@ -51,14 +49,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
 
     String finalLocation = '';
     if (_isOnline) {
-      final link = _meetingLinkController.text.trim();
-      if (link.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('يرجى إدخال رابط الاجتماع (Google Meet أو Zoom)')),
-        );
-        return;
-      }
-      finalLocation = 'أونلاين: $link';
+      finalLocation = 'عبر الإنترنت (أونلاين)';
     } else {
       final place = _offlineLocationController.text.trim();
       if (place.isEmpty) {
@@ -123,6 +114,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
         day: _selectedDay,
         time: _selectedTime,
         durationMinutes: 60,
+        mode: _isOnline ? 'online' : 'in_person',
         location: finalLocation,
         courseColor: _selectedCourse.color,
         isAvailable: true,
@@ -400,23 +392,25 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                   ),
                 ),
               ] else ...[
-                Text('رابط الاجتماع (Zoom أو Google Meet)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _meetingLinkController,
-                  decoration: InputDecoration(
-                    hintText: 'https://meet.google.com/xyz-abcd-efg أو رابط Zoom',
-                    prefixIcon: const Icon(Icons.link_rounded, size: 20, color: AppColors.primary),
-                    filled: true,
-                    fillColor: Theme.of(context).cardTheme.color,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
                   ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  '💡 سيظهر هذا الرابط لزميلك عند حجز الجلسة ليتمكن من الانضمام إليك بسهولة.',
-                  style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.lock_outline_rounded, color: AppColors.primary, size: 22),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'حفاظاً على خصوصيتك، ستتمكن من إضافة رابط اللقاء (Zoom / Google Meet) داخل تفاصيل الجلسة بعد تأكيد الحجز من زميلك.',
+                          style: TextStyle(fontSize: 12, height: 1.4, color: AppColors.textSecondary),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
 

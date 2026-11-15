@@ -97,6 +97,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         time: offer.time,
         durationMinutes: offer.durationMinutes,
         location: offer.location,
+        mode: offer.mode,
         costCoins: AppConstants.sessionCostCoins,
         status: 'confirmed',
         escrowStatus: 'held',
@@ -221,14 +222,14 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                     const Divider(height: 20, color: AppColors.hairline),
                     _buildDetailRow(
                       context,
-                      (location.contains('أونلاين') || location.contains('http') || location.contains('meet') || location.contains('zoom'))
+                      offer?.mode == 'online'
                           ? Icons.videocam_rounded
                           : Icons.location_on_outlined,
-                      (location.contains('أونلاين') || location.contains('http') || location.contains('meet') || location.contains('zoom'))
+                      offer?.mode == 'online'
                           ? 'طريقة اللقاء'
                           : 'المكان',
-                      (location.contains('أونلاين') || location.contains('http') || location.contains('meet') || location.contains('zoom'))
-                          ? 'أونلاين عن بُعد (Zoom / Meet) 💻'
+                      offer?.mode == 'online'
+                          ? 'أونلاين عن بُعد (Google Meet / Zoom)'
                           : location,
                     ),
                   ],

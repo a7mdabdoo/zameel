@@ -142,9 +142,8 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
     messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
     final effectiveChips = <String>[..._quickChips];
-    final loc = widget.session.location;
-    if (loc.contains('http') || loc.contains('meet') || loc.contains('zoom') || loc.contains('أونلاين')) {
-      effectiveChips.insert(0, '🔗 رابط الاجتماع الأونلاين: $loc');
+    if (widget.session.mode == 'online' && widget.session.meetingUrl != null && widget.session.meetingUrl!.isNotEmpty) {
+      effectiveChips.insert(0, '🔗 رابط الاجتماع: ${widget.session.meetingUrl}');
     }
 
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;

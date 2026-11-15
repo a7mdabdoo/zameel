@@ -206,6 +206,42 @@ class TimeBankRepository {
   }
 
   // =========================================================================
+  // 2-أ. تحديث رابط الاجتماع للجلسة من قِبل المعلم (Update Meeting URL)
+  // =========================================================================
+  Future<void> updateSessionMeetingUrl({
+    required String sessionId,
+    required String teacherId,
+    required String meetingUrl,
+  }) async {
+    final firestore = _firestore;
+    if (firestore == null) {
+      throw FirebaseException(
+        plugin: 'firestore',
+        message: 'Firebase Firestore is not initialized',
+      );
+    }
+
+    final trimmed = meetingUrl.trim();
+    final uri = Uri.tryParse(trimmed);
+    if (uri == null || uri.scheme != 'https') {
+      throw Exception('رابط الاجتماع يجب أن يبدأ بـ https://');
+    }
+    final host = uri.host.toLowerCase();
+    final allowed = host == 'meet.google.com' ||
+        host == 'zoom.us' ||
+        host.endsWith('.zoom.us') ||
+        host == 'teams.microsoft.com';
+    if (!allowed) {
+      throw Exception('رابط الاجتماع يجب أن يكون من Google Meet أو Zoom أو Microsoft Teams');
+    }
+
+    await firestore.collection('sessions').doc(sessionId).update({
+      'meetingUrl': trimmed,
+      'meetingUpdatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  // =========================================================================
   // 3. إلغاء الجلسة وحسم مصير العملة وفقاً لقواعد الوقت (Cancellation Rules)
   // =========================================================================
   /// القواعد المعتمدة:

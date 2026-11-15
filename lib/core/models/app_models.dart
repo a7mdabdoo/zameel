@@ -279,6 +279,9 @@ class TimeBankSessionModel {
   final int costCoins;
   final String status; // pending, confirmed, completed, cancelled_by_learner, cancelled_by_teacher
   final String escrowStatus; // held, released_to_teacher, refunded_to_learner
+  final String mode; // online, in_person
+  final String? meetingUrl;
+  final DateTime? meetingUpdatedAt;
   final int? rating;
   final String? reviewComment;
   final DateTime? scheduledAt;
@@ -303,6 +306,9 @@ class TimeBankSessionModel {
     this.costCoins = AppConstants.sessionCostCoins,
     this.status = 'confirmed',
     this.escrowStatus = 'held',
+    this.mode = 'in_person',
+    this.meetingUrl,
+    this.meetingUpdatedAt,
     this.rating,
     this.reviewComment,
     this.scheduledAt,
@@ -329,6 +335,9 @@ class TimeBankSessionModel {
       'costCoins': costCoins,
       'status': status,
       'escrowStatus': escrowStatus,
+      'mode': mode,
+      'meetingUrl': meetingUrl,
+      'meetingUpdatedAt': meetingUpdatedAt?.toIso8601String(),
       'rating': rating,
       'reviewComment': reviewComment,
       'scheduledAt': scheduledAt?.toIso8601String(),
@@ -365,6 +374,9 @@ class TimeBankSessionModel {
       costCoins: (map['costCoins'] as num?)?.toInt() ?? AppConstants.sessionCostCoins,
       status: map['status'] as String? ?? 'confirmed',
       escrowStatus: map['escrowStatus'] as String? ?? 'held',
+      mode: map['mode'] as String? ?? 'in_person',
+      meetingUrl: map['meetingUrl'] as String?,
+      meetingUpdatedAt: parseDate(map['meetingUpdatedAt']),
       rating: (map['rating'] as num?)?.toInt(),
       reviewComment: map['reviewComment'] as String?,
       scheduledAt: parseDate(map['scheduledAt']),
@@ -377,6 +389,9 @@ class TimeBankSessionModel {
   TimeBankSessionModel copyWith({
     String? status,
     String? escrowStatus,
+    String? mode,
+    String? meetingUrl,
+    DateTime? meetingUpdatedAt,
     int? rating,
     String? reviewComment,
     DateTime? scheduledAt,
@@ -400,6 +415,9 @@ class TimeBankSessionModel {
       costCoins: costCoins,
       status: status ?? this.status,
       escrowStatus: escrowStatus ?? this.escrowStatus,
+      mode: mode ?? this.mode,
+      meetingUrl: meetingUrl ?? this.meetingUrl,
+      meetingUpdatedAt: meetingUpdatedAt ?? this.meetingUpdatedAt,
       rating: rating ?? this.rating,
       reviewComment: reviewComment ?? this.reviewComment,
       scheduledAt: scheduledAt ?? this.scheduledAt,
@@ -469,6 +487,7 @@ class TimeBankOfferModel {
   final String time;
   final int durationMinutes;
   final String location;
+  final String mode; // online, in_person
   final Color courseColor;
   final bool isAvailable;
   final DateTime? createdAt;
@@ -485,6 +504,7 @@ class TimeBankOfferModel {
     required this.time,
     required this.durationMinutes,
     required this.location,
+    this.mode = 'in_person',
     required this.courseColor,
     this.isAvailable = true,
     this.createdAt,
@@ -503,6 +523,7 @@ class TimeBankOfferModel {
       'time': time,
       'durationMinutes': durationMinutes,
       'location': location,
+      'mode': mode,
       'courseColor': courseColor.toARGB32(),
       'isAvailable': isAvailable,
       'createdAt': createdAt?.toIso8601String(),
@@ -523,6 +544,7 @@ class TimeBankOfferModel {
       time: map['time'] as String? ?? '',
       durationMinutes: (map['durationMinutes'] as num?)?.toInt() ?? 60,
       location: map['location'] as String? ?? '',
+      mode: map['mode'] as String? ?? 'in_person',
       courseColor: colorInt != null ? Color(colorInt) : const Color(0xFF2F8F89),
       isAvailable: map['isAvailable'] as bool? ?? true,
       createdAt: map['createdAt'] != null

@@ -22,6 +22,84 @@ class SessionDetailsTeacherScreen extends ConsumerStatefulWidget {
 class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeacherScreen> {
   bool _isCancelling = false;
 
+  Future<void> _showEditMeetingUrlDialog(TimeBankSessionModel session) async {
+    final controller = TextEditingController(text: session.meetingUrl ?? '');
+    String? errorText;
+
+    final updated = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('رابط جلسة الشرح الأونلاين', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'أدخل رابط Google Meet أو Zoom ليتمكن زميلك من الانضمام للجلسة:',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                keyboardType: TextInputType.url,
+                decoration: InputDecoration(
+                  hintText: 'https://meet.google.com/xyz-abcd-efg',
+                  errorText: errorText,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final url = controller.text.trim();
+                final uri = Uri.tryParse(url);
+                if (uri == null || uri.scheme != 'https') {
+                  setDialogState(() => errorText = 'يجب أن يبدأ الرابط بـ https://');
+                  return;
+                }
+                final host = uri.host.toLowerCase();
+                final isAllowed = host == 'meet.google.com' ||
+                    host == 'zoom.us' ||
+                    host.endsWith('.zoom.us') ||
+                    host == 'teams.microsoft.com';
+                if (!isAllowed) {
+                  setDialogState(() => errorText = 'مسموح بروابط Google Meet أو Zoom أو MS Teams فقط');
+                  return;
+                }
+
+                try {
+                  await ref.read(timeBankRepositoryProvider).updateSessionMeetingUrl(
+                        sessionId: session.id,
+                        teacherId: session.teacherId,
+                        meetingUrl: url,
+                      );
+                  if (ctx.mounted) Navigator.pop(ctx, true);
+                } catch (e) {
+                  setDialogState(() => errorText = 'تعذر الحفظ: $e');
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+              child: const Text('حفظ الرابط', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (updated == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم تحديث رابط اللقاء بنجاح 🎉')),
+      );
+    }
+  }
+
   Future<void> _cancelSession(TimeBankSessionModel session) async {
     final user = ref.read(authServiceProvider).currentUser;
     if (user == null) return;
@@ -208,57 +286,111 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                     const Divider(height: 20, color: AppColors.hairline),
                     _RowItem('المدة المقررة', duration),
                     const Divider(height: 20, color: AppColors.hairline),
-                    _RowItem('المكان / طريقة اللقاء', location.contains('أونلاين') || location.contains('http') || location.contains('zoom') || location.contains('meet') ? 'أونلاين (Zoom / Google Meet) 💻' : location),
+                    _RowItem('المكان / طريقة اللقاء', session?.mode == 'online' ? 'أونلاين عن بُعد 💻' : location),
                   ],
                 ),
               ),
 
               const SizedBox(height: 16),
 
-              if (location.contains('http') || location.contains('meet') || location.contains('zoom') || location.contains('أونلاين')) ...[
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.videocam_rounded, color: AppColors.primary, size: 20),
-                          SizedBox(width: 8),
-                          Text(
-                            'رابط جلسة الشرح الأونلاين',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primary),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      SelectableText(
-                        location.replaceAll('أونلاين:', '').trim(),
-                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                      ),
-                      const SizedBox(height: 10),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          Clipboard.setData(ClipboardData(text: location.replaceAll('أونلاين:', '').trim()));
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('تم نسخ رابط الاجتماع (Zoom / Meet) بنجاح 📋')),
-                          );
-                        },
-                        icon: const Icon(Icons.copy_rounded, size: 16, color: Colors.white),
-                        label: const Text('نسخ رابط الاجتماع', style: TextStyle(color: Colors.white, fontSize: 13)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              if (session?.mode == 'online') ...[
+                if (session?.meetingUrl != null && session!.meetingUrl!.isNotEmpty) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.videocam_rounded, color: AppColors.primary, size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  'رابط جلسة الشرح الأونلاين',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primary),
+                                ),
+                              ],
+                            ),
+                            if (isHeld)
+                              TextButton.icon(
+                                onPressed: () => _showEditMeetingUrlDialog(session),
+                                icon: const Icon(Icons.edit_outlined, size: 16),
+                                label: const Text('تعديل', style: TextStyle(fontSize: 12)),
+                              ),
+                          ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        SelectableText(
+                          session.meetingUrl!,
+                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                        ),
+                        const SizedBox(height: 10),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Clipboard.setData(ClipboardData(text: session.meetingUrl!));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('تم نسخ رابط الاجتماع بنجاح 📋')),
+                            );
+                          },
+                          icon: const Icon(Icons.copy_rounded, size: 16, color: Colors.white),
+                          label: const Text('نسخ رابط الاجتماع', style: TextStyle(color: Colors.white, fontSize: 13)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                ] else ...[
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 22),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'هذه الجلسة أونلاين ولكنك لم تقم بإضافة رابط اللقاء بعد!',
+                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'يرجى إنشاء رابط Google Meet أو Zoom وإضافته هنا ليتمكن زميلك من الانضمام للجلسة.',
+                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+                        ),
+                        const SizedBox(height: 10),
+                        ElevatedButton.icon(
+                          onPressed: () => _showEditMeetingUrlDialog(session!),
+                          icon: const Icon(Icons.add_link_rounded, size: 18, color: Colors.white),
+                          label: const Text('أضف رابط الاجتماع الآن', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 14),
               ] else
                 const SizedBox(height: 8),
