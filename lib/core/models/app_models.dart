@@ -563,12 +563,16 @@ class WalletTransactionModel {
       case 'welcome_gift':
         return Icons.card_giftcard_rounded;
       case 'session_earning':
+      case 'release':
         return Icons.volunteer_activism_outlined;
       case 'session_booking':
+      case 'booking':
         return Icons.school_outlined;
       case 'cancellation_refund':
+      case 'refund':
         return Icons.undo_rounded;
       case 'late_compensation':
+      case 'compensation':
         return Icons.shield_outlined;
       default:
         return Icons.wallet_outlined;

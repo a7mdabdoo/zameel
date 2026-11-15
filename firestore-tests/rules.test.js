@@ -343,7 +343,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
     const learnerId = 'learner_real';
     const teacherId = 'teacher_real';
     const sessionId = 'session_book_real_1';
-    const txId = 'tx_book_real_1';
+    const txId = `${sessionId}_booking`;
 
     await testEnv.withSecurityRulesDisabled(async (context) => {
       const adminDb = context.firestore();
@@ -393,7 +393,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
           sessionId: sessionId,
           amount: 1,
           isNegative: true,
-          type: 'session_booking',
+          type: 'booking',
         });
       })
     );
@@ -403,7 +403,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
     const learnerId = 'learner_real';
     const teacherId = 'teacher_real';
     const sessionId = 'session_complete_real_2';
-    const txId = 'tx_complete_real_2';
+    const txId = `${sessionId}_release`;
     const scheduledTime = new Date(Date.now() + 86400000);
 
     await testEnv.withSecurityRulesDisabled(async (context) => {
@@ -467,7 +467,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
           sessionId: sessionId,
           amount: 1,
           isNegative: false,
-          type: 'session_earning',
+          type: 'release',
         });
       })
     );
@@ -477,7 +477,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
     const learnerId = 'learner_real';
     const teacherId = 'teacher_real';
     const sessionId = 'session_early_cancel_3';
-    const txId = 'tx_refund_early_3';
+    const txId = `${sessionId}_refund`;
     const scheduledTime = new Date(Date.now() + 24 * 3600 * 1000); // بعد 24 ساعة (> ساعتين)
 
     await testEnv.withSecurityRulesDisabled(async (context) => {
@@ -536,7 +536,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
           sessionId: sessionId,
           amount: 1,
           isNegative: false,
-          type: 'cancellation_refund',
+          type: 'refund',
         });
       })
     );
@@ -546,7 +546,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
     const learnerId = 'learner_real';
     const teacherId = 'teacher_real';
     const sessionId = 'session_late_cancel_4';
-    const txId = 'tx_comp_late_4';
+    const txId = `${sessionId}_compensation`;
     const scheduledTime = new Date(Date.now() + 30 * 60 * 1000); // بعد 30 دقيقة (أقل من ساعتين)
 
     await testEnv.withSecurityRulesDisabled(async (context) => {
@@ -605,7 +605,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
           sessionId: sessionId,
           amount: 1,
           isNegative: false,
-          type: 'late_compensation',
+          type: 'compensation',
         });
       })
     );
@@ -615,7 +615,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
     const learnerId = 'learner_real';
     const teacherId = 'teacher_real';
     const sessionId = 'session_teacher_cancel_5';
-    const txId = 'tx_refund_teacher_5';
+    const txId = `${sessionId}_refund`;
     const scheduledTime = new Date(Date.now() + 30 * 60 * 1000);
 
     await testEnv.withSecurityRulesDisabled(async (context) => {
@@ -674,7 +674,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
           sessionId: sessionId,
           amount: 1,
           isNegative: false,
-          type: 'cancellation_refund',
+          type: 'refund',
         });
       })
     );
@@ -1062,13 +1062,13 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
           escrowStatus: 'held',
           rating: 5,
         });
-        t.set(learnerDb.collection('transactions').doc(`tx_${sessionId}`), {
-          id: `tx_${sessionId}`,
+        t.set(learnerDb.collection('transactions').doc(`${sessionId}_booking`), {
+          id: `${sessionId}_booking`,
           userId: learnerId,
           sessionId: sessionId,
           amount: 1,
           isNegative: true,
-          type: 'session_booking',
+          type: 'booking',
         });
       })
     );
@@ -1089,13 +1089,13 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
           escrowStatus: 'held',
           rating: null,
         });
-        t.set(learnerDb.collection('transactions').doc(`tx_${sessionId}`), {
-          id: `tx_${sessionId}`,
+        t.set(learnerDb.collection('transactions').doc(`${sessionId}_booking`), {
+          id: `${sessionId}_booking`,
           userId: learnerId,
           sessionId: sessionId,
           amount: 1,
           isNegative: true,
-          type: 'session_booking',
+          type: 'booking',
         });
       })
     );
@@ -1105,7 +1105,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
     const learnerId = 'learner_rating_comp';
     const teacherId = 'teacher_rating_comp';
     const sessionId = 'session_rating_comp_1';
-    const txId = 'tx_rating_comp_1';
+    const txId = `${sessionId}_release`;
     const scheduledTime = new Date(Date.now() + 2 * 3600 * 1000);
 
     await testEnv.withSecurityRulesDisabled(async (context) => {
@@ -1163,7 +1163,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
           sessionId: sessionId,
           amount: 1,
           isNegative: false,
-          type: 'session_earning',
+          type: 'release',
         });
       })
     );
@@ -1173,7 +1173,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
     const learnerId = 'learner_rating_cheat';
     const teacherId = 'teacher_rating_cheat';
     const sessionId = 'session_rating_cheat_1';
-    const txId = 'tx_rating_cheat_1';
+    const txId = `${sessionId}_release`;
     const scheduledTime = new Date(Date.now() + 2 * 3600 * 1000);
 
     await testEnv.withSecurityRulesDisabled(async (context) => {
@@ -1231,7 +1231,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
           sessionId: sessionId,
           amount: 1,
           isNegative: false,
-          type: 'session_earning',
+          type: 'release',
         });
       })
     );
@@ -1258,6 +1258,202 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
         ratingSum: 50,
         ratingCount: 10,
       })
+    );
+  });
+
+  // =========================================================================
+  // القسم التاسع: نزاهة دفتر الأستاذ المحاسبي (Ledger Integrity Tests)
+  // =========================================================================
+
+  test('نزاهة دفتر الأستاذ 1: رفض قيد الحركة إذا لم يكن المعرف حتمياً ومطابقاً لـ ${sessionId}_${kind}', async () => {
+    const learnerId = 'ledger_learner_1';
+    const teacherId = 'ledger_teacher_1';
+    const sessionId = 'session_ledger_1';
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(learnerId).set({
+        uid: learnerId,
+        timeCoins: 2,
+        completedSessions: 0,
+        ratingSum: 0,
+        ratingCount: 0,
+      });
+      await adminDb.collection('users').doc(teacherId).set({
+        uid: teacherId,
+        timeCoins: 2,
+        completedSessions: 0,
+        ratingSum: 0,
+        ratingCount: 0,
+      });
+      await adminDb.collection('sessions').doc(sessionId).set({
+        id: sessionId,
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        status: 'confirmed',
+        escrowStatus: 'held',
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+
+    // معرف عشوائي tx_12345 بدلاً من session_ledger_1_booking -> يفشل
+    await assertFails(
+      learnerDb.collection('transactions').doc('tx_random_12345').set({
+        id: 'tx_random_12345',
+        userId: learnerId,
+        sessionId: sessionId,
+        amount: 1,
+        isNegative: true,
+        type: 'booking',
+      })
+    );
+  });
+
+  test('نزاهة دفتر الأستاذ 2: رفض تكرار إنشاء قيد المعاملة إذا كان موجوداً مسبقاً (!exists)', async () => {
+    const learnerId = 'ledger_learner_2';
+    const teacherId = 'ledger_teacher_2';
+    const sessionId = 'session_ledger_2';
+    const txId = `${sessionId}_booking`;
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(learnerId).set({
+        uid: learnerId,
+        timeCoins: 2,
+        completedSessions: 0,
+        ratingSum: 0,
+        ratingCount: 0,
+      });
+      await adminDb.collection('sessions').doc(sessionId).set({
+        id: sessionId,
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        status: 'confirmed',
+        escrowStatus: 'held',
+      });
+      // قيد موجود بالفعل في قاعدة البيانات
+      await adminDb.collection('transactions').doc(txId).set({
+        id: txId,
+        userId: learnerId,
+        sessionId: sessionId,
+        amount: 1,
+        isNegative: true,
+        type: 'booking',
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+
+    // محاولة إعادة إنشاء نفس المعاملة الموجودة مسبقاً -> تفشل
+    await assertFails(
+      learnerDb.collection('transactions').doc(txId).set({
+        id: txId,
+        userId: learnerId,
+        sessionId: sessionId,
+        amount: 1,
+        isNegative: true,
+        type: 'booking',
+      })
+    );
+  });
+
+  test('نزاهة دفتر الأستاذ 3: رفض قيد الحركة إذا لم يطابق userId انتقال الجلسة (booking ينسب لغير المتعلم)', async () => {
+    const learnerId = 'ledger_learner_3';
+    const teacherId = 'ledger_teacher_3';
+    const sessionId = 'session_ledger_3';
+    const txId = `${sessionId}_booking`;
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('sessions').doc(sessionId).set({
+        id: sessionId,
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        status: 'confirmed',
+        escrowStatus: 'held',
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+
+    // حركة booking ولكن منسوبة للمعلم بدلاً من المتعلم -> تفشل
+    await assertFails(
+      learnerDb.collection('transactions').doc(txId).set({
+        id: txId,
+        userId: teacherId, // غير مطابق لـ session.learnerId
+        sessionId: sessionId,
+        amount: 1,
+        isNegative: true,
+        type: 'booking',
+      })
+    );
+  });
+
+  test('نزاهة دفتر الأستاذ 4: رفض قيد الحركة إذا لم يطابق amount تكلفة الجلسة costCoins', async () => {
+    const learnerId = 'ledger_learner_4';
+    const teacherId = 'ledger_teacher_4';
+    const sessionId = 'session_ledger_4';
+    const txId = `${sessionId}_booking`;
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('sessions').doc(sessionId).set({
+        id: sessionId,
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        status: 'confirmed',
+        escrowStatus: 'held',
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+
+    // amount: 2 بينما costCoins = 1 -> تفشل
+    await assertFails(
+      learnerDb.collection('transactions').doc(txId).set({
+        id: txId,
+        userId: learnerId,
+        sessionId: sessionId,
+        amount: 2,
+        isNegative: true,
+        type: 'booking',
+      })
+    );
+  });
+
+  test('نزاهة دفتر الأستاذ 5: حظر تعديل أو حذف أي قيد في دفتر الأستاذ (Immutable Ledger)', async () => {
+    const userId = 'ledger_user_5';
+    const txId = 'session_immut_booking';
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('transactions').doc(txId).set({
+        id: txId,
+        userId: userId,
+        sessionId: 'session_immut',
+        amount: 1,
+        isNegative: true,
+        type: 'booking',
+      });
+    });
+
+    const authedDb = testEnv.authenticatedContext(userId, { email_verified: true }).firestore();
+
+    // تعديل القيد مرفوض
+    await assertFails(
+      authedDb.collection('transactions').doc(txId).update({
+        amount: 0,
+      })
+    );
+
+    // حذف القيد مرفوض
+    await assertFails(
+      authedDb.collection('transactions').doc(txId).delete()
     );
   });
 });
