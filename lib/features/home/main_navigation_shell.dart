@@ -19,47 +19,54 @@ class MainNavigationShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.surface;
+    final hairlineColor = isDark ? AppColors.darkHairline : AppColors.hairline;
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
+    final containerColor = isDark ? AppColors.darkPrimaryContainer : AppColors.primaryContainer;
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
         body: navigationShell,
         bottomNavigationBar: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             border: Border(
-              top: BorderSide(color: AppColors.hairline, width: 1),
+              top: BorderSide(color: hairlineColor, width: 1),
             ),
-            color: AppColors.surface,
+            color: surfaceColor,
           ),
           child: NavigationBar(
             height: 72,
-            backgroundColor: AppColors.surface,
-            indicatorColor: AppColors.primaryContainer,
+            backgroundColor: surfaceColor,
+            indicatorColor: containerColor,
             selectedIndex: navigationShell.currentIndex,
             onDestinationSelected: _onTap,
-            destinations: const [
+            destinations: [
               NavigationDestination(
-                icon: Icon(Icons.today_outlined),
-                selectedIcon: Icon(Icons.today, color: AppColors.primary),
+                icon: const Icon(Icons.today_outlined),
+                selectedIcon: Icon(Icons.today, color: primaryColor),
                 label: 'اليوم',
               ),
               NavigationDestination(
-                icon: Icon(Icons.calendar_view_week_outlined),
-                selectedIcon: Icon(Icons.calendar_view_week, color: AppColors.primary),
+                icon: const Icon(Icons.calendar_view_week_outlined),
+                selectedIcon: Icon(Icons.calendar_view_week, color: primaryColor),
                 label: 'الخطة',
               ),
               NavigationDestination(
-                icon: Icon(Icons.handshake_outlined),
-                selectedIcon: Icon(Icons.handshake, color: AppColors.primary),
+                icon: const Icon(Icons.handshake_outlined),
+                selectedIcon: Icon(Icons.handshake, color: primaryColor),
                 label: 'بنك الوقت',
               ),
               NavigationDestination(
-                icon: Icon(Icons.account_balance_wallet_outlined),
-                selectedIcon: Icon(Icons.account_balance_wallet, color: AppColors.primary),
+                icon: const Icon(Icons.account_balance_wallet_outlined),
+                selectedIcon: Icon(Icons.account_balance_wallet, color: primaryColor),
                 label: 'المحفظة',
               ),
               NavigationDestination(
-                icon: Icon(Icons.person_outline),
-                selectedIcon: Icon(Icons.person, color: AppColors.primary),
+                icon: const Icon(Icons.person_outline),
+                selectedIcon: Icon(Icons.person, color: primaryColor),
                 label: 'حسابي',
               ),
             ],

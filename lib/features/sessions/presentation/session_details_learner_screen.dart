@@ -95,18 +95,26 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
     final isReleased = escrowStatus == 'released_to_teacher';
     final isRefunded = escrowStatus == 'refunded_to_learner';
 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardColor = isDark ? AppColors.darkSurface : Colors.white;
+    final hairline = isDark ? AppColors.darkHairline : AppColors.hairline;
+    final onSurface = theme.colorScheme.onSurface;
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
+    final primaryContainer = isDark ? AppColors.darkPrimaryContainer : AppColors.primaryContainer;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_forward_ios_rounded, color: onSurface),
           onPressed: () => context.pop(),
         ),
-        title: const Text(
+        title: Text(
           'تفاصيل الجلسة وتأكيدها 🎓',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: onSurface),
         ),
         centerTitle: true,
       ),
@@ -120,25 +128,25 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: cardColor,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: AppColors.hairline),
+                  border: Border.all(color: hairline),
                 ),
                 child: Row(
                   children: [
                     CircleAvatar(
                       radius: 26,
-                      backgroundColor: AppColors.primaryContainer,
-                      child: Text(teacherInitials, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                      backgroundColor: primaryContainer,
+                      child: Text(teacherInitials, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryColor)),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('$teacherName (الشارح)', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                          Text('$teacherName (الشارح)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: onSurface)),
                           const SizedBox(height: 2),
-                          const Text('الفرقة الثانية • كلية الحاسبات والذكاء الاصطناعي', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                          Text('الفرقة الثانية • كلية الحاسبات والذكاء الاصطناعي', style: TextStyle(fontSize: 12, color: textSecondary)),
                         ],
                       ),
                     ),
@@ -153,12 +161,12 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: isReleased
-                      ? AppColors.primary.withValues(alpha: 0.15)
+                      ? primaryColor.withValues(alpha: 0.15)
                       : (isRefunded ? AppColors.error.withValues(alpha: 0.1) : AppColors.sage.withValues(alpha: 0.15)),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
                     color: isReleased
-                        ? AppColors.primary.withValues(alpha: 0.3)
+                        ? primaryColor.withValues(alpha: 0.3)
                         : (isRefunded ? AppColors.error.withValues(alpha: 0.3) : AppColors.sage.withValues(alpha: 0.3)),
                   ),
                 ),
@@ -168,7 +176,7 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                       isReleased
                           ? Icons.stars_rounded
                           : (isRefunded ? Icons.undo_rounded : Icons.lock_clock_rounded),
-                      color: isReleased ? AppColors.primary : (isRefunded ? AppColors.error : AppColors.deepSage),
+                      color: isReleased ? primaryColor : (isRefunded ? AppColors.error : AppColors.deepSage),
                       size: 24,
                     ),
                     const SizedBox(width: 12),
@@ -181,7 +189,7 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                                 : 'الجلسة معلقة بالضمان (1 عملة محجوزة). بعد انتهاء الشرح، اضغط لتأكيد الإتمام وتقييم الزميل.'),
                         style: TextStyle(
                           fontSize: 13,
-                          color: isReleased ? AppColors.primary : (isRefunded ? AppColors.error : AppColors.deepSage),
+                          color: isReleased ? primaryColor : (isRefunded ? AppColors.error : AppColors.deepSage),
                           height: 1.4,
                           fontWeight: FontWeight.w600,
                         ),
@@ -197,18 +205,18 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: cardColor,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: AppColors.hairline),
+                  border: Border.all(color: hairline),
                 ),
                 child: Column(
                   children: [
                     _RowItem('المادة', courseName),
-                    const Divider(height: 20, color: AppColors.hairline),
+                    Divider(height: 20, color: hairline),
                     _RowItem('الموضوع', topic),
-                    const Divider(height: 20, color: AppColors.hairline),
+                    Divider(height: 20, color: hairline),
                     _RowItem('المدة المقررة', duration),
-                    const Divider(height: 20, color: AppColors.hairline),
+                    Divider(height: 20, color: hairline),
                     _RowItem('المكان / طريقة اللقاء', session?.mode == 'online' ? 'أونلاين عن بُعد 💻' : location),
                   ],
                 ),
@@ -356,6 +364,9 @@ class _RowItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -364,10 +375,20 @@ class _RowItem extends StatelessWidget {
           child: Text(
             value,
             textAlign: TextAlign.start,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurface,
+            ),
           ),
         ),
-        Text(label, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+          ),
+        ),
       ],
     );
   }

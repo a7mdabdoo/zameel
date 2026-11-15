@@ -76,6 +76,8 @@ class CandidatesScreen extends ConsumerWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                 itemCount: displayOffers.length,
                 itemBuilder: (context, index) {
+                  final theme = Theme.of(context);
+                  final isDark = theme.brightness == Brightness.dark;
                   final offer = displayOffers[index];
                   final isRealPeer = !offer.id.startsWith('offer_peer_');
                   final isOnline = offer.mode == 'online';
@@ -83,19 +85,24 @@ class CandidatesScreen extends ConsumerWidget {
                       ? offer.teacherName.trim().split(' ').map((p) => p.isNotEmpty ? p[0] : '').take(2).join('.')
                       : 'ز.م';
 
+                  final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
+                  final primaryContainer = isDark ? AppColors.darkPrimaryContainer : AppColors.primaryContainer;
+                  final surfaceAlt = isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt;
+                  final hairline = isDark ? AppColors.darkHairline : AppColors.hairline;
+
                   return Container(
                     margin: const EdgeInsets.only(bottom: 14),
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).cardTheme.color,
+                      color: theme.cardTheme.color,
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                        color: isRealPeer ? AppColors.deepSage.withValues(alpha: 0.4) : AppColors.hairline,
+                        color: isRealPeer ? (isDark ? AppColors.darkPrimary.withValues(alpha: 0.4) : AppColors.deepSage.withValues(alpha: 0.4)) : hairline,
                         width: isRealPeer ? 1.5 : 1,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.03),
+                          color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
                           blurRadius: 10,
                           offset: const Offset(0, 3),
                         ),
@@ -114,11 +121,11 @@ class CandidatesScreen extends ConsumerWidget {
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(
                                     color: isRealPeer
-                                        ? AppColors.sage.withValues(alpha: 0.2)
-                                        : AppColors.primaryContainer.withValues(alpha: 0.6),
+                                        ? (isDark ? AppColors.darkPrimary.withValues(alpha: 0.2) : AppColors.sage.withValues(alpha: 0.2))
+                                        : primaryContainer.withValues(alpha: 0.6),
                                     borderRadius: BorderRadius.circular(20),
                                     border: isRealPeer
-                                        ? Border.all(color: AppColors.deepSage.withValues(alpha: 0.3))
+                                        ? Border.all(color: (isDark ? AppColors.darkPrimary : AppColors.deepSage).withValues(alpha: 0.3))
                                         : null,
                                   ),
                                   child: Row(
@@ -127,7 +134,7 @@ class CandidatesScreen extends ConsumerWidget {
                                       Icon(
                                         isRealPeer ? Icons.stars_rounded : Icons.verified_user_rounded,
                                         size: 14,
-                                        color: isRealPeer ? AppColors.deepSage : AppColors.primary,
+                                        color: isRealPeer ? (isDark ? AppColors.darkPrimary : AppColors.deepSage) : primaryColor,
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
@@ -135,7 +142,7 @@ class CandidatesScreen extends ConsumerWidget {
                                         style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.bold,
-                                          color: isRealPeer ? AppColors.deepSage : AppColors.primary,
+                                          color: isRealPeer ? (isDark ? AppColors.darkPrimary : AppColors.deepSage) : primaryColor,
                                         ),
                                       ),
                                     ],
@@ -146,12 +153,12 @@ class CandidatesScreen extends ConsumerWidget {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: AppColors.primary.withValues(alpha: 0.12),
+                                      color: primaryColor.withValues(alpha: 0.12),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
-                                    child: const Text(
+                                    child: Text(
                                       '💻 أونلاين',
-                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primary),
+                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: primaryColor),
                                     ),
                                   ),
                                 ],
@@ -167,22 +174,22 @@ class CandidatesScreen extends ConsumerWidget {
                                       style: TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.bold,
-                                        color: Theme.of(context).colorScheme.onSurface,
+                                        color: theme.colorScheme.onSurface,
                                       ),
                                     ),
-                                    const Text(
+                                    Text(
                                       'زميل دراسة • كلية الحاسبات',
-                                      style: TextStyle(fontSize: 11, color: AppColors.textTertiary),
+                                      style: TextStyle(fontSize: 11, color: isDark ? AppColors.darkTextTertiary : AppColors.textTertiary),
                                     ),
                                   ],
                                 ),
                                 const SizedBox(width: 12),
                                 CircleAvatar(
                                   radius: 22,
-                                  backgroundColor: AppColors.primaryContainer,
+                                  backgroundColor: primaryContainer,
                                   child: Text(
                                     teacherInitials,
-                                    style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                                    style: TextStyle(fontWeight: FontWeight.bold, color: primaryColor),
                                   ),
                                 ),
                               ],
@@ -193,14 +200,14 @@ class CandidatesScreen extends ConsumerWidget {
                         const SizedBox(height: 12),
                         Text(
                           offer.topic,
-                          style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurface, height: 1.4),
+                          style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface, height: 1.4),
                         ),
 
                         const SizedBox(height: 12),
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: AppColors.surfaceAlt,
+                            color: surfaceAlt,
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Row(
@@ -208,7 +215,7 @@ class CandidatesScreen extends ConsumerWidget {
                               Icon(
                                 isOnline ? Icons.videocam_rounded : Icons.access_time_filled_rounded,
                                 size: 16,
-                                color: AppColors.primary,
+                                color: primaryColor,
                               ),
                               const SizedBox(width: 8),
                               Expanded(
@@ -216,7 +223,7 @@ class CandidatesScreen extends ConsumerWidget {
                                   isOnline
                                       ? 'الموعد: ${offer.day} • ${offer.time} (أونلاين عبر الرابط 💻)'
                                       : 'الموعد: ${offer.day} • ${offer.time} (${offer.location})',
-                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.primary),
+                                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: primaryColor),
                                 ),
                               ),
                             ],
@@ -236,7 +243,7 @@ class CandidatesScreen extends ConsumerWidget {
                               style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                             ),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
+                              backgroundColor: primaryColor,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
                           ),

@@ -23,14 +23,18 @@ class WalletScreen extends ConsumerWidget {
     final transactionsAsync = ref.watch(userTransactionsStreamProvider(userId));
     final transactions = transactionsAsync.value ?? [];
 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
+
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).cardTheme.color,
+        backgroundColor: theme.cardTheme.color,
         elevation: 0,
         title: Text(
           'محفظة الوقت 🪙',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
         ),
       ),
       body: SafeArea(
@@ -51,7 +55,7 @@ class WalletScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(22),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.25),
+                      color: primaryColor.withValues(alpha: 0.25),
                       blurRadius: 16,
                       offset: const Offset(0, 8),
                     ),
@@ -116,7 +120,7 @@ class WalletScreen extends ConsumerWidget {
                         style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
+                        backgroundColor: primaryColor,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
@@ -126,13 +130,13 @@ class WalletScreen extends ConsumerWidget {
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () => context.push('/create-offer'),
-                      icon: const Icon(Icons.arrow_upward_rounded, color: AppColors.primary, size: 18),
-                      label: const Text(
+                      icon: Icon(Icons.arrow_upward_rounded, color: primaryColor, size: 18),
+                      label: Text(
                         'تقديم شرح (+1)',
-                        style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary, fontSize: 13),
+                        style: TextStyle(fontWeight: FontWeight.bold, color: primaryColor, fontSize: 13),
                       ),
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.primary, width: 1.5),
+                        side: BorderSide(color: primaryColor, width: 1.5),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
@@ -200,26 +204,33 @@ class WalletScreen extends ConsumerWidget {
     required bool isNegative,
     required IconData icon,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hairline = isDark ? AppColors.darkHairline : AppColors.hairline;
+    final successColor = isDark ? AppColors.darkPrimary : AppColors.deepSage;
+    final textTertiary = isDark ? AppColors.darkTextTertiary : AppColors.textTertiary;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.hairline),
+        border: Border.all(color: hairline),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: isNegative ? AppColors.error.withValues(alpha: 0.1) : AppColors.sage.withValues(alpha: 0.2),
+              color: isNegative
+                  ? AppColors.error.withValues(alpha: 0.1)
+                  : (isDark ? AppColors.darkPrimary.withValues(alpha: 0.15) : AppColors.sage.withValues(alpha: 0.2)),
               shape: BoxShape.circle,
             ),
             child: Icon(
               icon,
               size: 20,
-              color: isNegative ? AppColors.error : AppColors.deepSage,
+              color: isNegative ? AppColors.error : successColor,
             ),
           ),
           const SizedBox(width: 14),
@@ -238,7 +249,7 @@ class WalletScreen extends ConsumerWidget {
                 const SizedBox(height: 2),
                 Text(
                   date,
-                  style: const TextStyle(fontSize: 11, color: AppColors.textTertiary),
+                  style: TextStyle(fontSize: 11, color: textTertiary),
                 ),
               ],
             ),
@@ -248,7 +259,7 @@ class WalletScreen extends ConsumerWidget {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
-              color: isNegative ? AppColors.error : AppColors.deepSage,
+              color: isNegative ? AppColors.error : successColor,
             ),
           ),
         ],

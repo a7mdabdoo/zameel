@@ -131,14 +131,30 @@ class PlannerNotifier extends Notifier<PlannerState> {
 
   /// تسجيل إتمام كتلة مذاكرة
   void markBlockCompleted(String blockId) {
+    final updatedBlocks = state.studyBlocks.map((b) {
+      if (b.id == blockId) {
+        return b.copyWith(isCompleted: true, isMissed: false);
+      }
+      return b;
+    }).toList();
     state = state.copyWith(
-      studyBlocks: state.studyBlocks.map((b) {
-        if (b.id == blockId) {
-          return b.copyWith(isCompleted: true, isMissed: false);
-        }
-        return b;
-      }).toList(),
-      completedBlocksCount: state.completedBlocksCount + 1,
+      studyBlocks: updatedBlocks,
+      completedBlocksCount: updatedBlocks.where((b) => b.isCompleted).length,
+    );
+  }
+
+  /// تبديل حالة إتمام المذاكرة (تم / لم تتم)
+  void toggleBlockCompleted(String blockId) {
+    final currentBlock = state.studyBlocks.firstWhere((b) => b.id == blockId, orElse: () => state.studyBlocks.first);
+    final updatedBlocks = state.studyBlocks.map((b) {
+      if (b.id == blockId) {
+        return b.copyWith(isCompleted: !currentBlock.isCompleted, isMissed: false);
+      }
+      return b;
+    }).toList();
+    state = state.copyWith(
+      studyBlocks: updatedBlocks,
+      completedBlocksCount: updatedBlocks.where((b) => b.isCompleted).length,
     );
   }
 
