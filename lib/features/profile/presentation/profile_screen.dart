@@ -8,7 +8,6 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/data/auth_service.dart';
 import '../../../core/state/app_state.dart';
-import '../../timebank/data/timebank_repository.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
