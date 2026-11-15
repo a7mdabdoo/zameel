@@ -534,4 +534,72 @@ void main() {
       expect(slots.any((s) => s.dateTime.hour == 12 && s.dateTime.minute == 0), isTrue);
     });
   });
+
+  // =========================================================================
+  // المجموعة 10: حظر الحجز المزدوج وأقفال المواعيد (Double Booking & Slot Locks)
+  // =========================================================================
+  group('TimeBankPureLogic - Double Booking & Slot Locks', () {
+    final scheduledAt = DateTime(2026, 11, 21, 14, 0); // 2:00 PM
+    final epochMs = scheduledAt.millisecondsSinceEpoch;
+
+    test('30-minute session generates exactly 1 epoch interval', () {
+      final epochs = TimeBankPureLogic.getSessionSlotEpochs(
+        scheduledAt: scheduledAt,
+        durationMinutes: 30,
+      );
+      expect(epochs.length, equals(1));
+      expect(epochs[0], equals(epochMs));
+    });
+
+    test('60-minute session generates exactly 2 30-min epoch intervals', () {
+      final epochs = TimeBankPureLogic.getSessionSlotEpochs(
+        scheduledAt: scheduledAt,
+        durationMinutes: 60,
+      );
+      expect(epochs.length, equals(2));
+      expect(epochs[0], equals(epochMs));
+      expect(epochs[1], equals(epochMs + 30 * 60 * 1000));
+    });
+
+    test('getLockDocIds generates deterministic lock doc IDs for both learner and teacher', () {
+      final ids30 = TimeBankPureLogic.getLockDocIds(
+        learnerId: 'user_learner',
+        teacherId: 'user_teacher',
+        scheduledAt: scheduledAt,
+        durationMinutes: 30,
+      );
+      expect(ids30, equals([
+        'user_learner_$epochMs',
+        'user_teacher_$epochMs',
+      ]));
+
+      final ids60 = TimeBankPureLogic.getLockDocIds(
+        learnerId: 'user_learner',
+        teacherId: 'user_teacher',
+        scheduledAt: scheduledAt,
+        durationMinutes: 60,
+      );
+      final nextEpochMs = epochMs + 30 * 60 * 1000;
+      expect(ids60, equals([
+        'user_learner_$epochMs',
+        'user_teacher_$epochMs',
+        'user_learner_$nextEpochMs',
+        'user_teacher_$nextEpochMs',
+      ]));
+    });
+
+    test('hasActiveLock correctly detects active slot locks', () {
+      expect(TimeBankPureLogic.hasActiveLock([]), isFalse);
+      expect(TimeBankPureLogic.hasActiveLock([null]), isFalse);
+      expect(TimeBankPureLogic.hasActiveLock([
+        {'status': 'released'},
+        {'status': 'used'},
+      ]), isFalse);
+
+      expect(TimeBankPureLogic.hasActiveLock([
+        {'status': 'released'},
+        {'status': 'active'},
+      ]), isTrue);
+    });
+  });
 }

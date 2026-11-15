@@ -2004,4 +2004,237 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
 
     await assertFails(batch.commit());
   });
+
+  // =========================================================================
+  // أقفال المواعيد وحظر الحجز المزدوج (Double Booking & Slot Locks)
+  // =========================================================================
+  test('أقفال المواعيد 1: إنشاء قفل موعد بالتزامن مع إنشاء جلسة ينجح', async () => {
+    const learnerId = 'learner_lock_ok';
+    const teacherId = 'teacher_lock_ok';
+    const sessionId = 'session_lock_ok';
+    const scheduledAt = new Date(Date.now() + 24 * 3600 * 1000);
+    const epochMs = scheduledAt.getTime();
+    const learnerLockId = `${learnerId}_${epochMs}`;
+    const teacherLockId = `${teacherId}_${epochMs}`;
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(learnerId).set({
+        timeCoins: 2,
+        completedSessions: 0,
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+    const batch = learnerDb.batch();
+
+    batch.update(learnerDb.collection('users').doc(learnerId), {
+      timeCoins: 1,
+      lastSessionId: sessionId,
+    });
+
+    batch.set(learnerDb.collection('sessions').doc(sessionId), {
+      learnerId: learnerId,
+      teacherId: teacherId,
+      costCoins: 1,
+      escrowStatus: 'held',
+      status: 'confirmed',
+      scheduledAt: scheduledAt,
+    });
+
+    batch.set(learnerDb.collection('transactions').doc(`${sessionId}_booking`), {
+      userId: learnerId,
+      sessionId: sessionId,
+      amount: 1,
+      type: 'booking',
+    });
+
+    batch.set(learnerDb.collection('slotLocks').doc(learnerLockId), {
+      uid: learnerId,
+      slotEpochMs: epochMs,
+      sessionId: sessionId,
+      status: 'active',
+    });
+
+    batch.set(learnerDb.collection('slotLocks').doc(teacherLockId), {
+      uid: teacherId,
+      slotEpochMs: epochMs,
+      sessionId: sessionId,
+      status: 'active',
+    });
+
+    await assertSucceeds(batch.commit());
+  });
+
+  test('أقفال المواعيد 2: رفض إنشاء قفل موعد منفرد بدون وجود جلسة (existsAfter violation)', async () => {
+    const learnerId = 'learner_lock_solo';
+    const epochMs = Date.now() + 24 * 3600 * 1000;
+    const lockId = `${learnerId}_${epochMs}`;
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+
+    await assertFails(
+      learnerDb.collection('slotLocks').doc(lockId).set({
+        uid: learnerId,
+        slotEpochMs: epochMs,
+        sessionId: 'non_existent_session',
+        status: 'active',
+      })
+    );
+  });
+
+  test('أقفال المواعيد 3: رفض إنشاء قفل موعد بمعرف غير مطابق للصيغة {uid}_{slotEpochMs}', async () => {
+    const learnerId = 'learner_bad_lock_id';
+    const teacherId = 'teacher_bad_lock_id';
+    const sessionId = 'session_bad_lock_id';
+    const scheduledAt = new Date(Date.now() + 24 * 3600 * 1000);
+    const epochMs = scheduledAt.getTime();
+    const wrongLockId = 'wrong_lock_id_123';
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(learnerId).set({
+        timeCoins: 2,
+        completedSessions: 0,
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+    const batch = learnerDb.batch();
+
+    batch.update(learnerDb.collection('users').doc(learnerId), {
+      timeCoins: 1,
+      lastSessionId: sessionId,
+    });
+
+    batch.set(learnerDb.collection('sessions').doc(sessionId), {
+      learnerId: learnerId,
+      teacherId: teacherId,
+      costCoins: 1,
+      escrowStatus: 'held',
+      status: 'confirmed',
+      scheduledAt: scheduledAt,
+    });
+
+    batch.set(learnerDb.collection('transactions').doc(`${sessionId}_booking`), {
+      userId: learnerId,
+      sessionId: sessionId,
+      amount: 1,
+      type: 'booking',
+    });
+
+    batch.set(learnerDb.collection('slotLocks').doc(wrongLockId), {
+      uid: learnerId,
+      slotEpochMs: epochMs,
+      sessionId: sessionId,
+      status: 'active',
+    });
+
+    await assertFails(batch.commit());
+  });
+
+  test('أقفال المواعيد 4: حظر حذف قفل الموعد إطلاقاً (allow delete: if false)', async () => {
+    const learnerId = 'learner_lock_del';
+    const epochMs = 123456789;
+    const lockId = `${learnerId}_${epochMs}`;
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('slotLocks').doc(lockId).set({
+        uid: learnerId,
+        slotEpochMs: epochMs,
+        sessionId: 'session_old',
+        status: 'used',
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+    await assertFails(learnerDb.collection('slotLocks').doc(lockId).delete());
+  });
+
+  test('أقفال المواعيد 5: سباق حجزين متزامنين لنفس المعلم ونفس الموعد (ينجح أحدهما ويفشل الآخر حتماً)', async () => {
+    const teacherId = 'teacher_race_slot';
+    const learnerA = 'learner_race_a';
+    const learnerB = 'learner_race_b';
+    const sessionA = 'session_race_a';
+    const sessionB = 'session_race_b';
+    const scheduledAt = new Date(Date.now() + 24 * 3600 * 1000);
+    const epochMs = scheduledAt.getTime();
+    const teacherLockId = `${teacherId}_${epochMs}`;
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(learnerA).set({ timeCoins: 2, completedSessions: 0 });
+      await adminDb.collection('users').doc(learnerB).set({ timeCoins: 2, completedSessions: 0 });
+    });
+
+    const dbA = testEnv.authenticatedContext(learnerA, { email_verified: true }).firestore();
+    const dbB = testEnv.authenticatedContext(learnerB, { email_verified: true }).firestore();
+
+    // الحجز الأول (A)
+    const batchA = dbA.batch();
+    batchA.update(dbA.collection('users').doc(learnerA), { timeCoins: 1, lastSessionId: sessionA });
+    batchA.set(dbA.collection('sessions').doc(sessionA), {
+      learnerId: learnerA,
+      teacherId: teacherId,
+      costCoins: 1,
+      escrowStatus: 'held',
+      status: 'confirmed',
+      scheduledAt: scheduledAt,
+    });
+    batchA.set(dbA.collection('transactions').doc(`${sessionA}_booking`), {
+      userId: learnerA,
+      sessionId: sessionA,
+      amount: 1,
+      type: 'booking',
+    });
+    batchA.set(dbA.collection('slotLocks').doc(`${learnerA}_${epochMs}`), {
+      uid: learnerA,
+      slotEpochMs: epochMs,
+      sessionId: sessionA,
+      status: 'active',
+    });
+    batchA.set(dbA.collection('slotLocks').doc(teacherLockId), {
+      uid: teacherId,
+      slotEpochMs: epochMs,
+      sessionId: sessionA,
+      status: 'active',
+    });
+
+    // الحجز الثاني (B) على نفس موعد المعلم بالضبط
+    const batchB = dbB.batch();
+    batchB.update(dbB.collection('users').doc(learnerB), { timeCoins: 1, lastSessionId: sessionB });
+    batchB.set(dbB.collection('sessions').doc(sessionB), {
+      learnerId: learnerB,
+      teacherId: teacherId,
+      costCoins: 1,
+      escrowStatus: 'held',
+      status: 'confirmed',
+      scheduledAt: scheduledAt,
+    });
+    batchB.set(dbB.collection('transactions').doc(`${sessionB}_booking`), {
+      userId: learnerB,
+      sessionId: sessionB,
+      amount: 1,
+      type: 'booking',
+    });
+    batchB.set(dbB.collection('slotLocks').doc(`${learnerB}_${epochMs}`), {
+      uid: learnerB,
+      slotEpochMs: epochMs,
+      sessionId: sessionB,
+      status: 'active',
+    });
+    batchB.set(dbB.collection('slotLocks').doc(teacherLockId), {
+      uid: teacherId,
+      slotEpochMs: epochMs,
+      sessionId: sessionB,
+      status: 'active',
+    });
+
+    // تنفيذ الحجز الأول ينجح
+    await assertSucceeds(batchA.commit());
+
+    // تنفيذ الحجز الثاني على نفس القفل يفشل حتماً لمنع الحجز المزدوج
+    await assertFails(batchB.commit());
+  });
 });

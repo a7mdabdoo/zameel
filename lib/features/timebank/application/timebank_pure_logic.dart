@@ -319,4 +319,48 @@ class TimeBankPureLogic {
     slots.sort((a, b) => a.dateTime.compareTo(b.dateTime));
     return slots;
   }
+
+  /// 7. حساب البدايات الزمنية (Epoch Milliseconds) لكل شريحة 30 دقيقة تغطيها الجلسة
+  static List<int> getSessionSlotEpochs({
+    required DateTime scheduledAt,
+    required int durationMinutes,
+  }) {
+    final baseMs = scheduledAt.millisecondsSinceEpoch;
+    final numSlots = (durationMinutes / 30).ceil();
+    final epochs = <int>[];
+    for (var i = 0; i < numSlots; i++) {
+      epochs.add(baseMs + (i * 30 * 60 * 1000));
+    }
+    return epochs;
+  }
+
+  /// 8. توليد معرفات أقفال المواعيد (Slot Locks IDs) للطرفين (المتعلم والمعلم)
+  /// بصيغة حتمية: {uid}_{startEpochMs}
+  static List<String> getLockDocIds({
+    required String learnerId,
+    required String teacherId,
+    required DateTime scheduledAt,
+    required int durationMinutes,
+  }) {
+    final epochs = getSessionSlotEpochs(
+      scheduledAt: scheduledAt,
+      durationMinutes: durationMinutes,
+    );
+    final ids = <String>[];
+    for (final epoch in epochs) {
+      ids.add('${learnerId}_$epoch');
+      ids.add('${teacherId}_$epoch');
+    }
+    return ids;
+  }
+
+  /// 9. التحقق مما إذا كان أي من مستندات الأقفال نشطاً (status == 'active')
+  static bool hasActiveLock(Iterable<Map<String, dynamic>?> lockDataList) {
+    for (final data in lockDataList) {
+      if (data != null && data['status'] == 'active') {
+        return true;
+      }
+    }
+    return false;
+  }
 }
