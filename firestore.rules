@@ -66,8 +66,17 @@ service cloud.firestore {
             request.auth.uid == sessionAfter.learnerId
             && sessionAfter.status == 'completed'
             && request.resource.data.completedSessions == resource.data.completedSessions + 1
-            && request.resource.data.teacherRating >= 1.0 && request.resource.data.teacherRating <= 5.0
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['timeCoins', 'lastSessionId', 'completedSessions', 'teacherRating'])
+            && sessionAfter.rating is int
+            && sessionAfter.rating >= 1 && sessionAfter.rating <= 5
+            && (
+              ('ratingCount' in resource.data && request.resource.data.ratingCount == resource.data.ratingCount + 1)
+              || (!('ratingCount' in resource.data) && request.resource.data.ratingCount == 1)
+            )
+            && (
+              ('ratingSum' in resource.data && request.resource.data.ratingSum == resource.data.ratingSum + sessionAfter.rating)
+              || (!('ratingSum' in resource.data) && request.resource.data.ratingSum == sessionAfter.rating)
+            )
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['timeCoins', 'lastSessionId', 'completedSessions', 'ratingSum', 'ratingCount'])
           )
           ||
           // تعويض إلغاء متأخر من قِبل المتعلّم
@@ -142,7 +151,8 @@ service cloud.firestore {
       allow create: if isOwner(userId)
                     && request.resource.data.timeCoins == 2
                     && request.resource.data.completedSessions == 0
-                    && (request.resource.data.teacherRating == 0 || request.resource.data.teacherRating == 0.0);
+                    && (!('ratingSum' in request.resource.data) || request.resource.data.ratingSum == 0)
+                    && (!('ratingCount' in request.resource.data) || request.resource.data.ratingCount == 0);
 
       // تحديث الحساب
       allow update: if isAuthenticated() && (
@@ -150,7 +160,7 @@ service cloud.firestore {
         (
           isOwner(userId)
           && request.resource.data.timeCoins == resource.data.timeCoins
-          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['timeCoins', 'teacherRating', 'completedSessions', 'lastSessionId', 'email'])
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['timeCoins', 'teacherRating', 'ratingSum', 'ratingCount', 'completedSessions', 'lastSessionId', 'email'])
         )
         ||
         // ب) خصم عملة الحجز من المتعلم
@@ -192,6 +202,7 @@ service cloud.firestore {
         && request.resource.data.costCoins == 1
         && request.resource.data.escrowStatus == 'held'
         && request.resource.data.status == 'confirmed'
+        && (!('rating' in request.resource.data) || request.resource.data.rating == null)
         // التحقق الذري من خصم عملة المتعلم في نفس المعاملة
         && getUser(request.auth.uid).timeCoins >= 1
         && getAfterUser(request.auth.uid).timeCoins == getUser(request.auth.uid).timeCoins - 1
@@ -210,6 +221,8 @@ service cloud.firestore {
             resource.data.learnerId == request.auth.uid
             && request.resource.data.escrowStatus == 'released_to_teacher'
             && request.resource.data.status == 'completed'
+            && request.resource.data.rating is int
+            && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
             && getAfterUser(resource.data.teacherId).timeCoins == getUser(resource.data.teacherId).timeCoins + 1
             && getAfterUser(resource.data.teacherId).lastSessionId == sessionId
           )

@@ -100,7 +100,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         costCoins: AppConstants.sessionCostCoins,
         status: 'confirmed',
         escrowStatus: 'held',
-        rating: 5,
+        rating: null,
         scheduledAt: DateTime.now().add(const Duration(hours: 24)),
         createdAt: DateTime.now(),
       );

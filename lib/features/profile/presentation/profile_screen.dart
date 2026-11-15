@@ -42,7 +42,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final year = userDoc?['year'] as String? ?? AppConstants.academicYear;
     final department = userDoc?['department'] as String? ?? 'عام (General)';
     final completedSessions = (userDoc?['completedSessions'] as num?)?.toInt() ?? 0;
-    final teacherRating = (userDoc?['teacherRating'] as num?)?.toDouble() ?? 5.0;
+    final ratingSum = (userDoc?['ratingSum'] as num?)?.toInt() ?? 0;
+    final ratingCount = (userDoc?['ratingCount'] as num?)?.toInt() ?? 0;
+    final teacherRating = ratingCount > 0 ? (ratingSum / ratingCount) : 5.0;
     final studyHours = (userDoc?['studyHours'] as num?)?.toInt() ?? 0;
 
     // استخراج المواد الدراسية وتقييمات الطالب من فايربيس
