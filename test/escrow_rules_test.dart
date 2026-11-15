@@ -3,72 +3,7 @@ import 'package:zameel/core/algorithms/planner_algorithm.dart';
 import 'package:zameel/core/constants/app_constants.dart';
 import 'package:zameel/core/models/app_models.dart';
 import 'package:zameel/core/theme/app_colors.dart';
-
-/// محاكي منطق الضمان المالي لحركات بنك الوقت (Pure Escrow Domain Logic)
-class EscrowDecisionEngine {
-  /// التحقق من صلاحية الحجز والخصم الأولي
-  static (int learnerCoins, String escrowStatus) processBooking({
-    required int currentLearnerCoins,
-    required int costCoins,
-  }) {
-    if (currentLearnerCoins < costCoins) {
-      throw Exception('الرصيد لا يكفي لحجز الجلسة');
-    }
-    return (currentLearnerCoins - costCoins, 'held');
-  }
-
-  /// إطلاق العملة للمعلم عند إتمام الجلسة
-  static (int teacherCoins, String escrowStatus) processCompletion({
-    required int currentTeacherCoins,
-    required int costCoins,
-    required String currentEscrowStatus,
-  }) {
-    if (currentEscrowStatus != 'held') {
-      throw Exception('حالة الضمان غير صالحة للإطلاق');
-    }
-    return (currentTeacherCoins + costCoins, 'released_to_teacher');
-  }
-
-  /// حسم مصير العملة عند الإلغاء
-  static (int refundedLearnerCoins, int compensatedTeacherCoins, String escrowStatus, String outcome) processCancellation({
-    required bool isCancelledByTeacher,
-    required DateTime scheduledAt,
-    required DateTime cancelledAt,
-    required int initialLearnerCoins,
-    required int initialTeacherCoins,
-    required int costCoins,
-  }) {
-    if (isCancelledByTeacher) {
-      // 1. المعلم ألغى: استرداد كامل للمتعلّم
-      return (
-        initialLearnerCoins + costCoins,
-        initialTeacherCoins,
-        'refunded_to_learner',
-        'full_refund_to_learner'
-      );
-    } else {
-      // 2. المتعلّم ألغى: فحص فارق الساعتين
-      final diffMinutes = scheduledAt.difference(cancelledAt).inMinutes;
-      if (diffMinutes > 120) {
-        // إلغاء مبكر (> 2 ساعة): استرداد كامل
-        return (
-          initialLearnerCoins + costCoins,
-          initialTeacherCoins,
-          'refunded_to_learner',
-          'full_refund_to_learner'
-        );
-      } else {
-        // إلغاء متأخر (<= 2 ساعة): العملة تذهب للمعلم تعويضاً
-        return (
-          initialLearnerCoins,
-          initialTeacherCoins + costCoins,
-          'released_to_teacher',
-          'compensation_to_teacher'
-        );
-      }
-    }
-  }
-}
+import 'package:zameel/features/timebank/application/timebank_pure_logic.dart';
 
 void main() {
   group('1. ثوابت المنظومة والبريد الإلكتروني (App Constants & Email Validation)', () {
@@ -91,111 +26,237 @@ void main() {
     });
   });
 
-  group('2. منطق حجز الجلسات وحجز العملة في الضمان (Escrow Booking)', () {
-    test('حجز جلسة بوجود رصيد كاف يخصم 1 عملة ويعلقها في الضمان', () {
-      final initialBalance = AppConstants.welcomeCoins; // 2
-      final (newBalance, escrowStatus) = EscrowDecisionEngine.processBooking(
-        currentLearnerCoins: initialBalance,
-        costCoins: AppConstants.sessionCostCoins, // 1
+  group('2. التحقق من صحة التحولات (Transition Validation - Pure Logic)', () {
+    test('التحقق من حجز الجلسة: ينجح بوجود رصيد كافٍ ويفشل إن لم يكفِ الرصيد', () {
+      // رصيد كافٍ
+      expect(
+        () => TimeBankPureLogic.validateBookingTransition(
+          learnerCoins: 2,
+          costCoins: 1,
+          currentEscrowStatus: null,
+        ),
+        returnsNormally,
       );
 
-      expect(newBalance, equals(1));
-      expect(escrowStatus, equals('held'));
+      // رصيد غير كافٍ
+      expect(
+        () => TimeBankPureLogic.validateBookingTransition(
+          learnerCoins: 0,
+          costCoins: 1,
+          currentEscrowStatus: null,
+        ),
+        throwsA(isA<StateError>()),
+      );
+
+      // تكلفة غير صالحة
+      expect(
+        () => TimeBankPureLogic.validateBookingTransition(
+          learnerCoins: 5,
+          costCoins: 0,
+          currentEscrowStatus: null,
+        ),
+        throwsA(isA<StateError>()),
+      );
+
+      // محاولة حجز جلسة محجوزة مسبقاً
+      expect(
+        () => TimeBankPureLogic.validateBookingTransition(
+          learnerCoins: 5,
+          costCoins: 1,
+          currentEscrowStatus: 'held',
+        ),
+        throwsA(isA<StateError>()),
+      );
     });
 
-    test('حجز جلسة برصيد غير كاف يلقي استثناءً فورياً', () {
+    test('التحقق من إتمام الجلسة: ينجح إذا كانت الحالة held والتقييم بين 1 و 5', () {
       expect(
-        () => EscrowDecisionEngine.processBooking(
-          currentLearnerCoins: 0,
-          costCoins: AppConstants.sessionCostCoins,
+        () => TimeBankPureLogic.validateCompletionTransition(
+          currentEscrowStatus: 'held',
+          currentStatus: 'confirmed',
+          rating: 5,
         ),
-        throwsA(isA<Exception>()),
+        returnsNormally,
+      );
+
+      // يفشل إذا لم تكن الحالة held
+      expect(
+        () => TimeBankPureLogic.validateCompletionTransition(
+          currentEscrowStatus: 'released_to_teacher',
+          currentStatus: 'confirmed',
+          rating: 4,
+        ),
+        throwsA(isA<StateError>()),
+      );
+
+      // يفشل إذا لم تكن confirmed
+      expect(
+        () => TimeBankPureLogic.validateCompletionTransition(
+          currentEscrowStatus: 'held',
+          currentStatus: 'cancelled_by_learner',
+          rating: 4,
+        ),
+        throwsA(isA<StateError>()),
+      );
+
+      // يفشل إذا كان التقييم خارج النطاق (أقل من 1 أو أكبر من 5)
+      expect(
+        () => TimeBankPureLogic.validateCompletionTransition(
+          currentEscrowStatus: 'held',
+          currentStatus: 'confirmed',
+          rating: 6,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+      expect(
+        () => TimeBankPureLogic.validateCompletionTransition(
+          currentEscrowStatus: 'held',
+          currentStatus: 'confirmed',
+          rating: 0,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('التحقق من الإلغاء: ينجح إذا كانت الجلسة held و confirmed ويفشل خلاف ذلك', () {
+      expect(
+        () => TimeBankPureLogic.validateCancellationTransition(
+          currentEscrowStatus: 'held',
+          currentStatus: 'confirmed',
+        ),
+        returnsNormally,
+      );
+
+      expect(
+        () => TimeBankPureLogic.validateCancellationTransition(
+          currentEscrowStatus: 'released_to_teacher',
+          currentStatus: 'completed',
+        ),
+        throwsA(isA<StateError>()),
       );
     });
   });
 
-  group('3. منطق إتمام الجلسة وإطلاق العملة (Escrow Completion)', () {
-    test('إتمام الجلسة يضيف 1 عملة لرصيد المعلم ويحرر الضمان', () {
-      final teacherCoins = 1;
-      final (updatedCoins, escrowStatus) = EscrowDecisionEngine.processCompletion(
-        currentTeacherCoins: teacherCoins,
-        costCoins: AppConstants.sessionCostCoins,
-        currentEscrowStatus: 'held',
+  group('3. تجميع وتحديث التقييم (Rating Aggregation - Pure Logic)', () {
+    test('تجميع التقييم: زيادة ratingCount بواحد و ratingSum بقيمة التقييم وحساب المتوسط بدقة', () {
+      final res = TimeBankPureLogic.aggregateRating(
+        currentRatingSum: 15,
+        currentRatingCount: 3,
+        sessionRating: 5,
       );
 
-      expect(updatedCoins, equals(2));
-      expect(escrowStatus, equals('released_to_teacher'));
+      expect(res.newRatingSum, equals(20));
+      expect(res.newRatingCount, equals(4));
+      expect(res.averageRating, equals(5.0));
     });
 
-    test('فشل إطلاق الضمان إذا لم تكن الحالة held', () {
+    test('رفض التقييمات خارج النطاق 1 إلى 5 ورفض المجاميع السالبة', () {
       expect(
-        () => EscrowDecisionEngine.processCompletion(
-          currentTeacherCoins: 1,
-          costCoins: AppConstants.sessionCostCoins,
-          currentEscrowStatus: 'already_released',
+        () => TimeBankPureLogic.aggregateRating(
+          currentRatingSum: 10,
+          currentRatingCount: 2,
+          sessionRating: 0,
         ),
-        throwsA(isA<Exception>()),
+        throwsA(isA<ArgumentError>()),
       );
+
+      expect(
+        () => TimeBankPureLogic.aggregateRating(
+          currentRatingSum: 10,
+          currentRatingCount: 2,
+          sessionRating: 7,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+
+      expect(
+        () => TimeBankPureLogic.aggregateRating(
+          currentRatingSum: -1,
+          currentRatingCount: 0,
+          sessionRating: 4,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('حساب المتوسط: القيمة الافتراضية 5.0 عند عدم وجود تقييمات، والقسمة الدقيقة عند وجودها', () {
+      expect(TimeBankPureLogic.computeAverageRating(ratingSum: 0, ratingCount: 0), equals(5.0));
+      expect(TimeBankPureLogic.computeAverageRating(ratingSum: 9, ratingCount: 2), equals(4.5));
     });
   });
 
-  group('4. قواعد الإلغاء ونظام الحماية المالي (Cancellation & Dispute Rules)', () {
-    final sessionTime = DateTime(2026, 11, 10, 14, 0); // الساعة 2:00 ظهراً
+  group('4. قواعد الإلغاء ونظام الحماية المالي مع ساعة زمنية قابلة للحقن (Cancellation with Injectable Clock)', () {
+    final scheduledTime = DateTime(2026, 11, 10, 14, 0); // 2:00 PM
+    const learnerId = 'learner_1';
+    const teacherId = 'teacher_1';
 
     test('إلغاء المتعلّم قبل الموعد بـ 3 ساعات (> 2h): استرداد كامل للمتعلّم', () {
-      final cancellationTime = DateTime(2026, 11, 10, 11, 0); // قبلها بـ 3 ساعات
-      final (learner, teacher, escrow, outcome) = EscrowDecisionEngine.processCancellation(
-        isCancelledByTeacher: false,
-        scheduledAt: sessionTime,
-        cancelledAt: cancellationTime,
-        initialLearnerCoins: 1, // كان معه 1 بعد الحجز
-        initialTeacherCoins: 2,
+      final decision = TimeBankPureLogic.decideCancellation(
+        cancellingUserId: learnerId,
+        learnerId: learnerId,
+        teacherId: teacherId,
+        scheduledAt: scheduledTime,
         costCoins: 1,
+        clock: () => DateTime(2026, 11, 10, 11, 0), // 11:00 AM (3 hours before)
       );
 
-      expect(learner, equals(2), reason: 'يجب استرداد العملة للمتعلّم بالكامل');
-      expect(teacher, equals(2), reason: 'لا تتغير عملات المعلم');
-      expect(escrow, equals('refunded_to_learner'));
-      expect(outcome, equals('full_refund_to_learner'));
+      expect(decision.outcome, equals(CancellationOutcome.fullRefundToLearner));
+      expect(decision.newStatus, equals('cancelled_by_learner'));
+      expect(decision.newEscrowStatus, equals('refunded_to_learner'));
+      expect(decision.refundedLearnerCoins, equals(1));
+      expect(decision.compensatedTeacherCoins, equals(0));
     });
 
     test('إلغاء المتعلّم قبل الموعد بساعة واحدة (<= 2h): العملة تذهب للمعلم تعويضاً', () {
-      final cancellationTime = DateTime(2026, 11, 10, 13, 0); // قبلها بساعة واحدة
-      final (learner, teacher, escrow, outcome) = EscrowDecisionEngine.processCancellation(
-        isCancelledByTeacher: false,
-        scheduledAt: sessionTime,
-        cancelledAt: cancellationTime,
-        initialLearnerCoins: 1,
-        initialTeacherCoins: 2,
+      final decision = TimeBankPureLogic.decideCancellation(
+        cancellingUserId: learnerId,
+        learnerId: learnerId,
+        teacherId: teacherId,
+        scheduledAt: scheduledTime,
         costCoins: 1,
+        clock: () => DateTime(2026, 11, 10, 13, 0), // 1:00 PM (1 hour before)
       );
 
-      expect(learner, equals(1), reason: 'لا يسترد المتعلم العملة لتأخره');
-      expect(teacher, equals(3), reason: 'يحصل المعلم على العملة كتعويض عن وقته المحجوز');
-      expect(escrow, equals('released_to_teacher'));
-      expect(outcome, equals('compensation_to_teacher'));
+      expect(decision.outcome, equals(CancellationOutcome.compensationToTeacher));
+      expect(decision.newStatus, equals('cancelled_by_learner'));
+      expect(decision.newEscrowStatus, equals('released_to_teacher'));
+      expect(decision.refundedLearnerCoins, equals(0));
+      expect(decision.compensatedTeacherCoins, equals(1));
     });
 
     test('إلغاء المعلم للجلسة في أي وقت: استرداد كامل للمتعلّم دون أي عقوبة عليه', () {
-      final cancellationTime = DateTime(2026, 11, 10, 13, 50); // قبل الموعد بـ 10 دقائق
-      final (learner, teacher, escrow, outcome) = EscrowDecisionEngine.processCancellation(
-        isCancelledByTeacher: true,
-        scheduledAt: sessionTime,
-        cancelledAt: cancellationTime,
-        initialLearnerCoins: 1,
-        initialTeacherCoins: 2,
+      final decision = TimeBankPureLogic.decideCancellation(
+        cancellingUserId: teacherId,
+        learnerId: learnerId,
+        teacherId: teacherId,
+        scheduledAt: scheduledTime,
         costCoins: 1,
+        clock: () => DateTime(2026, 11, 10, 13, 55), // 5 minutes before
       );
 
-      expect(learner, equals(2), reason: 'يسترد المتعلّم العملة لأن الإلغاء صدر من المعلم');
-      expect(teacher, equals(2), reason: 'لا يحصل المعلم على أي عملة');
-      expect(escrow, equals('refunded_to_learner'));
-      expect(outcome, equals('full_refund_to_learner'));
+      expect(decision.outcome, equals(CancellationOutcome.fullRefundToLearner));
+      expect(decision.newStatus, equals('cancelled_by_teacher'));
+      expect(decision.newEscrowStatus, equals('refunded_to_learner'));
+      expect(decision.refundedLearnerCoins, equals(1));
+      expect(decision.compensatedTeacherCoins, equals(0));
+    });
+
+    test('رفض الإلغاء إذا كان القائم بالإلغاء ليس طرفاً في الجلسة', () {
+      expect(
+        () => TimeBankPureLogic.decideCancellation(
+          cancellingUserId: 'stranger_user',
+          learnerId: learnerId,
+          teacherId: teacherId,
+          scheduledAt: scheduledTime,
+          costCoins: 1,
+        ),
+        throwsA(isA<ArgumentError>()),
+      );
     });
   });
 
   group('5. سلامة نماذج البيانات وتحويلها (App Models Serialization)', () {
-    test('نموذج TimeBankSessionModel يحافظ على بيانات الضمان والتواريخ', () {
+    test('نموذج TimeBankSessionModel يحافظ على بيانات الضمان والتواريخ ورابط الاجتماع', () {
       final session = TimeBankSessionModel(
         id: 'sess_test_1',
         learnerId: 'u1',
@@ -209,7 +270,9 @@ void main() {
         day: 'الأحد',
         time: '12:00 م',
         durationMinutes: 60,
-        location: 'المكتبة',
+        mode: 'online',
+        location: 'أونلاين',
+        meetingUrl: 'https://meet.google.com/abc-defg-hij',
         costCoins: 1,
         escrowStatus: 'held',
       );
@@ -217,11 +280,15 @@ void main() {
       final map = session.toMap();
       expect(map['costCoins'], equals(1));
       expect(map['escrowStatus'], equals('held'));
+      expect(map['mode'], equals('online'));
+      expect(map['meetingUrl'], equals('https://meet.google.com/abc-defg-hij'));
 
       final fromMap = TimeBankSessionModel.fromMap(map, 'sess_test_1');
       expect(fromMap.costCoins, equals(1));
       expect(fromMap.escrowStatus, equals('held'));
       expect(fromMap.teacherName, equals('عمر'));
+      expect(fromMap.mode, equals('online'));
+      expect(fromMap.meetingUrl, equals('https://meet.google.com/abc-defg-hij'));
     });
   });
 

@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/models/app_models.dart';
 import '../../auth/data/auth_service.dart';
+import '../application/timebank_pure_logic.dart';
 
 class TimeBankRepository {
   FirebaseFirestore? get _firestore {
@@ -48,9 +49,11 @@ class TimeBankRepository {
       }
 
       final currentCoins = (learnerSnap.data()?['timeCoins'] as num?)?.toInt() ?? 0;
-      if (currentCoins < AppConstants.sessionCostCoins) {
-        throw Exception('رصيدك لا يكفي لحجز الجلسة (المطلوب: ${AppConstants.sessionCostCoins} عملة، المتوفر: $currentCoins)');
-      }
+      TimeBankPureLogic.validateBookingTransition(
+        learnerCoins: currentCoins,
+        costCoins: AppConstants.sessionCostCoins,
+        currentEscrowStatus: null,
+      );
 
       // 2. خصم العملة وتحديث رصيد المتعلّم مع ربط الجلسة
       final updatedCoins = currentCoins - AppConstants.sessionCostCoins;
@@ -129,9 +132,12 @@ class TimeBankRepository {
         throw Exception('المتعلّم صاحب الجلسة فقط هو المخوّل بتأكيد الإتمام');
       }
 
-      if (currentEscrow != 'held') {
-        throw Exception('تمت معالجة ضمان هذه الجلسة مسبقاً (الحالة: $currentEscrow)');
-      }
+      final currentStatus = sessionSnap.data()?['status'] as String? ?? 'confirmed';
+      TimeBankPureLogic.validateCompletionTransition(
+        currentEscrowStatus: currentEscrow,
+        currentStatus: currentStatus,
+        rating: rating,
+      );
 
       // 2. قراءة بيانات المعلّم وإضافة العملة لرصيده
       final teacherDocRef = firestore.collection('users').doc(teacherId);
@@ -146,11 +152,17 @@ class TimeBankRepository {
       final currentRatingSum = (teacherData['ratingSum'] as num?)?.toInt() ?? 0;
       final currentRatingCount = (teacherData['ratingCount'] as num?)?.toInt() ?? 0;
 
+      final ratingResult = TimeBankPureLogic.aggregateRating(
+        currentRatingSum: currentRatingSum,
+        currentRatingCount: currentRatingCount,
+        sessionRating: rating,
+      );
+
       transaction.update(teacherDocRef, {
         'timeCoins': teacherCoins + AppConstants.sessionCostCoins,
         'completedSessions': completedSessions + 1,
-        'ratingSum': currentRatingSum + rating,
-        'ratingCount': currentRatingCount + 1,
+        'ratingSum': ratingResult.newRatingSum,
+        'ratingCount': ratingResult.newRatingCount,
         'lastSessionId': sessionId,
       });
 
@@ -262,33 +274,36 @@ class TimeBankRepository {
         scheduledAt = DateTime.tryParse(scheduledAtRaw);
       }
 
-      if (currentEscrow != 'held') {
-        throw Exception('تمت تسوية ضمان هذه الجلسة مسبقاً (الحالة: $currentEscrow)');
-      }
+      final currentStatus = sessionData['status'] as String? ?? 'confirmed';
+      TimeBankPureLogic.validateCancellationTransition(
+        currentEscrowStatus: currentEscrow,
+        currentStatus: currentStatus,
+      );
 
-      final isCancelledByTeacher = cancellingUserId == teacherId;
-      final isCancelledByLearner = cancellingUserId == learnerId;
-
-      if (!isCancelledByTeacher && !isCancelledByLearner) {
-        throw Exception('أنت لست طرفاً في هذه الجلسة لإلغائها');
-      }
+      final decision = TimeBankPureLogic.decideCancellation(
+        cancellingUserId: cancellingUserId,
+        learnerId: learnerId,
+        teacherId: teacherId,
+        scheduledAt: scheduledAt ?? now.add(const Duration(hours: 3)),
+        costCoins: AppConstants.sessionCostCoins,
+        clock: () => now,
+      );
 
       final learnerDocRef = firestore.collection('users').doc(learnerId);
       final teacherDocRef = firestore.collection('users').doc(teacherId);
 
-      if (isCancelledByTeacher) {
-        // --- 1. المعلم ألغى: استرداد كامل للمتعلّم ---
+      if (decision.outcome == CancellationOutcome.fullRefundToLearner) {
         final learnerSnap = await transaction.get(learnerDocRef);
         final learnerCoins = (learnerSnap.data()?['timeCoins'] as num?)?.toInt() ?? 0;
 
         transaction.update(learnerDocRef, {
-          'timeCoins': learnerCoins + AppConstants.sessionCostCoins,
+          'timeCoins': learnerCoins + decision.refundedLearnerCoins,
           'lastSessionId': sessionId,
         });
 
         transaction.update(sessionDocRef, {
-          'status': 'cancelled_by_teacher',
-          'escrowStatus': 'refunded_to_learner',
+          'status': decision.newStatus,
+          'escrowStatus': decision.newEscrowStatus,
           'cancellationReason': reason,
           'cancelledBy': cancellingUserId,
           'cancelledAt': FieldValue.serverTimestamp(),
@@ -300,9 +315,11 @@ class TimeBankRepository {
           id: txId,
           userId: learnerId,
           sessionId: sessionId,
-          title: 'استرداد عملة: إلغاء المعلم لجلسة $courseName',
+          title: cancellingUserId == teacherId
+              ? 'استرداد عملة: إلغاء المعلم لجلسة $courseName'
+              : 'استرداد عملة: إلغاء مبكر لجلسة $courseName',
           date: 'الآن',
-          amount: AppConstants.sessionCostCoins,
+          amount: decision.refundedLearnerCoins,
           isNegative: false,
           type: 'refund',
           icon: Icons.undo_rounded,
@@ -311,82 +328,39 @@ class TimeBankRepository {
         txData['createdAt'] = FieldValue.serverTimestamp();
         transaction.set(txDocRef, txData);
       } else {
-        // --- 2. المتعلّم ألغى: فحص فارق الساعتين ---
-        bool isMoreThan2Hours = true;
-        if (scheduledAt != null) {
-          final diffMinutes = scheduledAt.difference(now).inMinutes;
-          isMoreThan2Hours = diffMinutes > 120;
-        }
+        // إلغاء متأخر (أقل من ساعتين أو تخلف): العملة تذهب للمعلم تعويضاً عن وقته المحجوز
+        final teacherSnap = await transaction.get(teacherDocRef);
+        final teacherCoins = (teacherSnap.data()?['timeCoins'] as num?)?.toInt() ?? 0;
 
-        if (isMoreThan2Hours) {
-          // استرداد كامل للمتعلّم لإلغائه قبل أكثر من ساعتين
-          final learnerSnap = await transaction.get(learnerDocRef);
-          final learnerCoins = (learnerSnap.data()?['timeCoins'] as num?)?.toInt() ?? 0;
+        transaction.update(teacherDocRef, {
+          'timeCoins': teacherCoins + decision.compensatedTeacherCoins,
+          'lastSessionId': sessionId,
+        });
 
-          transaction.update(learnerDocRef, {
-            'timeCoins': learnerCoins + AppConstants.sessionCostCoins,
-            'lastSessionId': sessionId,
-          });
+        transaction.update(sessionDocRef, {
+          'status': decision.newStatus,
+          'escrowStatus': decision.newEscrowStatus,
+          'cancellationReason': reason.isEmpty ? 'إلغاء متأخر (أقل من ساعتين)' : reason,
+          'cancelledBy': cancellingUserId,
+          'cancelledAt': FieldValue.serverTimestamp(),
+        });
 
-          transaction.update(sessionDocRef, {
-            'status': 'cancelled_by_learner',
-            'escrowStatus': 'refunded_to_learner',
-            'cancellationReason': reason,
-            'cancelledBy': cancellingUserId,
-            'cancelledAt': FieldValue.serverTimestamp(),
-          });
-
-          final txId = '${sessionId}_refund';
-          final txDocRef = firestore.collection('transactions').doc(txId);
-          final txData = WalletTransactionModel(
-            id: txId,
-            userId: learnerId,
-            sessionId: sessionId,
-            title: 'استرداد عملة: إلغاء مبكر لجلسة $courseName',
-            date: 'الآن',
-            amount: AppConstants.sessionCostCoins,
-            isNegative: false,
-            type: 'refund',
-            icon: Icons.undo_rounded,
-            createdAt: now,
-          ).toMap();
-          txData['createdAt'] = FieldValue.serverTimestamp();
-          transaction.set(txDocRef, txData);
-        } else {
-          // إلغاء متأخر (أقل من ساعتين أو تخلف): العملة تذهب للمعلم تعويضاً عن وقته المحجوز
-          final teacherSnap = await transaction.get(teacherDocRef);
-          final teacherCoins = (teacherSnap.data()?['timeCoins'] as num?)?.toInt() ?? 0;
-
-          transaction.update(teacherDocRef, {
-            'timeCoins': teacherCoins + AppConstants.sessionCostCoins,
-            'lastSessionId': sessionId,
-          });
-
-          transaction.update(sessionDocRef, {
-            'status': 'cancelled_by_learner',
-            'escrowStatus': 'released_to_teacher',
-            'cancellationReason': reason.isEmpty ? 'إلغاء متأخر (أقل من ساعتين)' : reason,
-            'cancelledBy': cancellingUserId,
-            'cancelledAt': FieldValue.serverTimestamp(),
-          });
-
-          final txId = '${sessionId}_compensation';
-          final txDocRef = firestore.collection('transactions').doc(txId);
-          final txData = WalletTransactionModel(
-            id: txId,
-            userId: teacherId,
-            sessionId: sessionId,
-            title: 'تعويض إلغاء متأخر: $courseName',
-            date: 'الآن',
-            amount: AppConstants.sessionCostCoins,
-            isNegative: false,
-            type: 'compensation',
-            icon: Icons.shield_outlined,
-            createdAt: now,
-          ).toMap();
-          txData['createdAt'] = FieldValue.serverTimestamp();
-          transaction.set(txDocRef, txData);
-        }
+        final txId = '${sessionId}_compensation';
+        final txDocRef = firestore.collection('transactions').doc(txId);
+        final txData = WalletTransactionModel(
+          id: txId,
+          userId: teacherId,
+          sessionId: sessionId,
+          title: 'تعويض إلغاء متأخر: $courseName',
+          date: 'الآن',
+          amount: decision.compensatedTeacherCoins,
+          isNegative: false,
+          type: 'compensation',
+          icon: Icons.shield_outlined,
+          createdAt: now,
+        ).toMap();
+        txData['createdAt'] = FieldValue.serverTimestamp();
+        transaction.set(txDocRef, txData);
       }
     });
   }
