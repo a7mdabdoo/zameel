@@ -1593,4 +1593,182 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
       })
     );
   });
+
+  // =========================================================================
+  // القسم الحادي عشر: خصوصية رابط الاجتماع وتحديثه (Meeting Link Privacy Tests)
+  // =========================================================================
+
+  test('خصوصية رابط الاجتماع 1: المعلم يمكنه تحديث رابط الاجتماع في جلسة نشطة ومعلقة بالضمان (Google Meet)', async () => {
+    const sessionId = 'session_meeting_valid_1';
+    const learnerId = 'learner_meeting_1';
+    const teacherId = 'teacher_meeting_1';
+    const scheduledTime = new Date(Date.now() + 86400000);
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('sessions').doc(sessionId).set({
+        id: sessionId,
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        mode: 'online',
+        location: 'عبر الإنترنت (أونلاين)',
+        escrowStatus: 'held',
+        status: 'confirmed',
+        scheduledAt: scheduledTime,
+      });
+    });
+
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+
+    // المعلم يضيف رابط Google Meet صالح
+    await assertSucceeds(
+      teacherDb.collection('sessions').doc(sessionId).update({
+        meetingUrl: 'https://meet.google.com/abc-defg-hij',
+        meetingUpdatedAt: new Date().toISOString(),
+      })
+    );
+  });
+
+  test('خصوصية رابط الاجتماع 2: المعلم يمكنه تحديث رابط الاجتماع برابط Zoom أو MS Teams', async () => {
+    const sessionId = 'session_meeting_zoom_1';
+    const learnerId = 'learner_meeting_2';
+    const teacherId = 'teacher_meeting_2';
+    const scheduledTime = new Date(Date.now() + 86400000);
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('sessions').doc(sessionId).set({
+        id: sessionId,
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        mode: 'online',
+        location: 'عبر الإنترنت (أونلاين)',
+        escrowStatus: 'held',
+        status: 'confirmed',
+        scheduledAt: scheduledTime,
+      });
+    });
+
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+
+    // رابط Zoom صالح
+    await assertSucceeds(
+      teacherDb.collection('sessions').doc(sessionId).update({
+        meetingUrl: 'https://us04web.zoom.us/j/1234567890?pwd=test',
+        meetingUpdatedAt: new Date().toISOString(),
+      })
+    );
+  });
+
+  test('خصوصية رابط الاجتماع 3: المتعلم أو مستخدم غريب لا يمكنه تعديل رابط الاجتماع', async () => {
+    const sessionId = 'session_meeting_learner_block';
+    const learnerId = 'learner_meeting_3';
+    const teacherId = 'teacher_meeting_3';
+    const outsiderId = 'outsider_meeting_3';
+    const scheduledTime = new Date(Date.now() + 86400000);
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('sessions').doc(sessionId).set({
+        id: sessionId,
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        mode: 'online',
+        location: 'عبر الإنترنت (أونلاين)',
+        escrowStatus: 'held',
+        status: 'confirmed',
+        scheduledAt: scheduledTime,
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+    const outsiderDb = testEnv.authenticatedContext(outsiderId, { email_verified: true }).firestore();
+
+    // المتعلم يفشل
+    await assertFails(
+      learnerDb.collection('sessions').doc(sessionId).update({
+        meetingUrl: 'https://meet.google.com/xyz-hack-fake',
+      })
+    );
+
+    // المستخدم الغريب يفشل
+    await assertFails(
+      outsiderDb.collection('sessions').doc(sessionId).update({
+        meetingUrl: 'https://meet.google.com/xyz-hack-fake',
+      })
+    );
+  });
+
+  test('خصوصية رابط الاجتماع 4: رفض الروابط بنطاقات خبيثة أو غير مسموحة أو بدون https', async () => {
+    const sessionId = 'session_meeting_malicious';
+    const learnerId = 'learner_meeting_4';
+    const teacherId = 'teacher_meeting_4';
+    const scheduledTime = new Date(Date.now() + 86400000);
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('sessions').doc(sessionId).set({
+        id: sessionId,
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        mode: 'online',
+        location: 'عبر الإنترنت (أونلاين)',
+        escrowStatus: 'held',
+        status: 'confirmed',
+        scheduledAt: scheduledTime,
+      });
+    });
+
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+
+    // بدون https
+    await assertFails(
+      teacherDb.collection('sessions').doc(sessionId).update({
+        meetingUrl: 'http://meet.google.com/xyz-1234',
+      })
+    );
+
+    // نطاق خبيث
+    await assertFails(
+      teacherDb.collection('sessions').doc(sessionId).update({
+        meetingUrl: 'https://phishing-site.com/fake-meet',
+      })
+    );
+  });
+
+  test('خصوصية رابط الاجتماع 5: المعلم لا يمكنه التلاعب بحالة الجلسة أو المبالغ أثناء تعديل الرابط', async () => {
+    const sessionId = 'session_meeting_cheat';
+    const learnerId = 'learner_meeting_5';
+    const teacherId = 'teacher_meeting_5';
+    const scheduledTime = new Date(Date.now() + 86400000);
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('sessions').doc(sessionId).set({
+        id: sessionId,
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        mode: 'online',
+        location: 'عبر الإنترنت (أونلاين)',
+        escrowStatus: 'held',
+        status: 'confirmed',
+        scheduledAt: scheduledTime,
+      });
+    });
+
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+
+    // محاولة تغيير status إلى completed تزامناً مع meetingUrl
+    await assertFails(
+      teacherDb.collection('sessions').doc(sessionId).update({
+        meetingUrl: 'https://meet.google.com/valid-meeting-link',
+        status: 'completed',
+      })
+    );
+  });
 });

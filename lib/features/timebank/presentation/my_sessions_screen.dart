@@ -146,7 +146,7 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                           courseName: '${session.courseName} (${session.courseCode})',
                           topic: session.topic,
                           time: '${session.day} • ${session.time} (${session.durationMinutes} دقيقة)',
-                          location: session.location,
+                          location: session.mode == 'online' ? 'أونلاين (عن بُعد)' : session.location,
                           badgeText: badge,
                           badgeColor: bColor,
                           costText: '-${session.costCoins} عملة وقت',
@@ -180,17 +180,22 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                           bColor = AppColors.error;
                         }
 
+                        final isMissingMeetingLink = session.mode == 'online' &&
+                            (session.meetingUrl == null || session.meetingUrl!.isEmpty) &&
+                            session.escrowStatus == 'held';
+
                         return _buildSessionCard(
                           partnerName: '${session.learnerName} (المتعلّم)',
                           partnerInitials: session.teacherInitials,
                           courseName: session.courseName,
                           topic: session.topic,
                           time: '${session.day} • ${session.time} (${session.durationMinutes} دقيقة)',
-                          location: session.location,
+                          location: session.mode == 'online' ? 'أونلاين (عن بُعد)' : session.location,
                           badgeText: badge,
                           badgeColor: bColor,
                           costText: '+${session.costCoins} عملة وقت',
                           costColor: AppColors.pointsAmber,
+                          showMissingMeetingLinkBanner: isMissingMeetingLink,
                           actionLabel: isCompleted
                               ? 'الجلسة مكتملة ومقبوضة'
                               : (isCancelled ? 'تفاصيل الإلغاء' : 'تفاصيل الجلسة وبدء الشرح'),
@@ -220,6 +225,7 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
     required Color costColor,
     required String actionLabel,
     required VoidCallback onAction,
+    bool showMissingMeetingLinkBanner = false,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -239,6 +245,38 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (showMissingMeetingLinkBanner) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded, size: 18, color: Colors.amber),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'أضف رابط الاجتماع (Google Meet / Zoom)',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.amber),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: onAction,
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text('إضافة الآن', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            ),
+          ],
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

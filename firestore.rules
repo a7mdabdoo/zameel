@@ -180,6 +180,11 @@ service cloud.firestore {
         && !('link' in data);
     }
 
+    function isValidMeetingUrl(url) {
+      return url is string
+        && url.matches('^https://(meet\\.google\\.com|([a-zA-Z0-9-]+\\.)?zoom\\.us|teams\\.microsoft\\.com)(/.*)?$');
+    }
+
     // ==========================================
     // 1. حسابات الطلاب (Users)
     // ==========================================
@@ -250,12 +255,14 @@ service cloud.firestore {
         && request.resource.data.escrowStatus == 'held'
         && request.resource.data.status == 'confirmed'
         && (!('rating' in request.resource.data) || request.resource.data.rating == null)
+        && (!('meetingUrl' in request.resource.data) || request.resource.data.meetingUrl == null)
+        && (!('mode' in request.resource.data) || request.resource.data.mode in ['online', 'in_person'])
         // التحقق الذري من خصم عملة المتعلم في نفس المعاملة
         && getUser(request.auth.uid).timeCoins >= 1
         && getAfterUser(request.auth.uid).timeCoins == getUser(request.auth.uid).timeCoins - 1
         && getAfterUser(request.auth.uid).lastSessionId == sessionId;
 
-      // تحديث الجلسة مقيد بدقة مع قفل الدفع التبادلي (Bidirectional Payment-Locking):
+      // تحديث الجلسة مقيد بدقة: إما إضافة/تحديث رابط اللقاء الأونلاين من المعلم فقط، أو قفل الدفع التبادلي (Escrow):
       allow update: if isEmailVerified()
         && request.resource.data.learnerId == resource.data.learnerId
         && request.resource.data.teacherId == resource.data.teacherId
@@ -263,6 +270,16 @@ service cloud.firestore {
         && request.resource.data.scheduledAt == resource.data.scheduledAt
         && resource.data.escrowStatus == 'held'
         && (
+          // تحديث رابط الاجتماع من قِبل المعلم فقط في جلسة نشطة ومحتجزة بالضمان بدون أي تغيير مالي أو في حالة الجلسة
+          (
+            resource.data.teacherId == request.auth.uid
+            && request.resource.data.escrowStatus == resource.data.escrowStatus
+            && request.resource.data.status == resource.data.status
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['meetingUrl', 'meetingUpdatedAt'])
+            && request.resource.data.meetingUrl is string
+            && isValidMeetingUrl(request.resource.data.meetingUrl)
+          )
+          ||
           // الحالة أ: المتعلم يؤكد إتمام الجلسة ويطلق الضمان للمعلم (مشروط بزيادة رصيد المعلم بـ 1 في نفس المعاملة)
           (
             resource.data.learnerId == request.auth.uid
