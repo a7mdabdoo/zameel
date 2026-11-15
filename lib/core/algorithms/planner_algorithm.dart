@@ -158,7 +158,7 @@ class PlannerAlgorithm {
             durationMinutes: blockDurationMinutes,
             ribbonColor: courseInput.course.color,
             room: slot['room']!,
-            isCompleted: day == 'السبت' && dailyMinutesUsed == 0, // كتلة سابقة مكتملة للتجربة
+            isCompleted: false,
           ),
         );
 

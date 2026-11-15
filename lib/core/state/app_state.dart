@@ -98,6 +98,12 @@ class PlannerNotifier extends Notifier<PlannerState> {
           .map((m) => CourseSeed.fromMap(Map<String, dynamic>.from(m as Map)))
           .toList();
     }
+    if (courses.isEmpty) {
+      final selectedIds = (userDoc?['selectedCourses'] as List<dynamic>?)?.cast<String>();
+      if (selectedIds != null && selectedIds.isNotEmpty) {
+        courses = AppConstants.seedCourses.where((c) => selectedIds.contains(c.id)).toList();
+      }
+    }
 
     final ratings = (userDoc?['courseRatings'] as Map<dynamic, dynamic>?)?.map(
           (k, v) => MapEntry(k.toString(), (v as num).toInt()),
