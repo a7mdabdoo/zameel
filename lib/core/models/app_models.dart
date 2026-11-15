@@ -73,15 +73,18 @@ class UserModel {
       year: map['year'] as String? ?? AppConstants.academicYear,
       department: map['department'] as String? ?? 'عام (General)',
       whatsappNumber: map['whatsappNumber'] as String?,
-      timeCoins: map['timeCoins'] as int? ?? AppConstants.welcomeCoins,
+      timeCoins: (map['timeCoins'] as num?)?.toInt() ?? AppConstants.welcomeCoins,
       selectedCourses: List<String>.from(map['selectedCourses'] ?? []),
-      courseRatings: Map<String, int>.from(map['courseRatings'] ?? {}),
+      courseRatings: (map['courseRatings'] as Map<dynamic, dynamic>?)?.map(
+            (k, v) => MapEntry(k.toString(), (v as num).toInt()),
+          ) ??
+          {},
       canTeachCourseIds: List<String>.from(map['canTeachCourseIds'] ?? []),
       coursesData: (map['coursesData'] as List<dynamic>?)
           ?.map((e) => Map<String, dynamic>.from(e as Map))
           .toList(),
-      completedSessions: map['completedSessions'] as int? ?? 0,
-      studyHours: map['studyHours'] as int? ?? 0,
+      completedSessions: (map['completedSessions'] as num?)?.toInt() ?? 0,
+      studyHours: (map['studyHours'] as num?)?.toInt() ?? 0,
       teacherRating: (map['teacherRating'] as num?)?.toDouble() ?? 5.0,
       onboardingCompleted: map['onboardingCompleted'] as bool? ?? false,
     );
@@ -223,7 +226,7 @@ class ScheduleItemModel {
       startTime: map['startTime'] as String? ?? '09:00 ص',
       endTime: map['endTime'] as String? ?? '10:30 ص',
       room: map['room'] as String? ?? 'قاعة',
-      color: map['colorValue'] != null ? Color(map['colorValue'] as int) : AppColors.courseSlate,
+      color: map['colorValue'] != null ? Color((map['colorValue'] as num).toInt()) : AppColors.courseSlate,
     );
   }
 
@@ -349,12 +352,12 @@ class TimeBankSessionModel {
       topic: map['topic'] as String? ?? '',
       day: map['day'] as String? ?? '',
       time: map['time'] as String? ?? '',
-      durationMinutes: map['durationMinutes'] as int? ?? 60,
+      durationMinutes: (map['durationMinutes'] as num?)?.toInt() ?? 60,
       location: map['location'] as String? ?? '',
-      costCoins: map['costCoins'] as int? ?? AppConstants.sessionCostCoins,
+      costCoins: (map['costCoins'] as num?)?.toInt() ?? AppConstants.sessionCostCoins,
       status: map['status'] as String? ?? 'confirmed',
       escrowStatus: map['escrowStatus'] as String? ?? 'held',
-      rating: map['rating'] as int? ?? 5,
+      rating: (map['rating'] as num?)?.toInt() ?? 5,
       reviewComment: map['reviewComment'] as String?,
       scheduledAt: parseDate(map['scheduledAt']),
       createdAt: parseDate(map['createdAt']),
@@ -499,7 +502,7 @@ class TimeBankOfferModel {
   }
 
   factory TimeBankOfferModel.fromMap(Map<String, dynamic> map, String id) {
-    final colorInt = map['courseColor'] as int?;
+    final colorInt = (map['courseColor'] as num?)?.toInt();
     return TimeBankOfferModel(
       id: id,
       teacherId: map['teacherId'] as String? ?? '',
@@ -510,7 +513,7 @@ class TimeBankOfferModel {
       topic: map['topic'] as String? ?? '',
       day: map['day'] as String? ?? '',
       time: map['time'] as String? ?? '',
-      durationMinutes: map['durationMinutes'] as int? ?? 60,
+      durationMinutes: (map['durationMinutes'] as num?)?.toInt() ?? 60,
       location: map['location'] as String? ?? '',
       courseColor: colorInt != null ? Color(colorInt) : const Color(0xFF2F8F89),
       isAvailable: map['isAvailable'] as bool? ?? true,
@@ -595,7 +598,7 @@ class WalletTransactionModel {
       sessionId: map['sessionId'] as String?,
       title: map['title'] as String? ?? '',
       date: map['date'] as String? ?? '',
-      amount: map['amount'] as int? ?? 1,
+      amount: (map['amount'] as num?)?.toInt() ?? 1,
       isNegative: map['isNegative'] as bool? ?? false,
       type: txType,
       icon: getIconForType(txType),
