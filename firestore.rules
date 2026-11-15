@@ -99,16 +99,16 @@ service cloud.firestore {
         && request.resource.data.timeCoins == resource.data.timeCoins + 1
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['timeCoins', 'lastSessionId'])
         && (
-          // المعلم هو الذي ألغى
+          // المعلم هو الذي ألغى أو اعتذر
           (
             request.auth.uid == sessionAfter.teacherId
-            && sessionAfter.status == 'cancelled_by_teacher'
+            && (sessionAfter.status == 'cancelled_by_teacher' || sessionAfter.status == 'rejected')
           )
           ||
-          // المتعلّم ألغى قبل الموعد بـ > 2 ساعة
+          // المتعلّم ألغى أو استرد بعد انتهاء مهلة الرد (expired)
           (
             request.auth.uid == sessionAfter.learnerId
-            && sessionAfter.status == 'cancelled_by_learner'
+            && (sessionAfter.status == 'cancelled_by_learner' || sessionAfter.status == 'expired')
           )
         );
     }
@@ -126,7 +126,7 @@ service cloud.firestore {
             (txType == 'booking' || txType == 'refund')
             && txUser == session.learnerId
             && (
-              (txType == 'booking' && session.escrowStatus == 'held' && session.status == 'confirmed')
+              (txType == 'booking' && session.escrowStatus == 'held' && session.status in ['pending', 'confirmed'])
               || (txType == 'refund' && session.escrowStatus == 'refunded_to_learner')
             )
           )
@@ -255,7 +255,7 @@ service cloud.firestore {
         && request.resource.data.teacherId != request.auth.uid
         && request.resource.data.costCoins == 1
         && request.resource.data.escrowStatus == 'held'
-        && request.resource.data.status == 'confirmed'
+        && request.resource.data.status in ['pending', 'confirmed']
         && ('scheduledAt' in request.resource.data)
         && request.resource.data.scheduledAt is timestamp
         && request.resource.data.scheduledAt >= request.time + duration.value(2, 'h')
@@ -286,9 +286,39 @@ service cloud.firestore {
             && isValidMeetingUrl(request.resource.data.meetingUrl)
           )
           ||
+          // الحالة 0-أ: قبول المعلم للجلسة المعلقة (pending -> confirmed) بدون أي حركة مالية
+          (
+            resource.data.teacherId == request.auth.uid
+            && resource.data.status == 'pending'
+            && request.resource.data.status == 'confirmed'
+            && request.resource.data.escrowStatus == resource.data.escrowStatus
+          )
+          ||
+          // الحالة 0-ب: رفض المعلم للجلسة المعلقة (pending -> rejected) مع استرداد كامل للمتعلم
+          (
+            resource.data.teacherId == request.auth.uid
+            && resource.data.status == 'pending'
+            && request.resource.data.status == 'rejected'
+            && request.resource.data.escrowStatus == 'refunded_to_learner'
+            && getAfterUser(resource.data.learnerId).timeCoins == getUser(resource.data.learnerId).timeCoins + 1
+            && getAfterUser(resource.data.learnerId).lastSessionId == sessionId
+          )
+          ||
+          // الحالة 0-ج: إلغاء المتعلم للجلسة المعلقة قبل قبول المعلم (pending -> cancelled_by_learner) مع استرداد كامل
+          (
+            resource.data.learnerId == request.auth.uid
+            && resource.data.status == 'pending'
+            && request.resource.data.status == 'cancelled_by_learner'
+            && request.resource.data.escrowStatus == 'refunded_to_learner'
+            && request.resource.data.cancelledBy == request.auth.uid
+            && getAfterUser(resource.data.learnerId).timeCoins == getUser(resource.data.learnerId).timeCoins + 1
+            && getAfterUser(resource.data.learnerId).lastSessionId == sessionId
+          )
+          ||
           // الحالة أ: المتعلم يؤكد إتمام الجلسة ويطلق الضمان للمعلم (مشروط بزيادة رصيد المعلم بـ 1 في نفس المعاملة)
           (
             resource.data.learnerId == request.auth.uid
+            && resource.data.status == 'confirmed'
             && request.resource.data.escrowStatus == 'released_to_teacher'
             && request.resource.data.status == 'completed'
             && request.resource.data.rating is int
@@ -297,9 +327,10 @@ service cloud.firestore {
             && getAfterUser(resource.data.teacherId).lastSessionId == sessionId
           )
           ||
-          // الحالة ب: المعلم يلغي الجلسة في أي وقت -> استرداد كامل للمتعلم (مشروط بزيادة رصيد المتعلم بـ 1 في نفس المعاملة)
+          // الحالة ب: المعلم يلغي الجلسة المؤكدة في أي وقت -> استرداد كامل للمتعلم (مشروط بزيادة رصيد المتعلم بـ 1 في نفس المعاملة)
           (
             resource.data.teacherId == request.auth.uid
+            && resource.data.status == 'confirmed'
             && request.resource.data.escrowStatus == 'refunded_to_learner'
             && request.resource.data.status == 'cancelled_by_teacher'
             && request.resource.data.cancelledBy == request.auth.uid
@@ -307,9 +338,10 @@ service cloud.firestore {
             && getAfterUser(resource.data.learnerId).lastSessionId == sessionId
           )
           ||
-          // الحالة ج: المتعلم يلغي قبل الموعد بـ > 2 ساعة -> استرداد كامل للمتعلم (مشروط بزيادة رصيد المتعلم بـ 1 في نفس المعاملة)
+          // الحالة ج: المتعلم يلغي قبل الموعد بـ > 2 ساعة بعد التأكيد -> استرداد كامل للمتعلم (مشروط بزيادة رصيد المتعلم بـ 1 في نفس المعاملة)
           (
             resource.data.learnerId == request.auth.uid
+            && resource.data.status == 'confirmed'
             && request.resource.data.escrowStatus == 'refunded_to_learner'
             && request.resource.data.status == 'cancelled_by_learner'
             && request.resource.data.cancelledBy == request.auth.uid
@@ -319,9 +351,10 @@ service cloud.firestore {
             && getAfterUser(resource.data.learnerId).lastSessionId == sessionId
           )
           ||
-          // الحالة د: المتعلم يلغي قبل الموعد بـ <= 2 ساعة -> تعويض للمعلم (مشروط بزيادة رصيد المعلم بـ 1 في نفس المعاملة)
+          // الحالة د: المتعلم يلغي قبل الموعد بـ <= 2 ساعة بعد التأكيد -> تعويض للمعلم (مشروط بزيادة رصيد المعلم بـ 1 في نفس المعاملة)
           (
             resource.data.learnerId == request.auth.uid
+            && resource.data.status == 'confirmed'
             && request.resource.data.escrowStatus == 'released_to_teacher'
             && request.resource.data.status == 'cancelled_by_learner'
             && request.resource.data.cancelledBy == request.auth.uid

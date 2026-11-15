@@ -288,6 +288,12 @@ class TimeBankSessionModel {
   final DateTime? createdAt;
   final String? cancellationReason;
   final String? cancelledBy;
+  final DateTime? confirmedAt;
+  final DateTime? rejectedAt;
+  final String? rejectionReason;
+  final DateTime? teacherMarkedDoneAt;
+  final DateTime? disputedAt;
+  final String? disputeReason;
 
   const TimeBankSessionModel({
     required this.id,
@@ -304,7 +310,7 @@ class TimeBankSessionModel {
     required this.durationMinutes,
     required this.location,
     this.costCoins = AppConstants.sessionCostCoins,
-    this.status = 'confirmed',
+    this.status = 'pending',
     this.escrowStatus = 'held',
     this.mode = 'in_person',
     this.meetingUrl,
@@ -315,6 +321,12 @@ class TimeBankSessionModel {
     this.createdAt,
     this.cancellationReason,
     this.cancelledBy,
+    this.confirmedAt,
+    this.rejectedAt,
+    this.rejectionReason,
+    this.teacherMarkedDoneAt,
+    this.disputedAt,
+    this.disputeReason,
   });
 
   Map<String, dynamic> toMap() {
@@ -344,6 +356,12 @@ class TimeBankSessionModel {
       'createdAt': createdAt?.toIso8601String(),
       'cancellationReason': cancellationReason,
       'cancelledBy': cancelledBy,
+      'confirmedAt': confirmedAt?.toIso8601String(),
+      'rejectedAt': rejectedAt?.toIso8601String(),
+      'rejectionReason': rejectionReason,
+      'teacherMarkedDoneAt': teacherMarkedDoneAt?.toIso8601String(),
+      'disputedAt': disputedAt?.toIso8601String(),
+      'disputeReason': disputeReason,
     };
   }
 
@@ -372,7 +390,7 @@ class TimeBankSessionModel {
       durationMinutes: (map['durationMinutes'] as num?)?.toInt() ?? 60,
       location: map['location'] as String? ?? '',
       costCoins: (map['costCoins'] as num?)?.toInt() ?? AppConstants.sessionCostCoins,
-      status: map['status'] as String? ?? 'confirmed',
+      status: map['status'] as String? ?? 'pending',
       escrowStatus: map['escrowStatus'] as String? ?? 'held',
       mode: map['mode'] as String? ?? 'in_person',
       meetingUrl: map['meetingUrl'] as String?,
@@ -383,6 +401,12 @@ class TimeBankSessionModel {
       createdAt: parseDate(map['createdAt']),
       cancellationReason: map['cancellationReason'] as String?,
       cancelledBy: map['cancelledBy'] as String?,
+      confirmedAt: parseDate(map['confirmedAt']),
+      rejectedAt: parseDate(map['rejectedAt']),
+      rejectionReason: map['rejectionReason'] as String?,
+      teacherMarkedDoneAt: parseDate(map['teacherMarkedDoneAt']),
+      disputedAt: parseDate(map['disputedAt']),
+      disputeReason: map['disputeReason'] as String?,
     );
   }
 
@@ -397,6 +421,12 @@ class TimeBankSessionModel {
     DateTime? scheduledAt,
     String? cancellationReason,
     String? cancelledBy,
+    DateTime? confirmedAt,
+    DateTime? rejectedAt,
+    String? rejectionReason,
+    DateTime? teacherMarkedDoneAt,
+    DateTime? disputedAt,
+    String? disputeReason,
   }) {
     return TimeBankSessionModel(
       id: id,
@@ -424,6 +454,12 @@ class TimeBankSessionModel {
       createdAt: createdAt,
       cancellationReason: cancellationReason ?? this.cancellationReason,
       cancelledBy: cancelledBy ?? this.cancelledBy,
+      confirmedAt: confirmedAt ?? this.confirmedAt,
+      rejectedAt: rejectedAt ?? this.rejectedAt,
+      rejectionReason: rejectionReason ?? this.rejectionReason,
+      teacherMarkedDoneAt: teacherMarkedDoneAt ?? this.teacherMarkedDoneAt,
+      disputedAt: disputedAt ?? this.disputedAt,
+      disputeReason: disputeReason ?? this.disputeReason,
     );
   }
 }
