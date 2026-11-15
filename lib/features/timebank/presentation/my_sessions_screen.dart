@@ -29,6 +29,11 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
     final learnerSessions = learnerSessionsAsync.value ?? [];
     final teacherSessions = teacherSessionsAsync.value ?? [];
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceAlt = isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt;
+    final cardColor = isDark ? AppColors.darkSurface : Colors.white;
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -53,7 +58,7 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
               child: Container(
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceAlt,
+                  color: surfaceAlt,
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Row(
@@ -64,10 +69,10 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
-                            color: _activeRoleIndex == 0 ? Colors.white : Colors.transparent,
+                            color: _activeRoleIndex == 0 ? cardColor : Colors.transparent,
                             borderRadius: BorderRadius.circular(10),
                             boxShadow: _activeRoleIndex == 0
-                                ? [const BoxShadow(color: Colors.black12, blurRadius: 4)]
+                                ? [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.08), blurRadius: 4)]
                                 : null,
                           ),
                           child: Text(
@@ -76,7 +81,7 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: _activeRoleIndex == 0 ? FontWeight.bold : FontWeight.normal,
-                              color: _activeRoleIndex == 0 ? AppColors.primary : AppColors.textSecondary,
+                              color: _activeRoleIndex == 0 ? primaryColor : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
                             ),
                           ),
                         ),
@@ -88,10 +93,10 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
-                            color: _activeRoleIndex == 1 ? Colors.white : Colors.transparent,
+                            color: _activeRoleIndex == 1 ? cardColor : Colors.transparent,
                             borderRadius: BorderRadius.circular(10),
                             boxShadow: _activeRoleIndex == 1
-                                ? [const BoxShadow(color: Colors.black12, blurRadius: 4)]
+                                ? [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.08), blurRadius: 4)]
                                 : null,
                           ),
                           child: Text(
@@ -100,7 +105,7 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: _activeRoleIndex == 1 ? FontWeight.bold : FontWeight.normal,
-                              color: _activeRoleIndex == 1 ? AppColors.primary : AppColors.textSecondary,
+                              color: _activeRoleIndex == 1 ? primaryColor : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
                             ),
                           ),
                         ),
@@ -227,16 +232,23 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
     required VoidCallback onAction,
     bool showMissingMeetingLinkBanner = false,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hairline = isDark ? AppColors.darkHairline : AppColors.hairline;
+    final surfaceAlt = isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt;
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
+    final primaryContainer = isDark ? AppColors.darkPrimaryContainer : AppColors.primaryContainer;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.hairline),
+        border: Border.all(color: hairline),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -300,14 +312,14 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                         partnerName,
                         style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
                       ),
-                      Text(courseName, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                      Text(courseName, style: TextStyle(fontSize: 11, color: textSecondary)),
                     ],
                   ),
                   const SizedBox(width: 10),
                   CircleAvatar(
                     radius: 20,
-                    backgroundColor: AppColors.primaryContainer,
-                    child: Text(partnerInitials, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary, fontSize: 13)),
+                    backgroundColor: primaryContainer,
+                    child: Text(partnerInitials, style: TextStyle(fontWeight: FontWeight.bold, color: primaryColor, fontSize: 13)),
                   ),
                 ],
               ),
@@ -315,13 +327,13 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
           ),
 
           const SizedBox(height: 12),
-          Text(topic, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+          Text(topic, style: TextStyle(fontSize: 13, color: textSecondary)),
           const SizedBox(height: 10),
 
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.surfaceAlt,
+              color: surfaceAlt,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
@@ -332,7 +344,7 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                 Expanded(
                   child: Text(
                     '$time • $location',
-                    style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                    style: TextStyle(fontSize: 11, color: textSecondary),
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.left,
                   ),
@@ -348,7 +360,7 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
             child: ElevatedButton(
               onPressed: onAction,
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
+                backgroundColor: primaryColor,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               child: Text(

@@ -16,7 +16,24 @@ class WeeklyPlanScreen extends ConsumerStatefulWidget {
 
 class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
   int _selectedDayIndex = 0;
-  final List<String> _days = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
+  final List<String> _days = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'];
+
+  @override
+  void initState() {
+    super.initState();
+    final dayNames = {
+      DateTime.saturday: 'السبت',
+      DateTime.sunday: 'الأحد',
+      DateTime.monday: 'الاثنين',
+      DateTime.tuesday: 'الثلاثاء',
+      DateTime.wednesday: 'الأربعاء',
+      DateTime.thursday: 'الخميس',
+      DateTime.friday: 'الجمعة',
+    };
+    final todayArabic = dayNames[DateTime.now().weekday];
+    final idx = _days.indexOf(todayArabic ?? 'السبت');
+    _selectedDayIndex = idx >= 0 ? idx : 0;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +59,7 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_weekly_plan',
         onPressed: () => context.push('/schedule-setup'),
         backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add, color: Colors.white),
@@ -134,9 +152,10 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
                       title: 'مذاكرة: ${block.courseName}',
                       time: '${block.startTime} – ${block.endTime}',
                       location: '${block.room} • ${block.topic}',
-                      ribbonColor: block.ribbonColor,
+                      ribbonColor: block.isCompleted ? AppColors.success : block.ribbonColor,
                       type: block.isCompleted ? 'مكتملة ✓' : 'مذاكرة ذكية',
                       isInteractive: true,
+                      onTap: () => context.push('/study-block-details', extra: block),
                     );
                   }),
 
@@ -144,29 +163,46 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
                     Center(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
-                        child: Column(
-                          children: [
-                            const Icon(Icons.calendar_month_outlined, size: 48, color: AppColors.textSecondary),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'لا توجد مواعيد مسجلة لهذا اليوم',
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                            ),
-                            const SizedBox(height: 6),
-                            const Text(
-                              'يمكنك إضافة محاضراتك لتوليد خطة المذاكرة الأسبوعية تلقائياً.',
-                              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 14),
-                            ElevatedButton.icon(
-                              onPressed: () => context.push('/schedule-setup'),
-                              icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
-                              label: const Text('إعداد جدول المحاضرات', style: TextStyle(color: Colors.white, fontSize: 13)),
-                              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
-                            ),
-                          ],
-                        ),
+                        child: currentDay == 'الجمعة'
+                            ? const Column(
+                                children: [
+                                  Text('🌴', style: TextStyle(fontSize: 48)),
+                                  SizedBox(height: 12),
+                                  Text(
+                                    'عطلة نهاية الأسبوع • استراحة أسبوعية',
+                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'يوم الجمعة مخصص للراحة وتجديد النشاط والعبادة. لا توجد جلسات مذاكرة أو محاضرات مقررة.',
+                                    style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              )
+                            : Column(
+                                children: [
+                                  const Icon(Icons.calendar_month_outlined, size: 48, color: AppColors.textSecondary),
+                                  const SizedBox(height: 12),
+                                  const Text(
+                                    'لا توجد مواعيد مسجلة لهذا اليوم',
+                                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  const Text(
+                                    'يمكنك إضافة محاضراتك لتوليد خطة المذاكرة الأسبوعية تلقائياً.',
+                                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 14),
+                                  ElevatedButton.icon(
+                                    onPressed: () => context.push('/schedule-setup'),
+                                    icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
+                                    label: const Text('إعداد جدول المحاضرات', style: TextStyle(color: Colors.white, fontSize: 13)),
+                                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                                  ),
+                                ],
+                              ),
                       ),
                     ),
 
@@ -205,6 +241,7 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
     required Color ribbonColor,
     required String type,
     bool isInteractive = false,
+    VoidCallback? onTap,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -222,7 +259,7 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: () {
+        onTap: onTap ?? () {
           context.push('/study-block-details');
         },
         child: ClipRRect(
