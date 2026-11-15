@@ -79,7 +79,6 @@ class AuthService {
         'uid': cred.user!.uid,
         'name': name.trim(),
         'username': cleanUsername.isEmpty ? cleanEmail.split('@').first : cleanUsername,
-        'email': cleanEmail,
         'timeCoins': AppConstants.welcomeCoins,
         'faculty': AppConstants.faculty,
         'year': AppConstants.academicYear,
@@ -133,7 +132,6 @@ class AuthService {
               'uid': cred.user!.uid,
               'name': cred.user!.displayName ?? email.split('@').first,
               'username': email.split('@').first.toLowerCase(),
-              'email': cred.user!.email ?? email.trim(),
               'timeCoins': AppConstants.welcomeCoins,
               'faculty': AppConstants.faculty,
               'year': AppConstants.academicYear,
@@ -151,9 +149,6 @@ class AuthService {
             final updates = <String, dynamic>{};
             if ((data?['onboardingCompleted'] as bool? ?? false) == false) {
               updates['onboardingCompleted'] = true;
-            }
-            if ((data?['email'] as String?)?.isEmpty ?? true) {
-              updates['email'] = cred.user!.email ?? email.trim();
             }
             if ((data?['name'] as String?)?.isEmpty ?? true) {
               updates['name'] = cred.user!.displayName ?? email.split('@').first;
