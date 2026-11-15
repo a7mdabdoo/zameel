@@ -602,4 +602,85 @@ void main() {
       ]), isTrue);
     });
   });
+
+  // =========================================================================
+  // المجموعة 11: قبول المعلم والاعتذار وإلغاء المتعلم قبل القبول (Teacher Acceptance)
+  // =========================================================================
+  group('TimeBankPureLogic - Teacher Acceptance & Lifecycle', () {
+    test('validateAcceptanceTransition accepts pending session with held escrow', () {
+      expect(
+        () => TimeBankPureLogic.validateAcceptanceTransition(
+          currentStatus: 'pending',
+          currentEscrowStatus: 'held',
+        ),
+        returnsNormally,
+      );
+
+      expect(
+        () => TimeBankPureLogic.validateAcceptanceTransition(
+          currentStatus: 'confirmed',
+          currentEscrowStatus: 'held',
+        ),
+        throwsStateError,
+      );
+    });
+
+    test('validateRejectionTransition allows rejection only from pending', () {
+      expect(
+        () => TimeBankPureLogic.validateRejectionTransition(
+          currentStatus: 'pending',
+          currentEscrowStatus: 'held',
+        ),
+        returnsNormally,
+      );
+
+      expect(
+        () => TimeBankPureLogic.validateRejectionTransition(
+          currentStatus: 'completed',
+          currentEscrowStatus: 'held',
+        ),
+        throwsStateError,
+      );
+    });
+
+    test('Learner cancelling pending session gets full refund even if within 2 hours', () {
+      final scheduledAt = DateTime(2026, 11, 21, 14, 0);
+      DateTime clockNow() => DateTime(2026, 11, 21, 13, 30); // قبل الموعد بـ 30 دقيقة فقط
+
+      final decision = TimeBankPureLogic.decideCancellation(
+        cancellingUserId: 'user_learner',
+        learnerId: 'user_learner',
+        teacherId: 'user_teacher',
+        scheduledAt: scheduledAt,
+        costCoins: 1,
+        sessionStatus: 'pending',
+        clock: clockNow,
+      );
+
+      expect(decision.outcome, equals(CancellationOutcome.fullRefundToLearner));
+      expect(decision.refundedLearnerCoins, equals(1));
+      expect(decision.compensatedTeacherCoins, equals(0));
+      expect(decision.newStatus, equals('cancelled_by_learner'));
+      expect(decision.newEscrowStatus, equals('refunded_to_learner'));
+    });
+
+    test('After acceptance (confirmed), cancelling within 2 hours compensates teacher', () {
+      final scheduledAt = DateTime(2026, 11, 21, 14, 0);
+      DateTime clockNow() => DateTime(2026, 11, 21, 13, 0); // قبل الموعد بساعة واحدة
+
+      final decision = TimeBankPureLogic.decideCancellation(
+        cancellingUserId: 'user_learner',
+        learnerId: 'user_learner',
+        teacherId: 'user_teacher',
+        scheduledAt: scheduledAt,
+        costCoins: 1,
+        sessionStatus: 'confirmed',
+        clock: clockNow,
+      );
+
+      expect(decision.outcome, equals(CancellationOutcome.compensationToTeacher));
+      expect(decision.refundedLearnerCoins, equals(0));
+      expect(decision.compensatedTeacherCoins, equals(1));
+    });
+  });
 }

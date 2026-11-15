@@ -68,14 +68,16 @@ class TimeBankPureLogic {
 
   /// 1. قرار إلغاء الجلسة مع إمكانية حقن الساعة (Injectable Clock)
   /// - إلغاء المعلم: استرداد كامل للعملة للمتعلم في أي وقت.
-  /// - إلغاء المتعلم قبل الموعد بأكثر من ساعتين (> 2h): استرداد كامل للمتعلم.
-  /// - إلغاء المتعلم قبل الموعد بساعتين أو أقل (<= 2h): تذهب العملة للمعلم كتعويض.
+  /// - إلغاء المتعلم قبل قبول المعلم (حالة pending): استرداد كامل للمتعلم في أي وقت.
+  /// - إلغاء المتعلم بعد التأكيد (confirmed) قبل الموعد بأكثر من ساعتين (> 2h): استرداد كامل للمتعلم.
+  /// - إلغاء المتعلم بعد التأكيد (confirmed) قبل الموعد بساعتين أو أقل (<= 2h): تذهب العملة للمعلم كتعويض.
   static CancellationDecision decideCancellation({
     required String cancellingUserId,
     required String learnerId,
     required String teacherId,
     required DateTime scheduledAt,
     required int costCoins,
+    String sessionStatus = 'confirmed',
     DateTime Function()? clock,
   }) {
     if (cancellingUserId != learnerId && cancellingUserId != teacherId) {
@@ -87,6 +89,17 @@ class TimeBankPureLogic {
       return CancellationDecision(
         outcome: CancellationOutcome.fullRefundToLearner,
         newStatus: 'cancelled_by_teacher',
+        newEscrowStatus: 'refunded_to_learner',
+        refundedLearnerCoins: costCoins,
+        compensatedTeacherCoins: 0,
+      );
+    }
+
+    // إذا كانت الجلسة معلقة قيد انتظار قبول الشارح (pending)، يحق للمتعلم الإلغاء في أي وقت باسترداد كامل
+    if (sessionStatus == 'pending') {
+      return CancellationDecision(
+        outcome: CancellationOutcome.fullRefundToLearner,
+        newStatus: 'cancelled_by_learner',
         newEscrowStatus: 'refunded_to_learner',
         refundedLearnerCoins: costCoins,
         compensatedTeacherCoins: 0,
@@ -194,8 +207,34 @@ class TimeBankPureLogic {
     if (currentEscrowStatus != 'held') {
       throw StateError('Cannot cancel a session whose escrow status is not held (current: $currentEscrowStatus)');
     }
-    if (currentStatus != 'confirmed') {
-      throw StateError('Cannot cancel a session that is not confirmed (current: $currentStatus)');
+    if (currentStatus != 'confirmed' && currentStatus != 'pending') {
+      throw StateError('Cannot cancel a session that is neither confirmed nor pending (current: $currentStatus)');
+    }
+  }
+
+  /// التحقق من صلاحية قبول المعلم للجلسة
+  static void validateAcceptanceTransition({
+    required String currentStatus,
+    required String currentEscrowStatus,
+  }) {
+    if (currentEscrowStatus != 'held') {
+      throw StateError('Cannot accept a session whose escrow status is not held (current: $currentEscrowStatus)');
+    }
+    if (currentStatus != 'pending') {
+      throw StateError('Cannot accept a session that is not in pending status (current: $currentStatus)');
+    }
+  }
+
+  /// التحقق من صلاحية رفض المعلم للجلسة
+  static void validateRejectionTransition({
+    required String currentStatus,
+    required String currentEscrowStatus,
+  }) {
+    if (currentEscrowStatus != 'held') {
+      throw StateError('Cannot reject a session whose escrow status is not held (current: $currentEscrowStatus)');
+    }
+    if (currentStatus != 'pending') {
+      throw StateError('Cannot reject a session that is not in pending status (current: $currentStatus)');
     }
   }
 

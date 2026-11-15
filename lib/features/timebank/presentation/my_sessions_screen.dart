@@ -132,16 +132,20 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                       )
                     else
                       ...learnerSessions.map((session) {
-                        final isCompleted = session.status == 'completed' || session.escrowStatus == 'released_to_teacher';
-                        final isCancelled = session.status.startsWith('cancelled') || session.escrowStatus == 'refunded_to_learner';
+                        final isCompleted = session.status == 'completed' || session.status == 'completed_auto' || session.escrowStatus == 'released_to_teacher';
+                        final isCancelled = session.status.startsWith('cancelled') || session.status == 'rejected' || session.status == 'expired' || session.escrowStatus == 'refunded_to_learner';
+                        final isPending = session.status == 'pending';
                         
-                        String badge = 'في الضمان 🔒';
-                        Color bColor = AppColors.deepSage;
-                        if (isCompleted) {
+                        String badge = 'مؤكدة (في الضمان) 🔒';
+                        Color bColor = AppColors.primary;
+                        if (isPending) {
+                          badge = 'قيد الانتظار ⏳';
+                          bColor = AppColors.pointsAmber;
+                        } else if (isCompleted) {
                           badge = 'مكتملة ✓';
                           bColor = AppColors.primary;
                         } else if (isCancelled) {
-                          badge = 'ملغاة ↩️';
+                          badge = session.status == 'rejected' ? 'معتذر عنها ✕' : (session.status == 'expired' ? 'منتهية ⏱️' : 'ملغاة ↩️');
                           bColor = AppColors.error;
                         }
 
@@ -158,7 +162,7 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                           costColor: AppColors.error,
                           actionLabel: isCompleted
                               ? 'عرض تقييم الجلسة'
-                              : (isCancelled ? 'تفاصيل الجلسة الملغاة' : 'تفاصيل الجلسة وتأكيد الإتمام'),
+                              : (isCancelled ? 'تفاصيل الجلسة' : (isPending ? 'تفاصيل الطلب وإلغاءه' : 'تفاصيل الجلسة وتأكيد الإتمام')),
                           onAction: () => context.push('/session-learner', extra: session),
                         );
                       }),
@@ -172,22 +176,27 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                       )
                     else
                       ...teacherSessions.map((session) {
-                        final isCompleted = session.status == 'completed' || session.escrowStatus == 'released_to_teacher';
-                        final isCancelled = session.status.startsWith('cancelled') || session.escrowStatus == 'refunded_to_learner';
+                        final isCompleted = session.status == 'completed' || session.status == 'completed_auto' || session.escrowStatus == 'released_to_teacher';
+                        final isCancelled = session.status.startsWith('cancelled') || session.status == 'rejected' || session.status == 'expired' || session.escrowStatus == 'refunded_to_learner';
+                        final isPending = session.status == 'pending';
 
                         String badge = 'مؤكدة (في الضمان)';
                         Color bColor = AppColors.primary;
-                        if (isCompleted) {
+                        if (isPending) {
+                          badge = 'طلب جديد ⏳';
+                          bColor = AppColors.pointsAmber;
+                        } else if (isCompleted) {
                           badge = 'مكتملة ✓';
                           bColor = AppColors.primary;
                         } else if (isCancelled) {
-                          badge = 'ملغاة ↩️';
+                          badge = session.status == 'rejected' ? 'معتذر عنها ✕' : (session.status == 'expired' ? 'منتهية ⏱️' : 'ملغاة ↩️');
                           bColor = AppColors.error;
                         }
 
                         final isMissingMeetingLink = session.mode == 'online' &&
                             (session.meetingUrl == null || session.meetingUrl!.isEmpty) &&
-                            session.escrowStatus == 'held';
+                            session.escrowStatus == 'held' &&
+                            session.status == 'confirmed';
 
                         return _buildSessionCard(
                           partnerName: '${session.learnerName} (المتعلّم)',
@@ -203,7 +212,7 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                           showMissingMeetingLinkBanner: isMissingMeetingLink,
                           actionLabel: isCompleted
                               ? 'الجلسة مكتملة ومقبوضة'
-                              : (isCancelled ? 'تفاصيل الإلغاء' : 'تفاصيل الجلسة وبدء الشرح'),
+                              : (isCancelled ? 'تفاصيل الإلغاء' : (isPending ? 'مراجعة الطلب والقبول' : 'تفاصيل الجلسة وبدء الشرح')),
                           onAction: () => context.push('/session-teacher', extra: session),
                         );
                       }),

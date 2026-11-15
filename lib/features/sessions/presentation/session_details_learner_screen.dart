@@ -315,8 +315,45 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                 const SizedBox(height: 14),
               ],
 
-              // Confirm Button -> /session-rating (فقط إذا كانت معلقة في الضمان)
-              if (isHeld) ...[
+              // أزرار التحكم بحالة الجلسة للمتعلم
+              if (session != null && session.status == 'pending') ...[
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.pointsAmber.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.pointsAmber.withValues(alpha: 0.3)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.hourglass_top_rounded, color: AppColors.pointsAmber, size: 20),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'الطلب بانتظار موافقة الزميل الشارح. عملتك محتجزة بأمان في الضمان.',
+                          style: TextStyle(fontSize: 12, color: AppColors.textPrimary, height: 1.3),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    onPressed: _isCancelling ? null : () => _cancelSession(session),
+                    icon: const Icon(Icons.cancel_outlined, color: AppColors.error),
+                    label: Text(
+                      _isCancelling ? 'جاري إلغاء الطلب...' : 'إلغاء الطلب واسترداد العملة فوراً',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.error),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.error),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
+                ),
+              ] else if (isHeld) ...[
                 SizedBox(
                   height: 52,
                   child: ElevatedButton.icon(

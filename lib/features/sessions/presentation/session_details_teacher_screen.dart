@@ -21,6 +21,98 @@ class SessionDetailsTeacherScreen extends ConsumerStatefulWidget {
 
 class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeacherScreen> {
   bool _isCancelling = false;
+  bool _isProcessingAction = false;
+
+  Future<void> _acceptSession(TimeBankSessionModel session) async {
+    final user = ref.read(authServiceProvider).currentUser;
+    if (user == null) return;
+
+    setState(() => _isProcessingAction = true);
+    try {
+      await ref.read(timeBankRepositoryProvider).acceptSession(
+            sessionId: session.id,
+            teacherId: user.uid,
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم قبول جلسة الشرح بنجاح! تم تأكيد الموعد 🤝')),
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر قبول الجلسة: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessingAction = false);
+    }
+  }
+
+  Future<void> _rejectSession(TimeBankSessionModel session) async {
+    final user = ref.read(authServiceProvider).currentUser;
+    if (user == null) return;
+
+    final controller = TextEditingController();
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('الاعتذار عن الجلسة'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'إذا اعتذرت عن الجلسة، فسيتم استرداد عملة الوقت بالكامل إلى محفظة زميلك المتعلم فوراً.',
+              style: TextStyle(fontSize: 13, height: 1.4),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                labelText: 'سبب الاعتذار (اختياري)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('تراجع')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('تأكيد الاعتذار', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isProcessingAction = true);
+    try {
+      await ref.read(timeBankRepositoryProvider).rejectSession(
+            sessionId: session.id,
+            teacherId: user.uid,
+            reason: controller.text.trim(),
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم الاعتذار عن الجلسة وإعادة العملة للمتعلم 🔄')),
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر الاعتذار عن الجلسة: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessingAction = false);
+    }
+  }
 
   Future<void> _showEditMeetingUrlDialog(TimeBankSessionModel session) async {
     final controller = TextEditingController(text: session.meetingUrl ?? '');
@@ -423,7 +515,40 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                 const SizedBox(height: 14),
               ],
 
-              if (isHeld) ...[
+              if (session != null && session.status == 'pending') ...[
+                SizedBox(
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    onPressed: _isProcessingAction ? null : () => _acceptSession(session),
+                    icon: const Icon(Icons.check_circle_outline_rounded, color: Colors.white),
+                    label: Text(
+                      _isProcessingAction ? 'جاري القبول...' : 'قبول الجلسة وتأكيد الموعد 🤝',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    onPressed: _isProcessingAction ? null : () => _rejectSession(session),
+                    icon: const Icon(Icons.close_rounded, color: AppColors.error),
+                    label: Text(
+                      _isProcessingAction ? 'جاري معالجة الطلب...' : 'اعتذار عن الجلسة وإعادة العملة',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.error),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.error),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ] else if (isHeld) ...[
                 SizedBox(
                   height: 48,
                   child: OutlinedButton.icon(

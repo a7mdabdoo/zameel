@@ -2237,4 +2237,167 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
     // تنفيذ الحجز الثاني على نفس القفل يفشل حتماً لمنع الحجز المزدوج
     await assertFails(batchB.commit());
   });
+
+  // =========================================================================
+  // قبول المعلم والاعتذار وإلغاء المتعلم (Teacher Acceptance & Rejection)
+  // =========================================================================
+  test('قبول المعلم 1: المعلم يقبل جلسة معلقة (pending -> confirmed) بدون أي حركة مالية', async () => {
+    const teacherId = 'teacher_accept_ok';
+    const learnerId = 'learner_accept_ok';
+    const sessionId = 'session_accept_ok';
+    const scheduledAt = new Date(Date.now() + 24 * 3600 * 1000);
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'pending',
+        scheduledAt: scheduledAt,
+      });
+    });
+
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+
+    await assertSucceeds(
+      teacherDb.collection('sessions').doc(sessionId).update({
+        status: 'confirmed',
+      })
+    );
+  });
+
+  test('قبول المعلم 2: رفض قبول الجلسة من قِبل المتعلم أو طرف غريب', async () => {
+    const teacherId = 'teacher_accept_bad';
+    const learnerId = 'learner_accept_bad';
+    const strangerId = 'stranger_accept_bad';
+    const sessionId = 'session_accept_bad';
+    const scheduledAt = new Date(Date.now() + 24 * 3600 * 1000);
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'pending',
+        scheduledAt: scheduledAt,
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+    const strangerDb = testEnv.authenticatedContext(strangerId, { email_verified: true }).firestore();
+
+    await assertFails(learnerDb.collection('sessions').doc(sessionId).update({ status: 'confirmed' }));
+    await assertFails(strangerDb.collection('sessions').doc(sessionId).update({ status: 'confirmed' }));
+  });
+
+  test('اعتذار المعلم 3: المعلم يعتذر عن جلسة معلقة (pending -> rejected) مع رد العملة للمتعلم', async () => {
+    const teacherId = 'teacher_reject_ok';
+    const learnerId = 'learner_reject_ok';
+    const sessionId = 'session_reject_ok';
+    const scheduledAt = new Date(Date.now() + 24 * 3600 * 1000);
+    const epochMs = scheduledAt.getTime();
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(learnerId).set({ timeCoins: 1, completedSessions: 0 });
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'pending',
+        scheduledAt: scheduledAt,
+      });
+      await adminDb.collection('slotLocks').doc(`${learnerId}_${epochMs}`).set({
+        uid: learnerId,
+        slotEpochMs: epochMs,
+        sessionId: sessionId,
+        status: 'active',
+      });
+    });
+
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+    const batch = teacherDb.batch();
+
+    batch.update(teacherDb.collection('users').doc(learnerId), {
+      timeCoins: 2,
+      lastSessionId: sessionId,
+    });
+
+    batch.update(teacherDb.collection('sessions').doc(sessionId), {
+      status: 'rejected',
+      escrowStatus: 'refunded_to_learner',
+    });
+
+    batch.set(teacherDb.collection('transactions').doc(`${sessionId}_refund`), {
+      userId: learnerId,
+      sessionId: sessionId,
+      amount: 1,
+      type: 'refund',
+    });
+
+    batch.update(teacherDb.collection('slotLocks').doc(`${learnerId}_${epochMs}`), {
+      status: 'released',
+    });
+
+    await assertSucceeds(batch.commit());
+  });
+
+  test('إلغاء المتعلم قبل القبول 4: المتعلم يلغي جلسة معلقة (pending -> cancelled_by_learner) مع رد العملة', async () => {
+    const teacherId = 'teacher_cancel_pending_ok';
+    const learnerId = 'learner_cancel_pending_ok';
+    const sessionId = 'session_cancel_pending_ok';
+    const scheduledAt = new Date(Date.now() + 24 * 3600 * 1000);
+    const epochMs = scheduledAt.getTime();
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(learnerId).set({ timeCoins: 1, completedSessions: 0 });
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'pending',
+        scheduledAt: scheduledAt,
+      });
+      await adminDb.collection('slotLocks').doc(`${learnerId}_${epochMs}`).set({
+        uid: learnerId,
+        slotEpochMs: epochMs,
+        sessionId: sessionId,
+        status: 'active',
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+    const batch = learnerDb.batch();
+
+    batch.update(learnerDb.collection('users').doc(learnerId), {
+      timeCoins: 2,
+      lastSessionId: sessionId,
+    });
+
+    batch.update(learnerDb.collection('sessions').doc(sessionId), {
+      status: 'cancelled_by_learner',
+      escrowStatus: 'refunded_to_learner',
+      cancelledBy: learnerId,
+    });
+
+    batch.set(learnerDb.collection('transactions').doc(`${sessionId}_refund`), {
+      userId: learnerId,
+      sessionId: sessionId,
+      amount: 1,
+      type: 'refund',
+    });
+
+    batch.update(learnerDb.collection('slotLocks').doc(`${learnerId}_${epochMs}`), {
+      status: 'released',
+    });
+
+    await assertSucceeds(batch.commit());
+  });
 });
