@@ -748,4 +748,177 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
       })
     );
   });
+
+  // =========================================================================
+  // القسم السادس: أمان محادثات ورسائل الجلسات (Session Messages Security)
+  // =========================================================================
+
+  test('رسائل الجلسة 1: نجاح قراءة وإنشاء رسالة من أطراف الجلسة (المتعلم والمعلم)', async () => {
+    const sessionId = 'session_msg_test_1';
+    const learnerId = 'learner_msg_1';
+    const teacherId = 'teacher_msg_1';
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        status: 'confirmed',
+        escrowStatus: 'held',
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+
+    // المتعلم يرسل رسالة
+    await assertSucceeds(
+      learnerDb.collection('sessions').doc(sessionId).collection('messages').doc('msg_1').set({
+        senderId: learnerId,
+        senderName: 'Learner',
+        text: 'أهلاً يا باشمهندس، ميعادنا تمام؟',
+        createdAt: new Date().toISOString(),
+      })
+    );
+
+    // المعلم يستطيع قراءة الرسالة
+    await assertSucceeds(
+      teacherDb.collection('sessions').doc(sessionId).collection('messages').doc('msg_1').get()
+    );
+
+    // المعلم يرد برسالة
+    await assertSucceeds(
+      teacherDb.collection('sessions').doc(sessionId).collection('messages').doc('msg_2').set({
+        senderId: teacherId,
+        senderName: 'Teacher',
+        text: 'تمام جداً وفي انتظارك في قاعة الاستذكار',
+        createdAt: new Date().toISOString(),
+      })
+    );
+  });
+
+  test('رسائل الجلسة 2: منع طرف ثالث غريب من قراءة أو كتابة رسائل الجلسة', async () => {
+    const sessionId = 'session_msg_test_2';
+    const learnerId = 'learner_msg_2';
+    const teacherId = 'teacher_msg_2';
+    const outsiderId = 'outsider_user';
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        status: 'confirmed',
+        escrowStatus: 'held',
+      });
+      await adminDb.collection('sessions').doc(sessionId).collection('messages').doc('secret_msg').set({
+        senderId: learnerId,
+        senderName: 'Learner',
+        text: 'سر بيننا',
+        createdAt: new Date().toISOString(),
+      });
+    });
+
+    const outsiderDb = testEnv.authenticatedContext(outsiderId, { email_verified: true }).firestore();
+
+    // محاولة الغريب قراءة الرسالة
+    await assertFails(
+      outsiderDb.collection('sessions').doc(sessionId).collection('messages').doc('secret_msg').get()
+    );
+
+    // محاولة الغريب إرسال رسالة في الجلسة
+    await assertFails(
+      outsiderDb.collection('sessions').doc(sessionId).collection('messages').doc('hacked_msg').set({
+        senderId: outsiderId,
+        senderName: 'Outsider',
+        text: 'رسالة غير مصرح بها',
+        createdAt: new Date().toISOString(),
+      })
+    );
+  });
+
+  test('رسائل الجلسة 3: منع تزوير senderId، منع النصوص الفارغة أو الطويلة جداً، ومنع التعديل والحذف', async () => {
+    const sessionId = 'session_msg_test_3';
+    const learnerId = 'learner_msg_3';
+    const teacherId = 'teacher_msg_3';
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        status: 'confirmed',
+        escrowStatus: 'held',
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+
+    // تزوير senderId
+    await assertFails(
+      learnerDb.collection('sessions').doc(sessionId).collection('messages').doc('fake_sender').set({
+        senderId: teacherId, // ينتحل شخصية المعلم
+        senderName: 'Fake Teacher',
+        text: 'أنا المعلم',
+        createdAt: new Date().toISOString(),
+      })
+    );
+
+    // نص فارغ
+    await assertFails(
+      learnerDb.collection('sessions').doc(sessionId).collection('messages').doc('empty_text').set({
+        senderId: learnerId,
+        senderName: 'Learner',
+        text: '',
+        createdAt: new Date().toISOString(),
+      })
+    );
+
+    // نص يتجاوز 1000 حرف
+    await assertFails(
+      learnerDb.collection('sessions').doc(sessionId).collection('messages').doc('huge_text').set({
+        senderId: learnerId,
+        senderName: 'Learner',
+        text: 'a'.repeat(1001),
+        createdAt: new Date().toISOString(),
+      })
+    );
+
+    // منع الحذف والتعديل
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('sessions').doc(sessionId).collection('messages').doc('msg_immutable').set({
+        senderId: learnerId,
+        senderName: 'Learner',
+        text: 'رسالة أصلية',
+        createdAt: new Date().toISOString(),
+      });
+    });
+
+    await assertFails(
+      learnerDb.collection('sessions').doc(sessionId).collection('messages').doc('msg_immutable').update({
+        text: 'رسالة معدلة',
+      })
+    );
+
+    await assertFails(
+      learnerDb.collection('sessions').doc(sessionId).collection('messages').doc('msg_immutable').delete()
+    );
+  });
+
+  test('رسائل الجلسة 4: منع القراءة والكتابة في مجموعة messages العامة في الجذر', async () => {
+    const authedDb = testEnv.authenticatedContext('any_user', { email_verified: true }).firestore();
+
+    await assertFails(
+      authedDb.collection('messages').doc('any_msg').get()
+    );
+
+    await assertFails(
+      authedDb.collection('messages').doc('any_msg').set({
+        text: 'hello',
+      })
+    );
+  });
 });

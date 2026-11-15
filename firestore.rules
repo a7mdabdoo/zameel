@@ -112,6 +112,25 @@ service cloud.firestore {
         && (request.resource.data.userId == session.learnerId || request.resource.data.userId == session.teacherId);
     }
 
+    // 5. التحقق من أطراف الجلسة لقراءة الرسائل
+    function isSessionParticipant(sessionId) {
+      let session = getSession(sessionId);
+      return isAuthenticated()
+        && (session.learnerId == request.auth.uid || session.teacherId == request.auth.uid);
+    }
+
+    // 6. التحقق من صحة إنشاء رسالة داخل الجلسة
+    function isValidMessageCreate(sessionId) {
+      let session = getSession(sessionId);
+      return isEmailVerified()
+        && (session.learnerId == request.auth.uid || session.teacherId == request.auth.uid)
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 1000
+        && ('createdAt' in request.resource.data && request.resource.data.createdAt != null);
+    }
+
     // ==========================================
     // 1. حسابات الطلاب (Users)
     // ==========================================
@@ -252,15 +271,12 @@ service cloud.firestore {
 
       allow delete: if false;
 
-      // محادثة ورسائل تنسيق الجلسة بين الطالبين
+      // محادثة ورسائل تنسيق الجلسة بين الطالبين (مقتصرة على أطراف الجلسة فقط)
       match /messages/{messageId} {
-        allow read, write: if isAuthenticated();
+        allow read: if isSessionParticipant(sessionId);
+        allow create: if isValidMessageCreate(sessionId);
+        allow update, delete: if false;
       }
-    }
-
-    // رسائل ومحادثات تنسيق الجلسات (مجموعة عامة)
-    match /messages/{messageId} {
-      allow read, write: if isAuthenticated();
     }
 
     // ==========================================
