@@ -35,7 +35,7 @@ class TimeBankRepository {
 
     final learnerDocRef = firestore.collection('users').doc(session.learnerId);
     final sessionDocRef = firestore.collection('sessions').doc(session.id);
-    final txId = 'tx_${DateTime.now().millisecondsSinceEpoch}_${session.id}';
+    final txId = '${session.id}_booking';
     final txDocRef = firestore.collection('transactions').doc(txId);
 
     // التأكد التلقائي من وجود مستند المتعلّم برصيد الترحيب 2 عملة
@@ -101,7 +101,7 @@ class TimeBankRepository {
         date: 'الآن',
         amount: AppConstants.sessionCostCoins,
         isNegative: true,
-        type: 'session_booking',
+        type: 'booking',
         icon: Icons.lock_clock_outlined,
         createdAt: DateTime.now(),
       ).toMap();
@@ -186,7 +186,7 @@ class TimeBankRepository {
       });
 
       // 4. تسجيل حركة المحفظة للمعلم (+1 عملة)
-      final txId = 'tx_${DateTime.now().millisecondsSinceEpoch}_release';
+      final txId = '${sessionId}_release';
       final txDocRef = firestore.collection('transactions').doc(txId);
       final txData = WalletTransactionModel(
         id: txId,
@@ -196,7 +196,7 @@ class TimeBankRepository {
         date: 'الآن',
         amount: AppConstants.sessionCostCoins,
         isNegative: false,
-        type: 'session_earning',
+        type: 'release',
         icon: Icons.volunteer_activism_outlined,
         createdAt: DateTime.now(),
       ).toMap();
@@ -280,7 +280,7 @@ class TimeBankRepository {
           'cancelledAt': FieldValue.serverTimestamp(),
         });
 
-        final txId = 'tx_${now.millisecondsSinceEpoch}_refund';
+        final txId = '${sessionId}_refund';
         final txDocRef = firestore.collection('transactions').doc(txId);
         final txData = WalletTransactionModel(
           id: txId,
@@ -290,7 +290,7 @@ class TimeBankRepository {
           date: 'الآن',
           amount: AppConstants.sessionCostCoins,
           isNegative: false,
-          type: 'cancellation_refund',
+          type: 'refund',
           icon: Icons.undo_rounded,
           createdAt: now,
         ).toMap();
@@ -322,7 +322,7 @@ class TimeBankRepository {
             'cancelledAt': FieldValue.serverTimestamp(),
           });
 
-          final txId = 'tx_${now.millisecondsSinceEpoch}_refund';
+          final txId = '${sessionId}_refund';
           final txDocRef = firestore.collection('transactions').doc(txId);
           final txData = WalletTransactionModel(
             id: txId,
@@ -332,7 +332,7 @@ class TimeBankRepository {
             date: 'الآن',
             amount: AppConstants.sessionCostCoins,
             isNegative: false,
-            type: 'cancellation_refund',
+            type: 'refund',
             icon: Icons.undo_rounded,
             createdAt: now,
           ).toMap();
@@ -356,7 +356,7 @@ class TimeBankRepository {
             'cancelledAt': FieldValue.serverTimestamp(),
           });
 
-          final txId = 'tx_${now.millisecondsSinceEpoch}_compensation';
+          final txId = '${sessionId}_compensation';
           final txDocRef = firestore.collection('transactions').doc(txId);
           final txData = WalletTransactionModel(
             id: txId,
@@ -366,7 +366,7 @@ class TimeBankRepository {
             date: 'الآن',
             amount: AppConstants.sessionCostCoins,
             isNegative: false,
-            type: 'late_compensation',
+            type: 'compensation',
             icon: Icons.shield_outlined,
             createdAt: now,
           ).toMap();

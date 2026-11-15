@@ -113,12 +113,34 @@ service cloud.firestore {
         );
     }
 
-    // 4. التحقق من أطراف حركة المحفظة في الجلسة
-    function isTransactionPartyValid() {
+    // 4. التحقق من سلامة قيد دفتر الأستاذ المحاسبي (Ledger Integrity)
+    function isValidLedgerTransaction() {
       let session = getAfterSession(request.resource.data.sessionId);
-      return isEmailVerified()
-        && (session.learnerId == request.auth.uid || session.teacherId == request.auth.uid)
-        && (request.resource.data.userId == session.learnerId || request.resource.data.userId == session.teacherId);
+      let txType = request.resource.data.type;
+      let txUser = request.resource.data.userId;
+      let txAmount = request.resource.data.amount;
+      return txAmount == session.costCoins
+        && (
+          // حجز واسترداد -> المتعلّم
+          (
+            (txType == 'booking' || txType == 'refund')
+            && txUser == session.learnerId
+            && (
+              (txType == 'booking' && session.escrowStatus == 'held' && session.status == 'confirmed')
+              || (txType == 'refund' && session.escrowStatus == 'refunded_to_learner')
+            )
+          )
+          ||
+          // تحرير وتعويض -> المعلّم
+          (
+            (txType == 'release' || txType == 'compensation')
+            && txUser == session.teacherId
+            && (
+              (txType == 'release' && session.escrowStatus == 'released_to_teacher' && session.status == 'completed')
+              || (txType == 'compensation' && session.escrowStatus == 'released_to_teacher' && session.status == 'cancelled_by_learner')
+            )
+          )
+        );
     }
 
     // 5. التحقق من أطراف الجلسة لقراءة الرسائل
@@ -281,12 +303,16 @@ service cloud.firestore {
     match /transactions/{txId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
 
-      // إنشاء الحركة: مشروط بربطها بجلسة حقيقية وأن المستخدم أحد طرفيها
+      // إنشاء الحركة: مشروط بعدم وجود المستند مسبقاً، وهوية حتمية `${sessionId}_${kind}`
+      // ومطابقة المبلغ لتكلفة الجلسة، وتطابق userId والنوع مع انتقال الجلسة
       allow create: if isEmailVerified()
-        && request.resource.data.amount == 1
+        && !exists(/databases/$(database)/documents/transactions/$(txId))
         && 'sessionId' in request.resource.data
         && request.resource.data.sessionId != null
-        && isTransactionPartyValid();
+        && 'type' in request.resource.data
+        && request.resource.data.type in ['booking', 'release', 'refund', 'compensation']
+        && txId == request.resource.data.sessionId + '_' + request.resource.data.type
+        && isValidLedgerTransaction();
 
       // السجل المحاسبي غير قابل للتعديل أو الحذف إطلاقاً (Immutable Ledger)
       allow update, delete: if false;
