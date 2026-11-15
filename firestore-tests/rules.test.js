@@ -703,48 +703,18 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
     );
   });
 
-  test('أسماء المستخدمين 1: نجاح حجز اسم مستخدم فريد والقراءة العامة متاحة للجميع', async () => {
-    const userId = 'student_ali';
-    const email = 'ali@gmail.com';
-    const username = 'ali_coder';
-
-    const authedDb = testEnv.authenticatedContext(userId, { email_verified: true, email: email }).firestore();
-
-    // حجز اسم مستخدم فريد
-    await assertSucceeds(
-      authedDb.collection('usernames').doc(username).set({
-        uid: userId,
-        email: email,
-      })
-    );
-
-    // القراءة متاحة حتى بدون تسجيل دخول (لتسجيل الدخول به)
+  test('أسماء المستخدمين (موقوفة): منع أي قراءة أو كتابة على مجموعة usernames المحذوفة', async () => {
     const unauthedDb = testEnv.unauthenticatedContext().firestore();
-    await assertSucceeds(
-      unauthedDb.collection('usernames').doc(username).get()
-    );
-  });
+    const authedDb = testEnv.authenticatedContext('student_ali', { email_verified: true }).firestore();
 
-  test('أسماء المستخدمين 2: فشل حجز اسم مستخدم مأخوذ مسبقاً (منع التكرار)', async () => {
-    const user1 = 'student_1';
-    const user2 = 'student_2';
-    const username = 'hero_coder';
-
-    await testEnv.withSecurityRulesDisabled(async (context) => {
-      const adminDb = context.firestore();
-      await adminDb.collection('usernames').doc(username).set({
-        uid: user1,
-        email: 'user1@gmail.com',
-      });
-    });
-
-    const user2Db = testEnv.authenticatedContext(user2, { email_verified: true, email: 'user2@gmail.com' }).firestore();
-
-    // محاولة أخذ نفس الاسم المسجل
     await assertFails(
-      user2Db.collection('usernames').doc(username).set({
-        uid: user2,
-        email: 'user2@gmail.com',
+      unauthedDb.collection('usernames').doc('ali_coder').get()
+    );
+
+    await assertFails(
+      authedDb.collection('usernames').doc('ali_coder').set({
+        uid: 'student_ali',
+        email: 'ali@gmail.com',
       })
     );
   });

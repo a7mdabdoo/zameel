@@ -167,24 +167,6 @@ service cloud.firestore {
     }
 
     // ==========================================
-    // 1-أ. ربط أسماء المستخدمين (Usernames Mapping)
-    // يتيح تسجيل الدخول بالاسم أو الإيميل كما في Codeforces/LinkedIn
-    // ==========================================
-    match /usernames/{username} {
-      // القراءة متاحة للجميع للتحقق من توفر الاسم وتسجيل الدخول به
-      allow read: if true;
-
-      // الإنشاء لصاحب الحساب فقط، ويمنع تكرار اسم مأخوذ مسبقاً
-      allow create: if isAuthenticated()
-        && !exists(/databases/$(database)/documents/usernames/$(username))
-        && request.resource.data.uid == request.auth.uid
-        && request.resource.data.email == request.auth.token.email;
-
-      // منع التعديل أو الحذف المباشر
-      allow update, delete: if false;
-    }
-
-    // ==========================================
     // 2. عروض الشرح في بنك الوقت (Offers)
     // ==========================================
     match /offers/{offerId} {
