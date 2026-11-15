@@ -131,7 +131,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/study-block-details',
-        builder: (context, state) => const StudyBlockDetailsScreen(),
+        builder: (context, state) => StudyBlockDetailsScreen(
+          block: state.extra as StudyBlockModel?,
+        ),
       ),
       GoRoute(
         path: '/schedule-setup',

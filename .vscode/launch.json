@@ -1,0 +1,28 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "zameel (Default)",
+      "request": "launch",
+      "type": "dart"
+    },
+    {
+      "name": "zameel (Android Phone)",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "c3ddcec8"
+    },
+    {
+      "name": "zameel (Chrome Web)",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "chrome"
+    },
+    {
+      "name": "zameel (Windows Desktop)",
+      "request": "launch",
+      "type": "dart",
+      "deviceId": "windows"
+    }
+  ]
+}
