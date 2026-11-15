@@ -38,10 +38,27 @@ class TodayScreen extends ConsumerWidget {
       DateTime.thursday: 'الخميس',
       DateTime.friday: 'الجمعة',
     };
+    const monthNames = {
+      1: 'يناير',
+      2: 'فبراير',
+      3: 'مارس',
+      4: 'أبريل',
+      5: 'مايو',
+      6: 'يونيو',
+      7: 'يوليو',
+      8: 'أغسطس',
+      9: 'سبتمبر',
+      10: 'أكتوبر',
+      11: 'نوفمبر',
+      12: 'ديسمبر',
+    };
     final now = DateTime.now();
     final todayArabic = dayNames[now.weekday] ?? 'السبت';
+    final monthArabic = monthNames[now.month] ?? '';
+    final formattedTodayDate = 'اليوم • $todayArabic، ${now.day} $monthArabic';
     final todayBlocks = plannerState.studyBlocks.where((b) => b.day == todayArabic).toList();
-    final nextBlock = todayBlocks.isNotEmpty ? todayBlocks.first : null;
+    final hour = now.hour;
+    final greeting = (hour >= 4 && hour < 12) ? 'صباح الخير' : 'مساء الخير';
 
     final learnerSessions = ref.watch(learnerSessionsStreamProvider(userId)).value ?? [];
     final teacherSessions = ref.watch(teacherSessionsStreamProvider(userId)).value ?? [];
@@ -127,7 +144,7 @@ class TodayScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            'صباح الخير يا $userName 👋',
+                            '$greeting يا $userName 👋',
                             textAlign: TextAlign.end,
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1,
@@ -138,18 +155,18 @@ class TodayScreen extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(height: 2),
-                          const Row(
+                          Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                'اليوم • السبت، 14 نوفمبر',
-                                style: TextStyle(
+                                formattedTodayDate,
+                                style: const TextStyle(
                                   fontSize: 12,
                                   color: AppColors.textSecondary,
                                 ),
                               ),
-                              SizedBox(width: 4),
-                              Icon(Icons.calendar_today_outlined, size: 13, color: AppColors.textTertiary),
+                              const SizedBox(width: 4),
+                              const Icon(Icons.calendar_today_outlined, size: 13, color: AppColors.textTertiary),
                             ],
                           ),
                         ],
@@ -161,124 +178,7 @@ class TodayScreen extends ConsumerWidget {
 
               const SizedBox(height: 16),
 
-              // 2. Next Up Highlight Card (بطاقة الجلسة القادمة)
-              if (nextBlock != null)
-                Container(
-                  padding: const EdgeInsets.all(18),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardTheme.color,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.hairline),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceAlt,
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(Icons.school_outlined, size: 18, color: AppColors.primary),
-                          ),
-                          Row(
-                            children: [
-                              const Text(
-                                'جلسة تركيز فردية',
-                                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: AppColors.sage.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      width: 6,
-                                      height: 6,
-                                      decoration: const BoxDecoration(
-                                        color: AppColors.deepSage,
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    const Text(
-                                      'التالي',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppColors.deepSage,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        nextBlock.courseName,
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${nextBlock.topic} • المدة: ${nextBlock.durationMinutes} دقيقة • ${nextBlock.startTime}',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Active Action CTA Button -> /study-block-details
-                      SizedBox(
-                        height: 48,
-                        child: ElevatedButton.icon(
-                          onPressed: () => context.push('/study-block-details'),
-                          icon: const Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
-                          label: const Text(
-                            'ابدأ الآن',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-              const SizedBox(height: 20),
-
-              // 3. Section: Time Bank Peer Exchange Card (جلسة الأقران المحجوزة)
+              // 2. Section: Time Bank Peer Exchange Card (جلسة الأقران المحجوزة)
               if (confirmedSession != null) ...[
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -473,33 +373,57 @@ class TodayScreen extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(18),
                             border: Border.all(color: AppColors.hairline),
                           ),
-                          child: Column(
-                            children: [
-                              const Icon(Icons.calendar_today_outlined, size: 40, color: AppColors.textSecondary),
-                              const SizedBox(height: 12),
-                              const Text(
-                                'لا توجد محاضرات أو مذاكرة مجدولة اليوم',
-                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 6),
-                              const Text(
-                                'أضف مواعيد محاضراتك وموادك وسيقوم التطبيق بحساب أوقات فراغك وتوليد خطة مذاكرة ذكية لك تلقائياً.',
-                                style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 14),
-                              ElevatedButton.icon(
-                                onPressed: () => context.push('/schedule-setup'),
-                                icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
-                                label: const Text('إعداد جدول المحاضرات الآن', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primary,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          child: todayArabic == 'الجمعة'
+                              ? Column(
+                                  children: [
+                                    const Text('🌴', style: TextStyle(fontSize: 44)),
+                                    const SizedBox(height: 12),
+                                    const Text(
+                                      'عطلة نهاية الأسبوع • يوم الجمعة المبارك',
+                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    const Text(
+                                      'لا توجد جلسات مذاكرة أو محاضرات مجدولة اليوم. استمتع بيومك وجدد طاقتك قبل بداية الأسبوع الجديد!',
+                                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    OutlinedButton.icon(
+                                      onPressed: () => context.push('/plan'),
+                                      icon: const Icon(Icons.calendar_month_outlined, size: 18),
+                                      label: const Text('استعراض خطة الأسبوع'),
+                                    ),
+                                  ],
+                                )
+                              : Column(
+                                  children: [
+                                    const Icon(Icons.calendar_today_outlined, size: 40, color: AppColors.textSecondary),
+                                    const SizedBox(height: 12),
+                                    const Text(
+                                      'لا توجد محاضرات أو مذاكرة مجدولة اليوم',
+                                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 6),
+                                    const Text(
+                                      'أضف مواعيد محاضراتك وموادك وسيقوم التطبيق بحساب أوقات فراغك وتوليد خطة مذاكرة ذكية لك تلقائياً.',
+                                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 14),
+                                    ElevatedButton.icon(
+                                      onPressed: () => context.push('/schedule-setup'),
+                                      icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
+                                      label: const Text('إعداد جدول المحاضرات الآن', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.primary,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                            ],
-                          ),
                         ),
 
                       // محاضرات اليوم المجدولة يدوياً
@@ -525,10 +449,27 @@ class TodayScreen extends ConsumerWidget {
                           category: block.topic,
                           room: block.room,
                           time: '${block.startTime} – ${block.endTime}',
-                          ribbonColor: block.ribbonColor,
-                          statusText: block.isCompleted ? 'مكتملة' : 'مخطط لها',
+                          ribbonColor: block.isCompleted ? AppColors.success : block.ribbonColor,
+                          statusText: block.isCompleted ? 'تمت' : 'لم تتم',
                           isDone: block.isCompleted,
-                          onTap: () => context.push('/study-block-details'),
+                          canToggle: true,
+                          onToggleDone: () {
+                            ref.read(plannerProvider.notifier).toggleBlockCompleted(block.id);
+                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                backgroundColor: !block.isCompleted ? AppColors.success : AppColors.primary,
+                                duration: const Duration(seconds: 2),
+                                content: Text(
+                                  !block.isCompleted
+                                      ? 'عاش! تم تسجيل مذاكرة "${block.courseName}" بنجاح 🎉'
+                                      : 'تم إلغاء تحديد "${block.courseName}"',
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            );
+                          },
+                          onTap: () => context.push('/study-block-details', extra: block),
                         );
                       }),
                     ],
@@ -619,6 +560,8 @@ class TodayScreen extends ConsumerWidget {
     required String statusText,
     required bool isDone,
     required VoidCallback onTap,
+    VoidCallback? onToggleDone,
+    bool canToggle = false,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -650,21 +593,60 @@ class TodayScreen extends ConsumerWidget {
                   title: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: isDone ? AppColors.sage.withValues(alpha: 0.2) : AppColors.primaryContainer.withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          statusText,
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: isDone ? AppColors.deepSage : AppColors.primary,
+                      if (canToggle)
+                        InkWell(
+                          onTap: onToggleDone,
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isDone
+                                  ? AppColors.success.withValues(alpha: 0.15)
+                                  : AppColors.error.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: isDone
+                                    ? AppColors.success.withValues(alpha: 0.5)
+                                    : AppColors.error.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                                  size: 13,
+                                  color: isDone ? AppColors.success : AppColors.error,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  isDone ? 'تم' : 'لم تتم',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDone ? AppColors.success : AppColors.error,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      else
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isDone ? AppColors.sage.withValues(alpha: 0.2) : AppColors.primaryContainer.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            statusText,
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: isDone ? AppColors.deepSage : AppColors.primary,
+                            ),
                           ),
                         ),
-                      ),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
@@ -712,3 +694,4 @@ class TodayScreen extends ConsumerWidget {
     );
   }
 }
+

@@ -26,18 +26,23 @@ class _NeedHelpScreenState extends State<NeedHelpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardColor = isDark ? AppColors.darkSurface : Colors.white;
+    final hairline = isDark ? AppColors.darkHairline : AppColors.hairline;
+    final onSurface = theme.colorScheme.onSurface;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_forward_ios_rounded, color: onSurface),
           onPressed: () => context.pop(),
         ),
-        title: const Text(
+        title: Text(
           'طلب مساعدة من زميل 🤝',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: onSurface),
         ),
         centerTitle: true,
       ),
@@ -51,18 +56,18 @@ class _NeedHelpScreenState extends State<NeedHelpScreen> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryContainer.withValues(alpha: 0.4),
+                  color: isDark ? AppColors.darkPrimaryContainer.withValues(alpha: 0.4) : AppColors.primaryContainer.withValues(alpha: 0.4),
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                  border: Border.all(color: (isDark ? AppColors.darkPrimary : AppColors.primary).withValues(alpha: 0.2)),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.lightbulb_outline_rounded, color: AppColors.primary, size: 22),
-                    SizedBox(width: 10),
+                    Icon(Icons.lightbulb_outline_rounded, color: isDark ? AppColors.darkPrimary : AppColors.primary, size: 22),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         'جلسة الشرح تكلف 1 عملة وقت فقط. بعد انتهاء الجلسة يتم تحويلها للزميل الشارح تلقائياً.',
-                        style: TextStyle(fontSize: 12, color: AppColors.primary, height: 1.4),
+                        style: TextStyle(fontSize: 12, color: isDark ? AppColors.darkPrimary : AppColors.primary, height: 1.4),
                       ),
                     ),
                   ],
@@ -72,19 +77,20 @@ class _NeedHelpScreenState extends State<NeedHelpScreen> {
               const SizedBox(height: 24),
 
               // Course
-              const Text('المادة التي تحتاج مساعدة فيها', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+              Text('المادة التي تحتاج مساعدة فيها', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: onSurface)),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: cardColor,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.hairline),
+                  border: Border.all(color: hairline),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<CourseSeed>(
                     value: _selectedCourse,
                     isExpanded: true,
+                    dropdownColor: cardColor,
                     items: AppConstants.seedCourses.map((c) {
                       return DropdownMenuItem(
                         value: c,
@@ -92,7 +98,7 @@ class _NeedHelpScreenState extends State<NeedHelpScreen> {
                           children: [
                             Container(width: 8, height: 8, decoration: BoxDecoration(color: c.color, shape: BoxShape.circle)),
                             const SizedBox(width: 8),
-                            Text(c.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                            Text(c.name, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: onSurface)),
                           ],
                         ),
                       );
@@ -107,38 +113,40 @@ class _NeedHelpScreenState extends State<NeedHelpScreen> {
               const SizedBox(height: 20),
 
               // Topic description
-              const Text('ما الجزء أو الموضوع المحدد؟', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+              Text('ما الجزء أو الموضوع المحدد؟', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: onSurface)),
               const SizedBox(height: 8),
               TextFormField(
                 controller: _topicController,
                 maxLines: 3,
+                style: TextStyle(color: onSurface),
                 decoration: InputDecoration(
                   hintText: 'اكتب ما تواجه صعوبة فيه (مثال: التحويلات الخطية والمصفوفات)',
+                  hintStyle: TextStyle(color: isDark ? AppColors.darkTextTertiary : AppColors.textTertiary),
                   filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
+                  fillColor: cardColor,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hairline)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hairline)),
                 ),
               ),
 
               const SizedBox(height: 20),
 
               // Preferred time
-              const Text('الوقت المفضل لك', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+              Text('الوقت المفضل لك', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: onSurface)),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: cardColor,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.hairline),
+                  border: Border.all(color: hairline),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.access_time_rounded, color: AppColors.textSecondary, size: 20),
+                    Icon(Icons.access_time_rounded, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary, size: 20),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: Text(_preferredSlot, style: const TextStyle(fontSize: 13, color: AppColors.textPrimary)),
+                      child: Text(_preferredSlot, style: TextStyle(fontSize: 13, color: onSurface)),
                     ),
                   ],
                 ),
@@ -157,7 +165,7 @@ class _NeedHelpScreenState extends State<NeedHelpScreen> {
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: isDark ? AppColors.darkPrimary : AppColors.primary,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                 ),

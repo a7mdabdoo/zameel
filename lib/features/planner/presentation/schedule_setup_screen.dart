@@ -164,18 +164,27 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
     final availableCourses = _getAvailableCourses(userDoc);
     _initLectures(availableCourses);
 
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardColor = isDark ? AppColors.darkSurface : Colors.white;
+    final surfaceAlt = isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt;
+    final hairline = isDark ? AppColors.darkHairline : AppColors.hairline;
+    final onSurface = theme.colorScheme.onSurface;
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
+    final primaryContainer = isDark ? AppColors.darkPrimaryContainer : AppColors.primaryContainer;
+    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_rounded, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_back_ios_rounded, color: onSurface),
           onPressed: () => context.pop(),
         ),
-        title: const Text(
+        title: Text(
           'جدول المحاضرات والمذاكرة 🗓️',
-          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: onSurface),
         ),
         centerTitle: true,
       ),
@@ -190,30 +199,30 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [AppColors.primary.withValues(alpha: 0.08), Colors.white],
+                    colors: [primaryColor.withValues(alpha: 0.12), cardColor],
                     begin: Alignment.topRight,
                     end: Alignment.bottomLeft,
                   ),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                  border: Border.all(color: primaryColor.withValues(alpha: 0.2)),
                 ),
-                child: const Column(
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.calendar_month_rounded, color: AppColors.primary, size: 22),
-                        SizedBox(width: 8),
+                        Icon(Icons.calendar_month_rounded, color: primaryColor, size: 22),
+                        const SizedBox(width: 8),
                         Text(
                           'أدخل جدول محاضراتك بنفسك',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.primary),
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryColor),
                         ),
                       ],
                     ),
-                    SizedBox(height: 6),
+                    const SizedBox(height: 6),
                     Text(
                       'أضف أوقات المحاضرات الأسبوعية، وستقوم الخوارزمية الذكية بتفادي أوقات انشغالك وتوزيع جلسات المذاكرة وفق أهمية وساعات كل مادة.',
-                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+                      style: TextStyle(fontSize: 12, color: textSecondary, height: 1.4),
                     ),
                   ],
                 ),
@@ -225,12 +234,12 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: cardColor,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.hairline),
+                  border: Border.all(color: hairline),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
+                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
                       blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
@@ -239,33 +248,34 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Row(
+                    Row(
                       children: [
-                        Icon(Icons.add_circle_outline_rounded, color: AppColors.primary, size: 20),
-                        SizedBox(width: 6),
+                        Icon(Icons.add_circle_outline_rounded, color: primaryColor, size: 20),
+                        const SizedBox(width: 6),
                         Text(
                           'إضافة محاضرة للجدول ➕',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: onSurface),
                         ),
                       ],
                     ),
                     const SizedBox(height: 14),
 
                     // اختيار اليوم
-                    const Text('اليوم', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                    Text('اليوم', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: onSurface)),
                     const SizedBox(height: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceAlt,
+                        color: surfaceAlt,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.hairline),
+                        border: Border.all(color: hairline),
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           value: _selectedDay,
                           isExpanded: true,
-                          items: _days.map((d) => DropdownMenuItem(value: d, child: Text(d, style: const TextStyle(fontSize: 13)))).toList(),
+                          dropdownColor: cardColor,
+                          items: _days.map((d) => DropdownMenuItem(value: d, child: Text(d, style: TextStyle(fontSize: 13, color: onSurface)))).toList(),
                           onChanged: (val) {
                             if (val != null) setState(() => _selectedDay = val);
                           },
@@ -276,19 +286,20 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                     const SizedBox(height: 12),
 
                     // اختيار المادة من مواد المستخدم
-                    const Text('المادة الدراسية', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                    Text('المادة الدراسية', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: onSurface)),
                     const SizedBox(height: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceAlt,
+                        color: surfaceAlt,
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.hairline),
+                        border: Border.all(color: hairline),
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<CourseSeed>(
                           value: _selectedCourse ?? (availableCourses.isNotEmpty ? availableCourses.first : null),
                           isExpanded: true,
+                          dropdownColor: cardColor,
                           items: availableCourses.map((c) {
                             return DropdownMenuItem(
                               value: c,
@@ -303,7 +314,7 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                                   Expanded(
                                     child: Text(
                                       '${c.name} (${c.creditHours} ساعات)',
-                                      style: const TextStyle(fontSize: 13),
+                                      style: TextStyle(fontSize: 13, color: onSurface),
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
@@ -327,20 +338,21 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('من الساعة', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                              Text('من الساعة', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: onSurface)),
                               const SizedBox(height: 6),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12),
                                 decoration: BoxDecoration(
-                                  color: AppColors.surfaceAlt,
+                                  color: surfaceAlt,
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: AppColors.hairline),
+                                  border: Border.all(color: hairline),
                                 ),
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
                                     value: _startTime,
                                     isExpanded: true,
-                                    items: _commonStartTimes.map((t) => DropdownMenuItem(value: t, child: Text(t, style: const TextStyle(fontSize: 12)))).toList(),
+                                    dropdownColor: cardColor,
+                                    items: _commonStartTimes.map((t) => DropdownMenuItem(value: t, child: Text(t, style: TextStyle(fontSize: 12, color: onSurface)))).toList(),
                                     onChanged: (val) {
                                       if (val != null) setState(() => _startTime = val);
                                     },
@@ -355,20 +367,21 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('إلى الساعة', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                              Text('إلى الساعة', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: onSurface)),
                               const SizedBox(height: 6),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12),
                                 decoration: BoxDecoration(
-                                  color: AppColors.surfaceAlt,
+                                  color: surfaceAlt,
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: AppColors.hairline),
+                                  border: Border.all(color: hairline),
                                 ),
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
                                     value: _endTime,
                                     isExpanded: true,
-                                    items: _commonEndTimes.map((t) => DropdownMenuItem(value: t, child: Text(t, style: const TextStyle(fontSize: 12)))).toList(),
+                                    dropdownColor: cardColor,
+                                    items: _commonEndTimes.map((t) => DropdownMenuItem(value: t, child: Text(t, style: TextStyle(fontSize: 12, color: onSurface)))).toList(),
                                     onChanged: (val) {
                                       if (val != null) setState(() => _endTime = val);
                                     },
@@ -384,17 +397,19 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                     const SizedBox(height: 12),
 
                     // القاعة / المكان
-                    const Text('القاعة أو المعمل', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                    Text('القاعة أو المعمل', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: onSurface)),
                     const SizedBox(height: 6),
                     TextField(
                       controller: _roomController,
+                      style: TextStyle(color: onSurface),
                       decoration: InputDecoration(
                         hintText: 'قاعة 3، مدرج 1، معمل 2...',
+                        hintStyle: TextStyle(color: textSecondary),
                         filled: true,
-                        fillColor: AppColors.surfaceAlt,
+                        fillColor: surfaceAlt,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hairline)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hairline)),
                       ),
                     ),
 
@@ -406,7 +421,7 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                       icon: const Icon(Icons.add, color: Colors.white, size: 18),
                       label: const Text('إضافة هذه المحاضرة', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
+                        backgroundColor: primaryColor,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
@@ -423,7 +438,7 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                 children: [
                   Text(
                     'المحاضرات المجدولة (${_lectures.length})',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: onSurface),
                   ),
                   if (_lectures.isNotEmpty)
                     TextButton(
@@ -438,23 +453,23 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: cardColor,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.hairline),
+                    border: Border.all(color: hairline),
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Column(
                       children: [
-                        Icon(Icons.event_busy_rounded, color: AppColors.textTertiary, size: 36),
-                        SizedBox(height: 8),
+                        Icon(Icons.event_busy_rounded, color: isDark ? AppColors.darkTextTertiary : AppColors.textTertiary, size: 36),
+                        const SizedBox(height: 8),
                         Text(
                           'لا توجد محاضرات مضافة حتى الآن',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textSecondary),
                         ),
-                        SizedBox(height: 4),
+                        const SizedBox(height: 4),
                         Text(
                           'أضف مواعيدك بالنموذج أعلاه لبناء خطة المذاكرة حولها',
-                          style: TextStyle(fontSize: 12, color: AppColors.textTertiary),
+                          style: TextStyle(fontSize: 12, color: isDark ? AppColors.darkTextTertiary : AppColors.textTertiary),
                         ),
                       ],
                     ),
@@ -469,9 +484,9 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                     margin: const EdgeInsets.only(bottom: 10),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: cardColor,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.hairline),
+                      border: Border.all(color: hairline),
                     ),
                     child: Row(
                       children: [
@@ -493,19 +508,19 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: AppColors.primaryContainer.withValues(alpha: 0.6),
+                                      color: primaryContainer.withValues(alpha: 0.6),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
                                       lecture.day,
-                                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primary),
+                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: primaryColor),
                                     ),
                                   ),
                                   const SizedBox(width: 6),
                                   Expanded(
                                     child: Text(
                                       lecture.courseName,
-                                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: onSurface),
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
@@ -514,7 +529,7 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                               const SizedBox(height: 4),
                               Text(
                                 '${lecture.startTime} – ${lecture.endTime} • ${lecture.room}',
-                                style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                style: TextStyle(fontSize: 11, color: textSecondary),
                               ),
                             ],
                           ),
@@ -547,7 +562,7 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                     style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: primaryColor,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                 ),
