@@ -562,6 +562,8 @@ class WalletTransactionModel {
         return Icons.undo_rounded;
       case 'late_compensation':
         return Icons.shield_outlined;
+      case 'study_reward':
+        return Icons.stars_rounded;
       default:
         return Icons.wallet_outlined;
     }

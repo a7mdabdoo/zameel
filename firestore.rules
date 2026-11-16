@@ -142,6 +142,13 @@ service cloud.firestore {
         ||
         // د) استرداد العملة للمتعلم (إلغاء المعلم أو إلغاء مبكر)
         ('lastSessionId' in request.resource.data && isRefundToLearner(userId))
+        ||
+        // هـ) مكافأة إتمام جلسة مذاكرة (Study Block Reward)
+        (
+          isOwner(userId)
+          && request.resource.data.timeCoins == resource.data.timeCoins + 1
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['timeCoins', 'studyHours'])
+        )
       );
 
       allow delete: if false;
@@ -270,12 +277,14 @@ service cloud.firestore {
     match /transactions/{txId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
 
-      // إنشاء الحركة: مشروط بربطها بجلسة حقيقية وأن المستخدم أحد طرفيها
+      // إنشاء الحركة: مشروط بربطها بجلسة حقيقية وأن المستخدم أحد طرفيها أو مكافأة مذاكرة
       allow create: if isEmailVerified()
         && request.resource.data.amount == 1
-        && 'sessionId' in request.resource.data
-        && request.resource.data.sessionId != null
-        && isTransactionPartyValid();
+        && (
+          ('sessionId' in request.resource.data && request.resource.data.sessionId != null && isTransactionPartyValid())
+          ||
+          (request.resource.data.type == 'study_reward' && request.resource.data.userId == request.auth.uid)
+        );
 
       // السجل المحاسبي غير قابل للتعديل أو الحذف إطلاقاً (Immutable Ledger)
       allow update, delete: if false;
