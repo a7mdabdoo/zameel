@@ -141,11 +141,13 @@ class _StudyBlockDetailsScreenState
       });
 
       // إضافة نقطة وقت لمكافأة الطالب عند إتمام جلسة التركيز
+      ref.read(userTimeCoinsProvider.notifier).addCoins(1);
       final uid = ref.read(authServiceProvider).currentUser?.uid;
       if (uid != null && uid.isNotEmpty) {
         ref.read(timeBankRepositoryProvider).awardStudyPoint(
           userId: uid,
           title: 'إتمام جلسة تركيز: ${block.courseName}',
+          blockId: block.id,
           points: 1,
         );
       }
@@ -545,11 +547,13 @@ class _StudyBlockDetailsScreenState
 
     // إضافة نقطة وقت لمكافأة الطالب عند الضغط على زرار تمت المذاكرة (دون تكرار لنفس الجلسة)
     if (!wasCompleted) {
+      ref.read(userTimeCoinsProvider.notifier).addCoins(1);
       final uid = ref.read(authServiceProvider).currentUser?.uid;
       if (uid != null && uid.isNotEmpty) {
         ref.read(timeBankRepositoryProvider).awardStudyPoint(
           userId: uid,
           title: 'مكافأة إتمام مذاكرة: ${block.courseName}',
+          blockId: block.id,
           points: 1,
         );
       }

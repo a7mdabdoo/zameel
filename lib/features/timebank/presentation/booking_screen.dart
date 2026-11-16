@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/models/app_models.dart';
+import '../../../core/state/app_state.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/data/auth_service.dart';
 import '../data/timebank_repository.dart';
@@ -77,6 +78,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       );
 
       await ref.read(timeBankRepositoryProvider).bookSessionWithEscrow(session: session);
+      ref.read(userTimeCoinsProvider.notifier).deductCoins(AppConstants.sessionCostCoins);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -100,9 +102,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
   @override
   Widget build(BuildContext context) {
     final offer = widget.offer;
-    final userProfileAsync = ref.watch(userProfileStreamProvider);
-    final userDoc = userProfileAsync.value?.data();
-    final coins = (userDoc?['timeCoins'] as num?)?.toInt() ?? 2;
+    final coins = ref.watch(userTimeCoinsProvider);
 
     final teacherName = offer?.teacherName ?? 'زميل دراسة';
     final teacherInitials = teacherName.trim().isNotEmpty
