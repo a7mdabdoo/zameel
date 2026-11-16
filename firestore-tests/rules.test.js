@@ -3990,4 +3990,81 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
       })
     );
   });
+
+  // =========================================================================
+  // القسم 20: متانة عروض الشرح وحد الشرائح والتحقق من كل شريحة (Hotfix Item 4)
+  // =========================================================================
+
+  test('بند 4 (سلبي 1 - Cap Slots 7): رفض إنشاء عرض شرح يحتوي على أكثر من 7 شرائح (slots.size() > 7)', async () => {
+    const teacherId = 'teacher_offer_slots_8';
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+
+    const eightSlots = [];
+    for (let i = 0; i < 8; i++) {
+      eightSlots.push({ weekday: i % 7, startMin: 600, endMin: 720 });
+    }
+
+    await assertFails(
+      teacherDb.collection('offers').doc('offer_eight_slots').set({
+        teacherId: teacherId,
+        teacherName: 'أستاذ خوارزميات',
+        courseId: 'algo_101',
+        courseName: 'خوارزميات',
+        courseCode: 'CS301',
+        topic: 'أشجار البحث الثنائي',
+        durationMinutes: 60,
+        location: 'المبنى ج',
+        slots: eightSlots,
+        isAvailable: true,
+      })
+    );
+  });
+
+  test('بند 4 (سلبي 2 - Invalid Slot at Index > 0): رفض إنشاء عرض به شريحة تالفة في الفهرس الثاني رغم صحة الأولى', async () => {
+    const teacherId = 'teacher_offer_slot_idx1';
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+
+    await assertFails(
+      teacherDb.collection('offers').doc('offer_bad_idx1').set({
+        teacherId: teacherId,
+        teacherName: 'أستاذ خوارزميات',
+        courseId: 'algo_101',
+        courseName: 'خوارزميات',
+        courseCode: 'CS301',
+        topic: 'أشجار البحث الثنائي',
+        durationMinutes: 60,
+        location: 'المبنى ج',
+        slots: [
+          { weekday: 0, startMin: 600, endMin: 720 }, // صالحة
+          { weekday: 2, startMin: 800, endMin: 700 }, // غير صالحة: endMin <= startMin
+        ],
+        isAvailable: true,
+      })
+    );
+  });
+
+  test('بند 4 (إيجابي - Valid 7 Slots): نجاح إنشاء عرض يحتوي على 7 شرائح صالحة تماماً', async () => {
+    const teacherId = 'teacher_offer_valid_7';
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+
+    const sevenSlots = [];
+    for (let i = 0; i < 7; i++) {
+      sevenSlots.push({ weekday: i, startMin: 600, endMin: 720 });
+    }
+
+    await assertSucceeds(
+      teacherDb.collection('offers').doc('offer_seven_slots_ok').set({
+        teacherId: teacherId,
+        teacherName: 'أستاذ خوارزميات',
+        courseId: 'algo_101',
+        courseName: 'خوارزميات',
+        courseCode: 'CS301',
+        topic: 'أشجار البحث الثنائي',
+        durationMinutes: 60,
+        location: 'المبنى ج',
+        slots: sevenSlots,
+        isAvailable: true,
+      })
+    );
+  });
 });

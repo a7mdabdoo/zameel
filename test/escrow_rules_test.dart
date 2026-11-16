@@ -1010,4 +1010,70 @@ void main() {
       expect(notifier2.completedBlockIds.contains(blockId), isFalse);
     });
   });
+
+  // =========================================================================
+  // 17. التحليل الدفاعي لعروض الشرح (Item 4: Defensive Parsing of Offers)
+  // =========================================================================
+  group('17. التحليل الدفاعي لعروض الشرح (Item 4: Defensive Offer Parsing)', () {
+    test('تخطي العروض التالفة أو التي تفتقر للمعلومات الأساسية (returns null)', () {
+      // عرض بدون teacherId
+      expect(
+        TimeBankOfferModel.fromMapSafe({'courseName': 'فيزياء'}, 'offer_no_teacher'),
+        isNull,
+      );
+
+      // عرض بدون courseName
+      expect(
+        TimeBankOfferModel.fromMapSafe({'teacherId': 't_1'}, 'offer_no_course'),
+        isNull,
+      );
+
+      // عرض بدون أي شرائح صالحة
+      expect(
+        TimeBankOfferModel.fromMapSafe({
+          'teacherId': 't_1',
+          'courseName': 'رياضيات',
+          'slots': [
+            {'weekday': 99, 'startMin': 800, 'endMin': 700}, // فاسدة
+          ],
+        }, 'offer_bad_slots_only'),
+        isNull,
+      );
+    });
+
+    test('تنقية الشرائح واستبعاد الشرائح الفاسدة مع الاحتفاظ بالشرائح الصالحة', () {
+      final offer = TimeBankOfferModel.fromMapSafe({
+        'teacherId': 'teacher_123',
+        'teacherName': 'أحمد زميل',
+        'courseName': 'تفاضل وتكامل',
+        'slots': [
+          {'weekday': 0, 'startMin': 600, 'endMin': 720}, // صالحة
+          {'invalid': 'garbage_data'}, // فاسدة تماماً
+          {'weekday': 1, 'startMin': 900, 'endMin': 800}, // فاسدة (endMin < startMin)
+          {'weekday': 2, 'startMin': 780, 'endMin': 900}, // صالحة
+        ],
+      }, 'offer_mixed');
+
+      expect(offer, isNotNull);
+      expect(offer!.slots.length, equals(2));
+      expect(offer.slots[0].weekday, equals(0));
+      expect(offer.slots[1].weekday, equals(2));
+    });
+
+    test('اقتصار الشرائح على حد أقصى 7 شرائح دفاعياً', () {
+      final rawSlots = List.generate(
+        10,
+        (i) => {'weekday': i % 7, 'startMin': 600, 'endMin': 720},
+      );
+
+      final offer = TimeBankOfferModel.fromMapSafe({
+        'teacherId': 'teacher_capped',
+        'courseName': 'خوارزميات',
+        'slots': rawSlots,
+      }, 'offer_cap');
+
+      expect(offer, isNotNull);
+      expect(offer!.slots.length, equals(7));
+    });
+  });
 }
