@@ -214,23 +214,24 @@ service cloud.firestore {
       allow get: if isAuthenticated();
       allow list: if false;
 
-      // إنشاء الحساب الأولي: برصيد 2 عملة تماماً، وتقييم صفر
+      // إنشاء الحساب الأولي: برصيد 2 عملة تماماً، وتقييم صفر مع حظر رقم الواتساب للخصوصية
       allow create: if isOwner(userId)
                     && request.resource.data.timeCoins == 2
                     && request.resource.data.completedSessions == 0
                     && (!('ratingSum' in request.resource.data) || request.resource.data.ratingSum == 0)
-                    && (!('ratingCount' in request.resource.data) || request.resource.data.ratingCount == 0);
+                    && (!('ratingCount' in request.resource.data) || request.resource.data.ratingCount == 0)
+                    && !('whatsappNumber' in request.resource.data);
 
       // تحديث الحساب
       allow update: if isAuthenticated() && (
-        // أ) صاحب الحساب يعدل بياناته الشخصية (ممنوع منعاً باتاً تعديل الرصيد، التقييم، الجلسات، الإيميل، نقاط وساعات المذاكرة، أو كتل المذاكرة)
+        // أ) صاحب الحساب يعدل بياناته الشخصية (ممنوع منعاً باتاً تعديل الرصيد، التقييم، الجلسات، الإيميل، نقاط وساعات المذاكرة، أو كتل المذاكرة، أو رقم الواتساب)
         (
           isOwner(userId)
           && request.resource.data.timeCoins == resource.data.timeCoins
           && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
             'timeCoins', 'teacherRating', 'ratingSum', 'ratingCount', 
             'completedSessions', 'lastSessionId', 'email',
-            'studyPoints', 'studyHours', 'completedBlockIds'
+            'studyPoints', 'studyHours', 'completedBlockIds', 'whatsappNumber'
           ])
         )
         ||
@@ -295,6 +296,8 @@ service cloud.firestore {
         && (!('rating' in request.resource.data) || request.resource.data.rating == null)
         && (!('meetingUrl' in request.resource.data) || request.resource.data.meetingUrl == null)
         && (!('mode' in request.resource.data) || request.resource.data.mode in ['online', 'in_person'])
+        && (!('learnerContact' in request.resource.data) || (request.resource.data.learnerContact is string && request.resource.data.learnerContact.size() <= 100))
+        && (!('teacherContact' in request.resource.data) || request.resource.data.teacherContact == null)
         // التحقق الذري من خصم عملة المتعلم في نفس المعاملة
         && getUser(request.auth.uid).timeCoins >= 1
         && getAfterUser(request.auth.uid).timeCoins == getUser(request.auth.uid).timeCoins - 1
@@ -329,7 +332,8 @@ service cloud.firestore {
             && request.resource.data.escrowStatus == resource.data.escrowStatus
             && resource.data.scheduledAt is timestamp
             && request.time < resource.data.scheduledAt
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'confirmedAt'])
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'confirmedAt', 'teacherContact'])
+            && (!('teacherContact' in request.resource.data) || (request.resource.data.teacherContact is string && request.resource.data.teacherContact.size() <= 100))
           )
           ||
           // الحالة 0-ب: رفض المعلم للجلسة المعلقة (pending -> rejected) مع استرداد كامل للمتعلم

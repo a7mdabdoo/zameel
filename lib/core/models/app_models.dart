@@ -16,7 +16,6 @@ class UserModel {
   final dynamic semester;     // 1, 2
   final bool isOnboarded;
   final String department;
-  final String? whatsappNumber;
   final int timeCoins;
   final List<String> selectedCourses;
   final Map<String, int> courseRatings; // 1 to 5
@@ -40,7 +39,6 @@ class UserModel {
     this.semester,
     this.isOnboarded = false,
     this.department = 'عام (General)',
-    this.whatsappNumber,
     this.timeCoins = AppConstants.welcomeCoins,
     this.selectedCourses = const [],
     this.courseRatings = const {},
@@ -64,7 +62,6 @@ class UserModel {
       'semester': semester,
       'isOnboarded': isOnboarded,
       'department': department,
-      'whatsappNumber': whatsappNumber,
       'timeCoins': timeCoins,
       'selectedCourses': selectedCourses,
       'courseRatings': courseRatings,
@@ -91,7 +88,6 @@ class UserModel {
       semester: map['semester'],
       isOnboarded: isOnboardedVal,
       department: map['department'] as String? ?? 'عام (General)',
-      whatsappNumber: map['whatsappNumber'] as String?,
       timeCoins: (map['timeCoins'] as num?)?.toInt() ?? AppConstants.welcomeCoins,
       selectedCourses: List<String>.from(map['selectedCourses'] ?? []),
       courseRatings: (map['courseRatings'] as Map<dynamic, dynamic>?)?.map(
@@ -119,7 +115,6 @@ class UserModel {
     dynamic semester,
     bool? isOnboarded,
     String? department,
-    String? whatsappNumber,
     int? timeCoins,
     List<String>? selectedCourses,
     Map<String, int>? courseRatings,
@@ -141,7 +136,6 @@ class UserModel {
       semester: semester ?? this.semester,
       isOnboarded: isOnboarded ?? this.isOnboarded,
       department: department ?? this.department,
-      whatsappNumber: whatsappNumber ?? this.whatsappNumber,
       timeCoins: timeCoins ?? this.timeCoins,
       selectedCourses: selectedCourses ?? this.selectedCourses,
       courseRatings: courseRatings ?? this.courseRatings,
@@ -314,6 +308,8 @@ class TimeBankSessionModel {
   final DateTime? teacherMarkedDoneAt;
   final DateTime? disputedAt;
   final String? disputeReason;
+  final String? teacherContact;
+  final String? learnerContact;
 
   const TimeBankSessionModel({
     required this.id,
@@ -347,6 +343,8 @@ class TimeBankSessionModel {
     this.teacherMarkedDoneAt,
     this.disputedAt,
     this.disputeReason,
+    this.teacherContact,
+    this.learnerContact,
   });
 
   Map<String, dynamic> toMap() {
@@ -382,6 +380,8 @@ class TimeBankSessionModel {
       'teacherMarkedDoneAt': teacherMarkedDoneAt?.toIso8601String(),
       'disputedAt': disputedAt?.toIso8601String(),
       'disputeReason': disputeReason,
+      'teacherContact': teacherContact,
+      'learnerContact': learnerContact,
     };
   }
 
@@ -427,6 +427,8 @@ class TimeBankSessionModel {
       teacherMarkedDoneAt: parseDate(map['teacherMarkedDoneAt']),
       disputedAt: parseDate(map['disputedAt']),
       disputeReason: map['disputeReason'] as String?,
+      teacherContact: map['teacherContact'] as String?,
+      learnerContact: map['learnerContact'] as String?,
     );
   }
 
@@ -447,6 +449,8 @@ class TimeBankSessionModel {
     DateTime? teacherMarkedDoneAt,
     DateTime? disputedAt,
     String? disputeReason,
+    String? teacherContact,
+    String? learnerContact,
   }) {
     return TimeBankSessionModel(
       id: id,
@@ -480,6 +484,8 @@ class TimeBankSessionModel {
       teacherMarkedDoneAt: teacherMarkedDoneAt ?? this.teacherMarkedDoneAt,
       disputedAt: disputedAt ?? this.disputedAt,
       disputeReason: disputeReason ?? this.disputeReason,
+      teacherContact: teacherContact ?? this.teacherContact,
+      learnerContact: learnerContact ?? this.learnerContact,
     );
   }
 }

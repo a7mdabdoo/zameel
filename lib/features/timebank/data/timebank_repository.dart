@@ -153,6 +153,7 @@ class TimeBankRepository {
   Future<void> acceptSession({
     required String sessionId,
     required String teacherId,
+    String? teacherContact,
   }) async {
     final firestore = _firestore;
     if (firestore == null) {
@@ -184,10 +185,15 @@ class TimeBankRepository {
         currentEscrowStatus: currentEscrow,
       );
 
-      transaction.update(sessionDocRef, {
+      final updates = <String, dynamic>{
         'status': 'confirmed',
         'confirmedAt': FieldValue.serverTimestamp(),
-      });
+      };
+      if (teacherContact != null && teacherContact.trim().isNotEmpty) {
+        updates['teacherContact'] = teacherContact.trim();
+      }
+
+      transaction.update(sessionDocRef, updates);
     });
   }
 
