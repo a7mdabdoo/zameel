@@ -898,8 +898,8 @@ void main() {
   // =========================================================================
   // المجموعة 15: مكافأة إتمام المذاكرة وزيادة نقاط الوقت (Study Completion Reward)
   // =========================================================================
-  group('15. مكافأة إتمام المذاكرة وزيادة نقاط الوقت (Study Completion Reward & Point Increment)', () {
-    test('إنشاء حركة محفظة بنوع study_reward تعطي أيقونة النجوم ورصيد إيجابي', () {
+  group('15. فصل نقاط المذاكرة عن عملات الوقت (Item B: Study Points Decoupled from Spendable Coins)', () {
+    test('نموذج حركة المحفظة study_reward يتعامل بأمان مع البيانات التاريخية', () {
       final tx = WalletTransactionModel(
         id: 'tx_study_test_1',
         userId: 'student_123',
@@ -925,17 +925,34 @@ void main() {
       expect(parsed.icon, Icons.stars_rounded);
     });
 
-    test('إتمام جلسة المذاكرة يزود رصيد عملات الوقت (timeCoins) وساعات المذاكرة', () {
-      int initialTimeCoins = 2;
-      int initialStudyHours = 0;
-      const pointsToAward = 1;
+    test('إتمام جلسة المذاكرة لا يزيد رصيد عملات الوقت (timeCoins) بل يوثق فقط كتل المذاكرة', () {
+      const initialTimeCoins = 2;
+      final completedBlockIds = <String>{};
 
-      // محاكاة زيادة الرصيد الذري
-      final updatedCoins = initialTimeCoins + pointsToAward;
-      final updatedHours = initialStudyHours + 1;
+      // الطالب أتم جلسة مذاكرة
+      const blockId = 'block_math_101';
+      completedBlockIds.add(blockId);
 
-      expect(updatedCoins, 3);
-      expect(updatedHours, 1);
+      // رصيد عملات الوقت القابل للشراء يبقى 2 دون تغيير
+      const spendableCoins = initialTimeCoins;
+      expect(spendableCoins, 2);
+      expect(completedBlockIds.contains(blockId), isTrue);
+      expect(completedBlockIds.length, 1);
+    });
+
+    test('حساب رصيد العملات القابلة للصرف يستند حصرياً إلى timeCoins دون جمع نقاط المذاكرة', () {
+      final userDoc = {
+        'timeCoins': 2,
+        'studyPoints': 50, // نقاط مظاهر أو قديمة
+        'completedBlockIds': ['b1', 'b2', 'b3'],
+      };
+
+      final spendableBalance = (userDoc['timeCoins'] as num?)?.toInt() ?? 0;
+      final derivedStudyBlocks = (userDoc['completedBlockIds'] as List?)?.length ?? 0;
+
+      // الرصيد الصالح للشراء هو 2 فقط وليس 52
+      expect(spendableBalance, 2);
+      expect(derivedStudyBlocks, 3);
     });
   });
 }

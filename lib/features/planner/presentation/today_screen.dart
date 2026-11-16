@@ -127,7 +127,7 @@ class TodayScreen extends ConsumerWidget {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'نقاط وقت',
+                              'عملات وقت',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
@@ -464,7 +464,6 @@ class TodayScreen extends ConsumerWidget {
                             final uid = ref.read(authServiceProvider).currentUser?.uid;
 
                             if (!wasCompleted) {
-                              ref.read(userTimeCoinsProvider.notifier).addCoins(1);
                               if (uid != null && uid.isNotEmpty) {
                                 ref.read(timeBankRepositoryProvider).awardStudyPoint(
                                   userId: uid,
@@ -474,7 +473,6 @@ class TodayScreen extends ConsumerWidget {
                                 );
                               }
                             } else {
-                              ref.read(userTimeCoinsProvider.notifier).deductCoins(1);
                               if (uid != null && uid.isNotEmpty) {
                                 ref.read(timeBankRepositoryProvider).revertStudyPoint(
                                   userId: uid,
