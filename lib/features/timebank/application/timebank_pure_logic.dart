@@ -448,4 +448,14 @@ class TimeBankPureLogic {
     }
     return false;
   }
+
+  /// 10. حساب العملات المحتجزة في الضمان للمتعلم (Held Coins)
+  /// للجلسات ذات الحالة 'pending' أو 'confirmed' أو 'disputed' مع حالة ضمان 'held'
+  static int calculateHeldCoins(List<TimeBankSessionModel> learnerSessions) {
+    return learnerSessions
+        .where((s) =>
+            s.escrowStatus == 'held' &&
+            (s.status == 'pending' || s.status == 'confirmed' || s.status == 'disputed'))
+        .fold<int>(0, (sum, s) => sum + s.costCoins);
+  }
 }

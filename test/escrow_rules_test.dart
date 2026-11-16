@@ -842,4 +842,55 @@ void main() {
       );
     });
   });
+
+  // =========================================================================
+  // المجموعة 14: رصيد المحفظة والعملات المحتجزة في الضمان (Wallet Held Coins)
+  // =========================================================================
+  group('TimeBankPureLogic - Wallet Held Coins', () {
+    test('calculateHeldCoins calculates held coins exclusively for pending, confirmed, and disputed sessions with escrowStatus held', () {
+      final sessions = [
+        TimeBankSessionModel.fromMap({
+          'costCoins': 1,
+          'status': 'pending',
+          'escrowStatus': 'held',
+        }, 's1'),
+        TimeBankSessionModel.fromMap({
+          'costCoins': 1,
+          'status': 'confirmed',
+          'escrowStatus': 'held',
+        }, 's2'),
+        TimeBankSessionModel.fromMap({
+          'costCoins': 1,
+          'status': 'disputed',
+          'escrowStatus': 'held',
+        }, 's3'),
+        TimeBankSessionModel.fromMap({
+          'costCoins': 1,
+          'status': 'completed',
+          'escrowStatus': 'released_to_teacher',
+        }, 's4'),
+        TimeBankSessionModel.fromMap({
+          'costCoins': 1,
+          'status': 'cancelled_by_learner',
+          'escrowStatus': 'refunded_to_learner',
+        }, 's5'),
+      ];
+
+      // Sessions s1, s2, s3 are held -> 3 coins held
+      final held = TimeBankPureLogic.calculateHeldCoins(sessions);
+      expect(held, equals(3));
+    });
+
+    test('calculateHeldCoins returns 0 when no sessions are in held status', () {
+      final sessions = [
+        TimeBankSessionModel.fromMap({
+          'costCoins': 1,
+          'status': 'completed',
+          'escrowStatus': 'released_to_teacher',
+        }, 's1'),
+      ];
+      expect(TimeBankPureLogic.calculateHeldCoins(sessions), equals(0));
+      expect(TimeBankPureLogic.calculateHeldCoins([]), equals(0));
+    });
+  });
 }
