@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zameel/core/algorithms/planner_algorithm.dart';
 import 'package:zameel/core/constants/app_constants.dart';
 import 'package:zameel/core/models/app_models.dart';
+import 'package:zameel/core/state/app_state.dart';
 import 'package:zameel/core/theme/app_colors.dart';
+import 'package:zameel/features/auth/data/auth_service.dart';
 import 'package:zameel/features/timebank/application/timebank_pure_logic.dart';
 
 void main() {
@@ -953,6 +956,58 @@ void main() {
       // الرصيد الصالح للشراء هو 2 فقط وليس 52
       expect(spendableBalance, 2);
       expect(derivedStudyBlocks, 3);
+    });
+  });
+
+  // =========================================================================
+  group('16. عزل بيانات المخطط بين الحسابات على نفس الجهاز (Item C: Cross-Account State Isolation)', () {
+    test('المستخدم أ يتم كتلة مذاكرة، ثم عند التبديل للمستخدم ب، لا يرى المستخدم ب أي كتل مكتملة', () {
+      final container = ProviderContainer(overrides: [
+        userProfileStreamProvider.overrideWith((ref) => Stream.value(null)),
+      ]);
+      addTearDown(container.dispose);
+
+      final notifier = container.read(plannerProvider.notifier);
+      notifier.switchUser('user_A');
+
+      // 1. المستخدم أ يتم كتلة مذاكرة
+      expect(container.read(plannerProvider).studyBlocks, isNotEmpty);
+      final firstBlockId = container.read(plannerProvider).studyBlocks.first.id;
+      notifier.markBlockCompleted(firstBlockId);
+
+      expect(notifier.completedBlockIds.contains(firstBlockId), isTrue);
+      expect(container.read(plannerProvider).studyBlocks.firstWhere((b) => b.id == firstBlockId).isCompleted, isTrue);
+
+      // 2. تسجيل خروج المستخدم أ وتسجيل دخول المستخدم ب
+      notifier.switchUser('user_B');
+
+      // 3. التحقق من أن المستخدم ب يرى مجموعة فارغة ولا يرى كتل المستخدم أ
+      expect(notifier.completedBlockIds.contains(firstBlockId), isFalse);
+      expect(notifier.completedBlockIds.isEmpty, isTrue);
+      expect(notifier.missedBlockIds.isEmpty, isTrue);
+    });
+
+    test('التأكد من إزالة static: عدم تشارك كتل المذاكرة بين نسختين مختلفتين من Notifier', () {
+      final container1 = ProviderContainer(overrides: [
+        userProfileStreamProvider.overrideWith((ref) => Stream.value(null)),
+      ]);
+      final container2 = ProviderContainer(overrides: [
+        userProfileStreamProvider.overrideWith((ref) => Stream.value(null)),
+      ]);
+      addTearDown(container1.dispose);
+      addTearDown(container2.dispose);
+
+      final notifier1 = container1.read(plannerProvider.notifier);
+      final notifier2 = container2.read(plannerProvider.notifier);
+
+      notifier1.switchUser('user_1');
+      notifier2.switchUser('user_2');
+
+      final blockId = container1.read(plannerProvider).studyBlocks.first.id;
+      notifier1.markBlockCompleted(blockId);
+
+      expect(notifier1.completedBlockIds.contains(blockId), isTrue);
+      expect(notifier2.completedBlockIds.contains(blockId), isFalse);
     });
   });
 }

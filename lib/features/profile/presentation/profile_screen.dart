@@ -358,6 +358,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               // Sign Out Button -> /welcome
               OutlinedButton.icon(
                 onPressed: () async {
+                  ref.read(plannerProvider.notifier).switchUser(null);
                   await ref.read(authServiceProvider).signOut();
                   if (context.mounted) {
                     context.go('/welcome');
