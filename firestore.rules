@@ -288,7 +288,10 @@ service cloud.firestore {
         // التحقق الذري من خصم عملة المتعلم في نفس المعاملة
         && getUser(request.auth.uid).timeCoins >= 1
         && getAfterUser(request.auth.uid).timeCoins == getUser(request.auth.uid).timeCoins - 1
-        && getAfterUser(request.auth.uid).lastSessionId == sessionId;
+        && getAfterUser(request.auth.uid).lastSessionId == sessionId
+        // إلزام إنشاء قفل موعد المعلم لبداية الموعد في نفس المعاملة لمنع تخطي الأقفال
+        && existsAfter(/databases/$(database)/documents/slotLocks/$(request.resource.data.teacherId + '_' + string(request.resource.data.scheduledAt.toMillis())))
+        && getAfter(/databases/$(database)/documents/slotLocks/$(request.resource.data.teacherId + '_' + string(request.resource.data.scheduledAt.toMillis()))).data.sessionId == sessionId;
 
       // تحديث الجلسة مقيد بدقة: إما إضافة/تحديث رابط اللقاء الأونلاين من المعلم فقط، أو قفل الدفع التبادلي (Escrow):
       allow update: if isEmailVerified()
@@ -472,10 +475,11 @@ service cloud.firestore {
     // 5. أقفال المواعيد لمنع الحجز المزدوج (Slot Locks)
     // ==========================================
     match /slotLocks/{lockId} {
+      // القراءة متاحة للمستخدمين المسجلين للتحقق من خلو الموعد (الطرف الآخر) ومنع الحجز المزدوج
+      // لا يمكن حصر القراءة على المالك فقط لأن المتعلّم يقرأ قفل المعلم والمعلم يقرأ قفل المتعلّم
       allow read: if isAuthenticated();
 
-      // إنشاء القفل: حصرياً بالتزامن مع إنشاء جلسة في نفس المعاملة (existsAfter)
-      // مع صيغة معرف حتمية {uid}_{slotEpochMs}، وحالة أولية 'active'
+      // إنشاء القفل: حصرياً بواسطة المتعلم بالتزامن مع إنشاء جلسة جديدة في نفس المعاملة
       allow create: if isEmailVerified()
         && !exists(/databases/$(database)/documents/slotLocks/$(lockId))
         && 'uid' in request.resource.data
@@ -486,13 +490,39 @@ service cloud.firestore {
         && request.resource.data.slotEpochMs is int
         && request.resource.data.uid is string
         && lockId == request.resource.data.uid + '_' + string(request.resource.data.slotEpochMs)
-        && existsAfter(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId));
+        // 1. الجلسة تنشأ جديدة في نفس المعاملة
+        && !exists(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId))
+        && existsAfter(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId))
+        // 2. منشئ القفل هو المتعلم صاحب الجلسة
+        && request.auth.uid == getAfter(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId)).data.learnerId
+        // 3. صاحب القفل محصور في أطراف الجلسة (المتعلم أو المعلم)
+        && (
+          request.resource.data.uid == getAfter(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId)).data.learnerId
+          || request.resource.data.uid == getAfter(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId)).data.teacherId
+        )
+        // 4. محاذاة الموعد لـ 30 دقيقة ووقوعه داخل نطاق مدة الجلسة
+        && (
+          (request.resource.data.slotEpochMs % (30 * 60 * 1000) == 0)
+          || ((request.resource.data.slotEpochMs - getAfter(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId)).data.scheduledAt.toMillis()) % (30 * 60 * 1000) == 0)
+        )
+        && request.resource.data.slotEpochMs >= getAfter(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId)).data.scheduledAt.toMillis()
+        && request.resource.data.slotEpochMs < (
+          getAfter(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId)).data.scheduledAt.toMillis() +
+          (
+            ('durationMinutes' in getAfter(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId)).data
+              ? getAfter(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId)).data.durationMinutes
+              : 60) * 60 * 1000
+          )
+        );
 
-      // تحديث حالة القفل: مسموح فقط بالتحول الحتمي المرتبط بانتقال حالة الجلسة
-      // مع ثبات المعرفات الأصلية uid و slotEpochMs
+      // تحديث حالة القفل: مسموح فقط لأطراف الجلسة وبالتحول الحتمي المرتبط بانتقال حالة الجلسة
       allow update: if isEmailVerified()
         && request.resource.data.uid == resource.data.uid
         && request.resource.data.slotEpochMs == resource.data.slotEpochMs
+        && (
+          request.auth.uid == getAfter(/databases/$(database)/documents/sessions/$(resource.data.sessionId)).data.learnerId
+          || request.auth.uid == getAfter(/databases/$(database)/documents/sessions/$(resource.data.sessionId)).data.teacherId
+        )
         && (
           // تحول إلى 'used' عند إتمام الجلسة بنجاح أو تعويض المعلم
           (
@@ -509,15 +539,21 @@ service cloud.firestore {
             && request.resource.data.sessionId == resource.data.sessionId
             && (
               getAfter(/databases/$(database)/documents/sessions/$(resource.data.sessionId)).data.escrowStatus == 'refunded_to_learner'
-              || getAfter(/databases/$(database)/documents/sessions/$(resource.data.sessionId)).data.status in ['cancelled_by_teacher', 'cancelled_by_learner', 'rejected', 'expired']
+              || getAfter(/databases/$(database)/documents/sessions/$(resource.data.sessionId)).data.status in ['cancelled_by_teacher', 'cancelled_by_learner', 'rejected', 'cancelled_expired']
             )
           )
           ||
-          // تحول إلى 'active' عند إعادة حجز موعد تم إلغاؤه مسبقاً (released -> active)
+          // تحول من 'released' إلى 'active' مسموح حصرياً داخل معاملة إنشاء جلسة جديدة للمتعلم لنفس الموعد
           (
             resource.data.status == 'released'
             && request.resource.data.status == 'active'
+            && !exists(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId))
             && existsAfter(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId))
+            && request.auth.uid == getAfter(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId)).data.learnerId
+            && (
+              request.resource.data.uid == getAfter(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId)).data.learnerId
+              || request.resource.data.uid == getAfter(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId)).data.teacherId
+            )
           )
         );
 
