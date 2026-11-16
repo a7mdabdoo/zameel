@@ -72,10 +72,11 @@ class _AcademicSetupScreenState extends ConsumerState<AcademicSetupScreen> {
         // الانتقال للوحة التحكم الرئيسية فوراً
         context.go('/today');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('AcademicSetupScreen error saving courses: $e\n$stackTrace');
       if (mounted) {
         setState(() {
-          _errorMessage = 'حدث خطأ أثناء حفظ المواد: $e';
+          _errorMessage = 'تعذر حفظ المواد الدراسية، يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.';
         });
       }
     } finally {
