@@ -35,6 +35,7 @@ class _StudyBlockDetailsScreenState
   int _longBreakMinutes = 15;
   int _sessionsBeforeLongBreak = 4;
   int _completedSessions = 0;
+  bool _pointAwardedInThisScreen = false;
 
   late int _totalSeconds;
   late int _secondsLeft;
@@ -67,6 +68,7 @@ class _StudyBlockDetailsScreenState
     _focusMinutes = blockDuration > 0 ? blockDuration : 25;
     _totalSeconds = _focusMinutes * 60;
     _secondsLeft = _totalSeconds;
+    _pointAwardedInThisScreen = widget.block?.isCompleted ?? false;
   }
 
   @override
@@ -140,16 +142,21 @@ class _StudyBlockDetailsScreenState
         _completedSessions++;
       });
 
-      // إضافة نقطة وقت لمكافأة الطالب عند إتمام جلسة التركيز
-      ref.read(userTimeCoinsProvider.notifier).addCoins(1);
-      final uid = ref.read(authServiceProvider).currentUser?.uid;
-      if (uid != null && uid.isNotEmpty) {
-        ref.read(timeBankRepositoryProvider).awardStudyPoint(
-          userId: uid,
-          title: 'إتمام جلسة تركيز: ${block.courseName}',
-          blockId: block.id,
-          points: 1,
-        );
+      // إضافة نقطة وقت لمكافأة الطالب عند إتمام جلسة التركيز (مرة واحدة فقط لكل كتلة مذاكرة)
+      final wasAlreadyAwarded = _pointAwardedInThisScreen || block.isCompleted;
+      if (!wasAlreadyAwarded) {
+        _pointAwardedInThisScreen = true;
+        ref.read(plannerProvider.notifier).markBlockCompleted(block.id);
+        ref.read(userTimeCoinsProvider.notifier).addCoins(1);
+        final uid = ref.read(authServiceProvider).currentUser?.uid;
+        if (uid != null && uid.isNotEmpty) {
+          ref.read(timeBankRepositoryProvider).awardStudyPoint(
+            userId: uid,
+            title: 'إتمام جلسة تركيز: ${block.courseName}',
+            blockId: block.id,
+            points: 1,
+          );
+        }
       }
 
       final remainingForLongBreak = _sessionsBeforeLongBreak -
@@ -160,7 +167,9 @@ class _StudyBlockDetailsScreenState
             backgroundColor: const Color(0xFF0D9488),
             duration: const Duration(seconds: 4),
             content: Text(
-              'أحسنت في مذاكرة ${block.courseName}! حصلت على +1 نقطة وقت 🪙 وأتممت $_sessionsBeforeLongBreak جلسات تركيز 🎉 حان وقت الاستراحة الطويلة ($_longBreakMinutes دقيقة)!',
+              !wasAlreadyAwarded
+                  ? 'أحسنت في مذاكرة ${block.courseName}! حصلت على +1 نقطة وقت 🪙 وأتممت $_sessionsBeforeLongBreak جلسات تركيز 🎉 حان وقت الاستراحة الطويلة ($_longBreakMinutes دقيقة)!'
+                  : 'أحسنت! أتممت $_sessionsBeforeLongBreak جلسات تركيز 🎉 حان وقت الاستراحة الطويلة ($_longBreakMinutes دقيقة)!',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
@@ -172,7 +181,9 @@ class _StudyBlockDetailsScreenState
             backgroundColor: AppColors.success,
             duration: const Duration(seconds: 3),
             content: Text(
-              'أحسنت! أنهيت جلسة تركيز بنجاح وحصلت على +1 نقطة وقت 🪙🎉 متبقي $remainingForLongBreak جلسات على الاستراحة الكبيرة!',
+              !wasAlreadyAwarded
+                  ? 'أحسنت! أنهيت جلسة تركيز بنجاح وحصلت على +1 نقطة وقت 🪙🎉 متبقي $remainingForLongBreak جلسات على الاستراحة الكبيرة!'
+                  : 'أحسنت! أنهيت جلسة تركيز بنجاح 🎉 متبقي $remainingForLongBreak جلسات على الاستراحة الكبيرة!',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
@@ -542,11 +553,12 @@ class _StudyBlockDetailsScreenState
 
   void _markCompleted() {
     final block = _block;
-    final wasCompleted = block.isCompleted;
+    final wasAlreadyAwarded = _pointAwardedInThisScreen || block.isCompleted;
     ref.read(plannerProvider.notifier).markBlockCompleted(block.id);
 
     // إضافة نقطة وقت لمكافأة الطالب عند الضغط على زرار تمت المذاكرة (دون تكرار لنفس الجلسة)
-    if (!wasCompleted) {
+    if (!wasAlreadyAwarded) {
+      _pointAwardedInThisScreen = true;
       ref.read(userTimeCoinsProvider.notifier).addCoins(1);
       final uid = ref.read(authServiceProvider).currentUser?.uid;
       if (uid != null && uid.isNotEmpty) {
@@ -562,7 +574,7 @@ class _StudyBlockDetailsScreenState
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(!wasCompleted
+          content: Text(!wasAlreadyAwarded
               ? 'أحسنت! تم تسجيل إتمام مذاكرة "${block.courseName}" وحصلت على +1 نقطة وقت بنجاح 🪙🎉'
               : 'تم تسجيل إتمام مذاكرة "${block.courseName}" بنجاح 🎉'),
           backgroundColor: AppColors.success,
@@ -1076,6 +1088,18 @@ class _StudyBlockDetailsScreenState
               Expanded(
                 child: OutlinedButton(
                   onPressed: () {
+                    final wasCompleted = _pointAwardedInThisScreen || block.isCompleted;
+                    if (wasCompleted) {
+                      _pointAwardedInThisScreen = false;
+                      ref.read(userTimeCoinsProvider.notifier).deductCoins(1);
+                      final uid = ref.read(authServiceProvider).currentUser?.uid;
+                      if (uid != null && uid.isNotEmpty) {
+                        ref.read(timeBankRepositoryProvider).revertStudyPoint(
+                          userId: uid,
+                          blockId: block.id,
+                        );
+                      }
+                    }
                     ref
                         .read(plannerProvider.notifier)
                         .rescheduleBlock(block.id);
@@ -1103,6 +1127,18 @@ class _StudyBlockDetailsScreenState
               Expanded(
                 child: OutlinedButton(
                   onPressed: () {
+                    final wasCompleted = _pointAwardedInThisScreen || block.isCompleted;
+                    if (wasCompleted) {
+                      _pointAwardedInThisScreen = false;
+                      ref.read(userTimeCoinsProvider.notifier).deductCoins(1);
+                      final uid = ref.read(authServiceProvider).currentUser?.uid;
+                      if (uid != null && uid.isNotEmpty) {
+                        ref.read(timeBankRepositoryProvider).revertStudyPoint(
+                          userId: uid,
+                          blockId: block.id,
+                        );
+                      }
+                    }
                     ref.read(plannerProvider.notifier).markBlockMissed(block.id);
                     if (mounted) context.pop();
                   },
