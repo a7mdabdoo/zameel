@@ -61,6 +61,8 @@ class PlannerState {
 class PlannerNotifier extends Notifier<PlannerState> {
   List<CourseSeed> _currentCourses = [];
   Map<String, int> _currentRatings = {};
+  static final Set<String> _completedBlockIds = {};
+  static final Set<String> _missedBlockIds = {};
 
   List<CourseStudyInput> _buildInputs(List<CourseSeed>? courses, Map<String, int>? ratings) {
     if (courses != null && courses.isNotEmpty) _currentCourses = courses;
@@ -110,6 +112,12 @@ class PlannerNotifier extends Notifier<PlannerState> {
         ) ??
         {};
 
+    // استرجاع الحالات المحفوظة من الكلاود
+    final savedCompleted = (userDoc?['completedBlockIds'] as List<dynamic>?)?.cast<String>();
+    if (savedCompleted != null) {
+      _completedBlockIds.addAll(savedCompleted);
+    }
+
     List<StudyBlockModel> generatedBlocks = [];
     if (lectures.isNotEmpty || courses.isNotEmpty) {
       final inputs = _buildInputs(courses.isNotEmpty ? courses : null, ratings);
@@ -121,16 +129,28 @@ class PlannerNotifier extends Notifier<PlannerState> {
       }
     }
 
+    // الحفاظ على حالة الإتمام والتفويت حتى لا تنمحي عند أي تحديث بروفايل أو انقطاع شبكة
+    final preservedBlocks = generatedBlocks.map((b) {
+      final isDone = _completedBlockIds.contains(b.id) || b.isCompleted;
+      final isMissed = _missedBlockIds.contains(b.id) || b.isMissed;
+      return b.copyWith(
+        isCompleted: isDone,
+        isMissed: isMissed,
+      );
+    }).toList();
+
     return PlannerState(
-      studyBlocks: generatedBlocks,
+      studyBlocks: preservedBlocks,
       lectureSchedule: lectures,
-      completedBlocksCount: 0,
-      totalWeeklyTarget: generatedBlocks.length,
+      completedBlocksCount: preservedBlocks.where((b) => b.isCompleted).length,
+      totalWeeklyTarget: preservedBlocks.length,
     );
   }
 
   /// تسجيل إتمام كتلة مذاكرة
   void markBlockCompleted(String blockId) {
+    _completedBlockIds.add(blockId);
+    _missedBlockIds.remove(blockId);
     final updatedBlocks = state.studyBlocks.map((b) {
       if (b.id == blockId) {
         return b.copyWith(isCompleted: true, isMissed: false);
@@ -146,9 +166,16 @@ class PlannerNotifier extends Notifier<PlannerState> {
   /// تبديل حالة إتمام المذاكرة (تم / لم تتم)
   void toggleBlockCompleted(String blockId) {
     final currentBlock = state.studyBlocks.firstWhere((b) => b.id == blockId, orElse: () => state.studyBlocks.first);
+    final willBeCompleted = !currentBlock.isCompleted;
+    if (willBeCompleted) {
+      _completedBlockIds.add(blockId);
+      _missedBlockIds.remove(blockId);
+    } else {
+      _completedBlockIds.remove(blockId);
+    }
     final updatedBlocks = state.studyBlocks.map((b) {
       if (b.id == blockId) {
-        return b.copyWith(isCompleted: !currentBlock.isCompleted, isMissed: false);
+        return b.copyWith(isCompleted: willBeCompleted, isMissed: false);
       }
       return b;
     }).toList();
@@ -160,6 +187,8 @@ class PlannerNotifier extends Notifier<PlannerState> {
 
   /// تسجيل تفويت جلسة
   void markBlockMissed(String blockId) {
+    _missedBlockIds.add(blockId);
+    _completedBlockIds.remove(blockId);
     state = state.copyWith(
       studyBlocks: state.studyBlocks.map((b) {
         if (b.id == blockId) {
@@ -172,6 +201,8 @@ class PlannerNotifier extends Notifier<PlannerState> {
 
   /// إعادة الجدولة باستخدام الخوارزمية
   void rescheduleBlock(String blockId) {
+    _completedBlockIds.remove(blockId);
+    _missedBlockIds.remove(blockId);
     final updatedBlocks = state.studyBlocks.map((b) {
       if (b.id == blockId) {
         return b.copyWith(isCompleted: false, isMissed: false);
@@ -352,6 +383,31 @@ class TimeBankNotifier extends Notifier<TimeBankState> {
 }
 
 final timeBankProvider = NotifierProvider<TimeBankNotifier, TimeBankState>(TimeBankNotifier.new);
+
+// ==========================================
+// 4. مزود رصيد عملات ونقاط الوقت المتجاوب فورياً (Instant Reactive Time Coins Provider)
+// ==========================================
+class UserCoinsNotifier extends Notifier<int> {
+  @override
+  int build() {
+    final userProfileAsync = ref.watch(userProfileStreamProvider);
+    final userDoc = userProfileAsync.value?.data();
+    final remoteTimeCoins = (userDoc?['timeCoins'] as num?)?.toInt() ?? AppConstants.welcomeCoins;
+    final remoteStudyPoints = (userDoc?['studyPoints'] as num?)?.toInt() ?? 0;
+
+    return remoteTimeCoins + remoteStudyPoints;
+  }
+
+  void addCoins([int count = 1]) {
+    state = state + count;
+  }
+
+  void deductCoins([int count = 1]) {
+    state = (state - count).clamp(0, 999);
+  }
+}
+
+final userTimeCoinsProvider = NotifierProvider<UserCoinsNotifier, int>(UserCoinsNotifier.new);
 
 // مزود المرشحين بناءً على خوارزمية التوافق
 final peerMatchesProvider = Provider<List<MatchResult>>((ref) {

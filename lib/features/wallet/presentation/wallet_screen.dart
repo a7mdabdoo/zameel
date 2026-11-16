@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/state/app_state.dart';
 import '../../auth/data/auth_service.dart';
 import '../../timebank/data/timebank_repository.dart';
 
@@ -16,9 +17,7 @@ class WalletScreen extends ConsumerWidget {
     final user = ref.watch(authServiceProvider).currentUser;
     final userId = user?.uid ?? '';
 
-    final userProfileAsync = ref.watch(userProfileStreamProvider);
-    final userDoc = userProfileAsync.value?.data();
-    final timeCoins = (userDoc?['timeCoins'] as num?)?.toInt() ?? 2;
+    final timeCoins = ref.watch(userTimeCoinsProvider);
 
     final transactionsAsync = ref.watch(userTransactionsStreamProvider(userId));
     final transactions = transactionsAsync.value ?? [];

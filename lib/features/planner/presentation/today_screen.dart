@@ -27,7 +27,7 @@ class TodayScreen extends ConsumerWidget {
 
     final plannerState = ref.watch(plannerProvider);
 
-    final timeCoins = (userDoc?['timeCoins'] as num?)?.toInt() ?? 2;
+    final timeCoins = ref.watch(userTimeCoinsProvider);
 
     const dayNames = {
       DateTime.saturday: 'السبت',
@@ -457,12 +457,24 @@ class TodayScreen extends ConsumerWidget {
                             final wasCompleted = block.isCompleted;
                             ref.read(plannerProvider.notifier).toggleBlockCompleted(block.id);
 
+                            final uid = ref.read(authServiceProvider).currentUser?.uid;
+
                             if (!wasCompleted) {
-                              final uid = ref.read(authServiceProvider).currentUser?.uid;
+                              ref.read(userTimeCoinsProvider.notifier).addCoins(1);
                               if (uid != null && uid.isNotEmpty) {
                                 ref.read(timeBankRepositoryProvider).awardStudyPoint(
                                   userId: uid,
                                   title: 'مكافأة إتمام مذاكرة: ${block.courseName}',
+                                  blockId: block.id,
+                                  points: 1,
+                                );
+                              }
+                            } else {
+                              ref.read(userTimeCoinsProvider.notifier).deductCoins(1);
+                              if (uid != null && uid.isNotEmpty) {
+                                ref.read(timeBankRepositoryProvider).revertStudyPoint(
+                                  userId: uid,
+                                  blockId: block.id,
                                   points: 1,
                                 );
                               }

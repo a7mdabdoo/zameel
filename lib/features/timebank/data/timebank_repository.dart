@@ -693,6 +693,7 @@ class TimeBankRepository {
   Future<bool> awardStudyPoint({
     required String userId,
     required String title,
+    String? blockId,
     int points = 1,
   }) async {
     final firestore = _firestore;
@@ -702,27 +703,19 @@ class TimeBankRepository {
       final txId = 'tx_study_${DateTime.now().millisecondsSinceEpoch}';
       final txDocRef = firestore.collection('transactions').doc(txId);
 
-      await firestore.runTransaction((transaction) async {
-        final userSnap = await transaction.get(userDocRef);
-        final currentCoins = (userSnap.data()?['timeCoins'] as num?)?.toInt() ?? AppConstants.welcomeCoins;
-        final currentStudyHours = (userSnap.data()?['studyHours'] as num?)?.toInt() ?? 0;
+      final updates = <String, dynamic>{
+        'studyPoints': FieldValue.increment(points),
+        'studyHours': FieldValue.increment(1),
+      };
+      if (blockId != null && blockId.isNotEmpty) {
+        updates['completedBlockIds'] = FieldValue.arrayUnion([blockId]);
+      }
 
-        if (!userSnap.exists) {
-          transaction.set(userDocRef, {
-            'uid': userId,
-            'timeCoins': AppConstants.welcomeCoins + points,
-            'studyHours': 1,
-            'completedSessions': 0,
-            'teacherRating': 0.0,
-            'createdAt': FieldValue.serverTimestamp(),
-          }, SetOptions(merge: true));
-        } else {
-          transaction.set(userDocRef, {
-            'timeCoins': currentCoins + points,
-            'studyHours': currentStudyHours + 1,
-          }, SetOptions(merge: true));
-        }
+      // 1. تحديث نقاط المذاكرة وساعات المذاكرة وقائمة الجلسات المكتملة مباشرة
+      await userDocRef.set(updates, SetOptions(merge: true));
 
+      // 2. تسجيل حركة المحفظة في جدول المعاملات
+      try {
         final txData = WalletTransactionModel(
           id: txId,
           userId: userId,
@@ -735,11 +728,37 @@ class TimeBankRepository {
           createdAt: DateTime.now(),
         ).toMap();
         txData['createdAt'] = FieldValue.serverTimestamp();
-        transaction.set(txDocRef, txData);
-      });
+        await txDocRef.set(txData);
+      } catch (txError) {
+        debugPrint('awardStudyPoint tx warning: $txError');
+      }
+
       return true;
     } catch (e) {
       debugPrint('awardStudyPoint error: $e');
+      return false;
+    }
+  }
+
+  // =========================================================================
+  // 5. التراجع عن إتمام جلسة مذاكرة وإلغاء تحديدها
+  // =========================================================================
+  Future<bool> revertStudyPoint({
+    required String userId,
+    required String blockId,
+    int points = 1,
+  }) async {
+    final firestore = _firestore;
+    if (firestore == null || userId.isEmpty) return false;
+    try {
+      final userDocRef = firestore.collection('users').doc(userId);
+      await userDocRef.set({
+        'studyPoints': FieldValue.increment(-points),
+        'completedBlockIds': FieldValue.arrayRemove([blockId]),
+      }, SetOptions(merge: true));
+      return true;
+    } catch (e) {
+      debugPrint('revertStudyPoint error: $e');
       return false;
     }
   }
