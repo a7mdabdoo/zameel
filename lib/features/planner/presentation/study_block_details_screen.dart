@@ -142,12 +142,11 @@ class _StudyBlockDetailsScreenState
         _completedSessions++;
       });
 
-      // إضافة نقطة وقت لمكافأة الطالب عند إتمام جلسة التركيز (مرة واحدة فقط لكل كتلة مذاكرة)
+      // حفظ إتمام كتلة المذاكرة (مرة واحدة فقط لكل كتلة مذاكرة)
       final wasAlreadyAwarded = _pointAwardedInThisScreen || block.isCompleted;
       if (!wasAlreadyAwarded) {
         _pointAwardedInThisScreen = true;
         ref.read(plannerProvider.notifier).markBlockCompleted(block.id);
-        ref.read(userTimeCoinsProvider.notifier).addCoins(1);
         final uid = ref.read(authServiceProvider).currentUser?.uid;
         if (uid != null && uid.isNotEmpty) {
           ref.read(timeBankRepositoryProvider).awardStudyPoint(
@@ -556,10 +555,9 @@ class _StudyBlockDetailsScreenState
     final wasAlreadyAwarded = _pointAwardedInThisScreen || block.isCompleted;
     ref.read(plannerProvider.notifier).markBlockCompleted(block.id);
 
-    // إضافة نقطة وقت لمكافأة الطالب عند الضغط على زرار تمت المذاكرة (دون تكرار لنفس الجلسة)
+    // حفظ إتمام كتلة المذاكرة دون المساس برصيد العملات
     if (!wasAlreadyAwarded) {
       _pointAwardedInThisScreen = true;
-      ref.read(userTimeCoinsProvider.notifier).addCoins(1);
       final uid = ref.read(authServiceProvider).currentUser?.uid;
       if (uid != null && uid.isNotEmpty) {
         ref.read(timeBankRepositoryProvider).awardStudyPoint(
@@ -1091,7 +1089,6 @@ class _StudyBlockDetailsScreenState
                     final wasCompleted = _pointAwardedInThisScreen || block.isCompleted;
                     if (wasCompleted) {
                       _pointAwardedInThisScreen = false;
-                      ref.read(userTimeCoinsProvider.notifier).deductCoins(1);
                       final uid = ref.read(authServiceProvider).currentUser?.uid;
                       if (uid != null && uid.isNotEmpty) {
                         ref.read(timeBankRepositoryProvider).revertStudyPoint(
@@ -1130,7 +1127,6 @@ class _StudyBlockDetailsScreenState
                     final wasCompleted = _pointAwardedInThisScreen || block.isCompleted;
                     if (wasCompleted) {
                       _pointAwardedInThisScreen = false;
-                      ref.read(userTimeCoinsProvider.notifier).deductCoins(1);
                       final uid = ref.read(authServiceProvider).currentUser?.uid;
                       if (uid != null && uid.isNotEmpty) {
                         ref.read(timeBankRepositoryProvider).revertStudyPoint(

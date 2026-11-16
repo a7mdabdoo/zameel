@@ -59,7 +59,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final ratingSum = (userDoc?['ratingSum'] as num?)?.toInt() ?? 0;
     final ratingCount = (userDoc?['ratingCount'] as num?)?.toInt() ?? 0;
     final teacherRating = ratingCount > 0 ? (ratingSum / ratingCount) : 5.0;
-    final studyHours = (userDoc?['studyHours'] as num?)?.toInt() ?? 0;
+    final completedBlocks = (userDoc?['completedBlockIds'] as List<dynamic>?) ?? [];
+    final studyHours = completedBlocks.isNotEmpty 
+        ? completedBlocks.length 
+        : ((userDoc?['studyHours'] as num?)?.toInt() ?? 0);
 
     // استخراج المواد الدراسية وتقييمات الطالب من فايربيس
     final userCourses = _getUserCourses(userDoc);

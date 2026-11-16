@@ -134,7 +134,6 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       );
 
       await ref.read(timeBankRepositoryProvider).bookSessionWithEscrow(session: session);
-      ref.read(userTimeCoinsProvider.notifier).deductCoins(AppConstants.sessionCostCoins);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -393,7 +393,8 @@ class TimeBankNotifier extends Notifier<TimeBankState> {
 final timeBankProvider = NotifierProvider<TimeBankNotifier, TimeBankState>(TimeBankNotifier.new);
 
 // ==========================================
-// 4. مزود رصيد عملات ونقاط الوقت المتجاوب فورياً (Instant Reactive Time Coins Provider)
+// 4. مزود رصيد عملات الوقت المتجاوب فورياً (Spendable Time Coins Provider)
+// الرصيد يُشتق حصرياً من قاعدة بيانات Firestore ولا يخلط بنقاط المذاكرة
 // ==========================================
 class UserCoinsNotifier extends Notifier<int> {
   @override
@@ -401,21 +402,20 @@ class UserCoinsNotifier extends Notifier<int> {
     final userProfileAsync = ref.watch(userProfileStreamProvider);
     final userDoc = userProfileAsync.value?.data();
     final remoteTimeCoins = (userDoc?['timeCoins'] as num?)?.toInt() ?? AppConstants.welcomeCoins;
-    final remoteStudyPoints = (userDoc?['studyPoints'] as num?)?.toInt() ?? 0;
 
-    return remoteTimeCoins + remoteStudyPoints;
-  }
-
-  void addCoins([int count = 1]) {
-    state = state + count;
-  }
-
-  void deductCoins([int count = 1]) {
-    state = (state - count).clamp(0, 999);
+    return remoteTimeCoins;
   }
 }
 
 final userTimeCoinsProvider = NotifierProvider<UserCoinsNotifier, int>(UserCoinsNotifier.new);
+
+// مزود نقاط وساعات المذاكرة المشتقة حصرياً من عدد الكتل المكتملة
+final userStudyBlocksCountProvider = Provider<int>((ref) {
+  final userProfileAsync = ref.watch(userProfileStreamProvider);
+  final userDoc = userProfileAsync.value?.data();
+  final completed = (userDoc?['completedBlockIds'] as List<dynamic>?) ?? [];
+  return completed.length;
+});
 
 // مزود المرشحين بناءً على خوارزمية التوافق
 final peerMatchesProvider = Provider<List<MatchResult>>((ref) {
