@@ -80,10 +80,7 @@ class CandidatesScreen extends ConsumerWidget {
                   final isDark = theme.brightness == Brightness.dark;
                   final offer = displayOffers[index];
                   final isRealPeer = !offer.id.startsWith('offer_peer_');
-                  final isOnline = offer.location.contains('أونلاين') ||
-                      offer.location.contains('http') ||
-                      offer.location.contains('zoom') ||
-                      offer.location.contains('meet');
+                  final isOnline = offer.mode == 'online';
                   final teacherInitials = offer.teacherName.trim().isNotEmpty
                       ? offer.teacherName.trim().split(' ').map((p) => p.isNotEmpty ? p[0] : '').take(2).join('.')
                       : 'ز.م';

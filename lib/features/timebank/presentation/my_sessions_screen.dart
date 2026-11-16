@@ -132,16 +132,20 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                       )
                     else
                       ...learnerSessions.map((session) {
-                        final isCompleted = session.status == 'completed' || session.escrowStatus == 'released_to_teacher';
-                        final isCancelled = session.status.startsWith('cancelled') || session.escrowStatus == 'refunded_to_learner';
+                        final isCompleted = session.status == 'completed' || session.status == 'completed_auto' || session.escrowStatus == 'released_to_teacher';
+                        final isCancelled = session.status.startsWith('cancelled') || session.status == 'rejected' || session.status == 'expired' || session.escrowStatus == 'refunded_to_learner';
+                        final isPending = session.status == 'pending';
                         
-                        String badge = 'في الضمان 🔒';
-                        Color bColor = AppColors.deepSage;
-                        if (isCompleted) {
+                        String badge = 'مؤكدة (في الضمان) 🔒';
+                        Color bColor = AppColors.primary;
+                        if (isPending) {
+                          badge = 'قيد الانتظار ⏳';
+                          bColor = AppColors.pointsAmber;
+                        } else if (isCompleted) {
                           badge = 'مكتملة ✓';
                           bColor = AppColors.primary;
                         } else if (isCancelled) {
-                          badge = 'ملغاة ↩️';
+                          badge = session.status == 'rejected' ? 'معتذر عنها ✕' : (session.status == 'expired' ? 'منتهية ⏱️' : 'ملغاة ↩️');
                           bColor = AppColors.error;
                         }
 
@@ -151,14 +155,14 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                           courseName: '${session.courseName} (${session.courseCode})',
                           topic: session.topic,
                           time: '${session.day} • ${session.time} (${session.durationMinutes} دقيقة)',
-                          location: session.location,
+                          location: session.mode == 'online' ? 'أونلاين (عن بُعد)' : session.location,
                           badgeText: badge,
                           badgeColor: bColor,
                           costText: '-${session.costCoins} عملة وقت',
                           costColor: AppColors.error,
                           actionLabel: isCompleted
                               ? 'عرض تقييم الجلسة'
-                              : (isCancelled ? 'تفاصيل الجلسة الملغاة' : 'تفاصيل الجلسة وتأكيد الإتمام'),
+                              : (isCancelled ? 'تفاصيل الجلسة' : (isPending ? 'تفاصيل الطلب وإلغاءه' : 'تفاصيل الجلسة وتأكيد الإتمام')),
                           onAction: () => context.push('/session-learner', extra: session),
                         );
                       }),
@@ -172,18 +176,27 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                       )
                     else
                       ...teacherSessions.map((session) {
-                        final isCompleted = session.status == 'completed' || session.escrowStatus == 'released_to_teacher';
-                        final isCancelled = session.status.startsWith('cancelled') || session.escrowStatus == 'refunded_to_learner';
+                        final isCompleted = session.status == 'completed' || session.status == 'completed_auto' || session.escrowStatus == 'released_to_teacher';
+                        final isCancelled = session.status.startsWith('cancelled') || session.status == 'rejected' || session.status == 'expired' || session.escrowStatus == 'refunded_to_learner';
+                        final isPending = session.status == 'pending';
 
                         String badge = 'مؤكدة (في الضمان)';
                         Color bColor = AppColors.primary;
-                        if (isCompleted) {
+                        if (isPending) {
+                          badge = 'طلب جديد ⏳';
+                          bColor = AppColors.pointsAmber;
+                        } else if (isCompleted) {
                           badge = 'مكتملة ✓';
                           bColor = AppColors.primary;
                         } else if (isCancelled) {
-                          badge = 'ملغاة ↩️';
+                          badge = session.status == 'rejected' ? 'معتذر عنها ✕' : (session.status == 'expired' ? 'منتهية ⏱️' : 'ملغاة ↩️');
                           bColor = AppColors.error;
                         }
+
+                        final isMissingMeetingLink = session.mode == 'online' &&
+                            (session.meetingUrl == null || session.meetingUrl!.isEmpty) &&
+                            session.escrowStatus == 'held' &&
+                            session.status == 'confirmed';
 
                         return _buildSessionCard(
                           partnerName: '${session.learnerName} (المتعلّم)',
@@ -191,14 +204,15 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                           courseName: session.courseName,
                           topic: session.topic,
                           time: '${session.day} • ${session.time} (${session.durationMinutes} دقيقة)',
-                          location: session.location,
+                          location: session.mode == 'online' ? 'أونلاين (عن بُعد)' : session.location,
                           badgeText: badge,
                           badgeColor: bColor,
                           costText: '+${session.costCoins} عملة وقت',
                           costColor: AppColors.pointsAmber,
+                          showMissingMeetingLinkBanner: isMissingMeetingLink,
                           actionLabel: isCompleted
                               ? 'الجلسة مكتملة ومقبوضة'
-                              : (isCancelled ? 'تفاصيل الإلغاء' : 'تفاصيل الجلسة وبدء الشرح'),
+                              : (isCancelled ? 'تفاصيل الإلغاء' : (isPending ? 'مراجعة الطلب والقبول' : 'تفاصيل الجلسة وبدء الشرح')),
                           onAction: () => context.push('/session-teacher', extra: session),
                         );
                       }),
@@ -225,6 +239,7 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
     required Color costColor,
     required String actionLabel,
     required VoidCallback onAction,
+    bool showMissingMeetingLinkBanner = false,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final hairline = isDark ? AppColors.darkHairline : AppColors.hairline;
@@ -251,6 +266,38 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (showMissingMeetingLinkBanner) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.warning_amber_rounded, size: 18, color: Colors.amber),
+                  const SizedBox(width: 8),
+                  const Expanded(
+                    child: Text(
+                      'أضف رابط الاجتماع (Google Meet / Zoom)',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.amber),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: onAction,
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text('إضافة الآن', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            ),
+          ],
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

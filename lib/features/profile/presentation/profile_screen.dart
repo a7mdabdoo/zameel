@@ -8,7 +8,6 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/data/auth_service.dart';
 import '../../../core/state/app_state.dart';
-import '../../timebank/data/timebank_repository.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -45,15 +44,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ? user!.displayName!
             : (user?.email?.split('@').first ?? 'طالب زميل'));
 
-    final userEmail = (userDoc?['email'] as String?)?.isNotEmpty == true
-        ? (userDoc!['email'] as String)
-        : (user?.email?.isNotEmpty == true ? user!.email! : '');
+    final userEmail = user?.email ?? '';
 
     final faculty = userDoc?['faculty'] as String? ?? AppConstants.faculty;
     final year = userDoc?['year'] as String? ?? AppConstants.academicYear;
     final department = userDoc?['department'] as String? ?? 'عام (General)';
     final completedSessions = (userDoc?['completedSessions'] as num?)?.toInt() ?? 0;
-    final teacherRating = (userDoc?['teacherRating'] as num?)?.toDouble() ?? 5.0;
+    final ratingSum = (userDoc?['ratingSum'] as num?)?.toInt() ?? 0;
+    final ratingCount = (userDoc?['ratingCount'] as num?)?.toInt() ?? 0;
+    final teacherRating = ratingCount > 0 ? (ratingSum / ratingCount) : 5.0;
     final studyHours = (userDoc?['studyHours'] as num?)?.toInt() ?? 0;
 
     // استخراج المواد الدراسية وتقييمات الطالب من فايربيس
@@ -688,17 +687,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             coursesData: updatedCourses.map((c) => c.toMap()).toList(),
                             courseRatings: updatedRatings,
                           );
-
-                          final user = ref.read(authServiceProvider).currentUser;
-                          final profileName = ref.read(userProfileStreamProvider).value?.data()?['name'] as String? ?? user?.displayName ?? 'زميل';
-                          if (user != null) {
-                            await ref.read(timeBankRepositoryProvider).syncTeachingOffersForUser(
-                              userId: user.uid,
-                              userName: profileName,
-                              courses: updatedCourses,
-                              ratings: updatedRatings,
-                            );
-                          }
                         } catch (e) {
                           debugPrint('Add course error: $e');
                         }
@@ -901,17 +889,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 coursesData: editableCourses.map((c) => c.toMap()).toList(),
                                 courseRatings: editableRatings,
                               );
-
-                              final user = ref.read(authServiceProvider).currentUser;
-                              final profileName = ref.read(userProfileStreamProvider).value?.data()?['name'] as String? ?? user?.displayName ?? 'زميل';
-                              if (user != null) {
-                                await ref.read(timeBankRepositoryProvider).syncTeachingOffersForUser(
-                                  userId: user.uid,
-                                  userName: profileName,
-                                  courses: editableCourses,
-                                  ratings: editableRatings,
-                                );
-                              }
                             } catch (e) {
                               debugPrint('Manage courses firestore update warning: $e');
                             }

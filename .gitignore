@@ -54,3 +54,6 @@ app.*.map.json
 
 /android/build/
 /android/app/build/
+
+.kotlin/
+android/.kotlin/

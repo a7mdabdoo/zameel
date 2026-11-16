@@ -10,7 +10,7 @@ service cloud.firestore {
     }
 
     function isEmailVerified() {
-      return isAuthenticated();
+      return isAuthenticated() && request.auth.token.email_verified == true;
     }
 
     function isOwner(userId) {
@@ -66,8 +66,17 @@ service cloud.firestore {
             request.auth.uid == sessionAfter.learnerId
             && sessionAfter.status == 'completed'
             && request.resource.data.completedSessions == resource.data.completedSessions + 1
-            && request.resource.data.teacherRating >= 1.0 && request.resource.data.teacherRating <= 5.0
-            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['timeCoins', 'lastSessionId', 'completedSessions', 'teacherRating'])
+            && sessionAfter.rating is int
+            && sessionAfter.rating >= 1 && sessionAfter.rating <= 5
+            && (
+              ('ratingCount' in resource.data && request.resource.data.ratingCount == resource.data.ratingCount + 1)
+              || (!('ratingCount' in resource.data) && request.resource.data.ratingCount == 1)
+            )
+            && (
+              ('ratingSum' in resource.data && request.resource.data.ratingSum == resource.data.ratingSum + sessionAfter.rating)
+              || (!('ratingSum' in resource.data) && request.resource.data.ratingSum == sessionAfter.rating)
+            )
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['timeCoins', 'lastSessionId', 'completedSessions', 'ratingSum', 'ratingCount'])
           )
           ||
           // تعويض إلغاء متأخر من قِبل المتعلّم
@@ -75,6 +84,16 @@ service cloud.firestore {
             request.auth.uid == sessionAfter.learnerId
             && sessionAfter.status == 'cancelled_by_learner'
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['timeCoins', 'lastSessionId'])
+          )
+          ||
+          // تحرير تلقائي للمعلم بعد 48 ساعة من الموعد وتسجيل تم الشرح (completed_auto) دون تغيير التقييم
+          (
+            request.auth.uid == sessionAfter.teacherId
+            && sessionAfter.status == 'completed_auto'
+            && request.resource.data.completedSessions == resource.data.completedSessions + 1
+            && (!('ratingCount' in request.resource.data) || request.resource.data.ratingCount == resource.data.ratingCount)
+            && (!('ratingSum' in request.resource.data) || request.resource.data.ratingSum == resource.data.ratingSum)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['timeCoins', 'lastSessionId', 'completedSessions'])
           )
         );
     }
@@ -90,40 +109,107 @@ service cloud.firestore {
         && request.resource.data.timeCoins == resource.data.timeCoins + 1
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['timeCoins', 'lastSessionId'])
         && (
-          // المعلم هو الذي ألغى
+          // المعلم هو الذي ألغى أو اعتذر
           (
             request.auth.uid == sessionAfter.teacherId
-            && sessionAfter.status == 'cancelled_by_teacher'
+            && (sessionAfter.status == 'cancelled_by_teacher' || sessionAfter.status == 'rejected')
           )
           ||
-          // المتعلّم ألغى قبل الموعد بـ > 2 ساعة
+          // المتعلّم ألغى أو استرد بعد انتهاء مهلة الرد (expired)
           (
             request.auth.uid == sessionAfter.learnerId
-            && sessionAfter.status == 'cancelled_by_learner'
+            && (sessionAfter.status == 'cancelled_by_learner' || sessionAfter.status == 'expired')
           )
         );
     }
 
-    // 4. التحقق من أطراف حركة المحفظة في الجلسة
-    function isTransactionPartyValid() {
+    // 4. التحقق من سلامة قيد دفتر الأستاذ المحاسبي (Ledger Integrity)
+    function isValidLedgerTransaction() {
       let session = getAfterSession(request.resource.data.sessionId);
+      let txType = request.resource.data.type;
+      let txUser = request.resource.data.userId;
+      let txAmount = request.resource.data.amount;
+      return txAmount == session.costCoins
+        && (
+          // حجز واسترداد -> المتعلّم
+          (
+            (txType == 'booking' || txType == 'refund')
+            && txUser == session.learnerId
+            && (
+              (txType == 'booking' && session.escrowStatus == 'held' && session.status in ['pending', 'confirmed'])
+              || (txType == 'refund' && session.escrowStatus == 'refunded_to_learner')
+            )
+          )
+          ||
+          // تحرير وتعويض -> المعلّم
+          (
+            (txType == 'release' || txType == 'compensation')
+            && txUser == session.teacherId
+            && (
+              (txType == 'release' && session.escrowStatus == 'released_to_teacher' && session.status in ['completed', 'completed_auto'])
+              || (txType == 'compensation' && session.escrowStatus == 'released_to_teacher' && session.status == 'cancelled_by_learner')
+            )
+          )
+        );
+    }
+
+    // 5. التحقق من أطراف الجلسة لقراءة الرسائل
+    function isSessionParticipant(sessionId) {
+      let session = getSession(sessionId);
+      return isAuthenticated()
+        && (session.learnerId == request.auth.uid || session.teacherId == request.auth.uid);
+    }
+
+    // 6. التحقق من صحة إنشاء رسالة داخل الجلسة
+    function isValidMessageCreate(sessionId) {
+      let session = getSession(sessionId);
       return isEmailVerified()
         && (session.learnerId == request.auth.uid || session.teacherId == request.auth.uid)
-        && (request.resource.data.userId == session.learnerId || request.resource.data.userId == session.teacherId);
+        && request.resource.data.senderId == request.auth.uid
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 1000
+        && ('createdAt' in request.resource.data && request.resource.data.createdAt != null);
+    }
+
+    // 7. التحقق من صحة واكتمال بيانات عروض الشرح (Offers Rules)
+    function isValidOfferData(data) {
+      return data.teacherId is string
+        && data.teacherName is string && data.teacherName.size() > 0
+        && data.courseId is string && data.courseId.size() > 0
+        && data.courseName is string && data.courseName.size() > 0
+        && data.courseCode is string && data.courseCode.size() > 0
+        && data.topic is string && data.topic.size() > 0
+        && data.durationMinutes in [30, 60]
+        && data.location is string
+        && (!('mode' in data) || data.mode in ['online', 'in_person'])
+        && !('meetingUrl' in data)
+        && !('meetingLink' in data)
+        && !('link' in data)
+        && ('slots' in data && data.slots is list && data.slots.size() > 0 && data.slots.size() <= 20)
+        && data.slots[0].weekday is int && data.slots[0].weekday >= 0 && data.slots[0].weekday <= 6
+        && data.slots[0].startMin is int && data.slots[0].startMin >= 0 && data.slots[0].startMin < 1440
+        && data.slots[0].endMin is int && data.slots[0].endMin > data.slots[0].startMin && data.slots[0].endMin <= 1440;
+    }
+
+    function isValidMeetingUrl(url) {
+      return url is string
+        && url.matches('^https://(meet\\.google\\.com|([a-zA-Z0-9-]+\\.)?zoom\\.us|teams\\.microsoft\\.com)(/.*)?$');
     }
 
     // ==========================================
     // 1. حسابات الطلاب (Users)
     // ==========================================
     match /users/{userId} {
-      allow read: if isAuthenticated();
+      allow get: if isAuthenticated();
+      allow list: if false;
 
       // إنشاء الحساب الأولي: برصيد 2 عملة تماماً، وتقييم صفر
       allow create: if isOwner(userId)
                     && request.resource.data.timeCoins == 2
-                    && request.resource.data.email == request.auth.token.email
                     && request.resource.data.completedSessions == 0
-                    && (request.resource.data.teacherRating == 0 || request.resource.data.teacherRating == 0.0);
+                    && (!('ratingSum' in request.resource.data) || request.resource.data.ratingSum == 0)
+                    && (!('ratingCount' in request.resource.data) || request.resource.data.ratingCount == 0);
 
       // تحديث الحساب
       allow update: if isAuthenticated() && (
@@ -131,7 +217,7 @@ service cloud.firestore {
         (
           isOwner(userId)
           && request.resource.data.timeCoins == resource.data.timeCoins
-          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['timeCoins', 'teacherRating', 'completedSessions', 'lastSessionId', 'email'])
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['timeCoins', 'teacherRating', 'ratingSum', 'ratingCount', 'completedSessions', 'lastSessionId', 'email'])
         )
         ||
         // ب) خصم عملة الحجز من المتعلم
@@ -155,30 +241,19 @@ service cloud.firestore {
     }
 
     // ==========================================
-    // 1-أ. ربط أسماء المستخدمين (Usernames Mapping)
-    // يتيح تسجيل الدخول بالاسم أو الإيميل كما في Codeforces/LinkedIn
-    // ==========================================
-    match /usernames/{username} {
-      // القراءة متاحة للجميع للتحقق من توفر الاسم وتسجيل الدخول به
-      allow read: if true;
-
-      // الإنشاء لصاحب الحساب فقط، ويمنع تكرار اسم مأخوذ مسبقاً
-      allow create: if isAuthenticated()
-        && !exists(/databases/$(database)/documents/usernames/$(username))
-        && request.resource.data.uid == request.auth.uid
-        && request.resource.data.email == request.auth.token.email;
-
-      // منع التعديل أو الحذف المباشر
-      allow update, delete: if false;
-    }
-
-    // ==========================================
     // 2. عروض الشرح في بنك الوقت (Offers)
     // ==========================================
     match /offers/{offerId} {
       allow read: if isAuthenticated();
-      allow create: if isEmailVerified() && request.resource.data.teacherId == request.auth.uid;
-      allow update, delete: if isEmailVerified() && resource.data.teacherId == request.auth.uid;
+      allow create: if isEmailVerified()
+        && request.resource.data.teacherId == request.auth.uid
+        && isValidOfferData(request.resource.data);
+      allow update: if isEmailVerified()
+        && resource.data.teacherId == request.auth.uid
+        && request.resource.data.teacherId == resource.data.teacherId
+        && isValidOfferData(request.resource.data);
+      allow delete: if isEmailVerified()
+        && resource.data.teacherId == request.auth.uid;
     }
 
     // ==========================================
@@ -197,13 +272,20 @@ service cloud.firestore {
         && request.resource.data.teacherId != request.auth.uid
         && request.resource.data.costCoins == 1
         && request.resource.data.escrowStatus == 'held'
-        && request.resource.data.status == 'confirmed'
+        && request.resource.data.status in ['pending', 'confirmed']
+        && ('scheduledAt' in request.resource.data)
+        && request.resource.data.scheduledAt is timestamp
+        && request.resource.data.scheduledAt >= request.time + duration.value(2, 'h')
+        && request.resource.data.scheduledAt <= request.time + duration.value(15, 'd')
+        && (!('rating' in request.resource.data) || request.resource.data.rating == null)
+        && (!('meetingUrl' in request.resource.data) || request.resource.data.meetingUrl == null)
+        && (!('mode' in request.resource.data) || request.resource.data.mode in ['online', 'in_person'])
         // التحقق الذري من خصم عملة المتعلم في نفس المعاملة
         && getUser(request.auth.uid).timeCoins >= 1
         && getAfterUser(request.auth.uid).timeCoins == getUser(request.auth.uid).timeCoins - 1
         && getAfterUser(request.auth.uid).lastSessionId == sessionId;
 
-      // تحديث الجلسة مقيد بدقة مع قفل الدفع التبادلي (Bidirectional Payment-Locking):
+      // تحديث الجلسة مقيد بدقة: إما إضافة/تحديث رابط اللقاء الأونلاين من المعلم فقط، أو قفل الدفع التبادلي (Escrow):
       allow update: if isEmailVerified()
         && request.resource.data.learnerId == resource.data.learnerId
         && request.resource.data.teacherId == resource.data.teacherId
@@ -211,18 +293,73 @@ service cloud.firestore {
         && request.resource.data.scheduledAt == resource.data.scheduledAt
         && resource.data.escrowStatus == 'held'
         && (
-          // الحالة أ: المتعلم يؤكد إتمام الجلسة ويطلق الضمان للمعلم (مشروط بزيادة رصيد المعلم بـ 1 في نفس المعاملة)
+          // تحديث رابط الاجتماع من قِبل المعلم فقط في جلسة نشطة ومحتجزة بالضمان بدون أي تغيير مالي أو في حالة الجلسة
+          (
+            resource.data.teacherId == request.auth.uid
+            && request.resource.data.escrowStatus == resource.data.escrowStatus
+            && request.resource.data.status == resource.data.status
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['meetingUrl', 'meetingUpdatedAt'])
+            && request.resource.data.meetingUrl is string
+            && isValidMeetingUrl(request.resource.data.meetingUrl)
+          )
+          ||
+          // الحالة 0-أ: قبول المعلم للجلسة المعلقة (pending -> confirmed) بدون أي حركة مالية
+          (
+            resource.data.teacherId == request.auth.uid
+            && resource.data.status == 'pending'
+            && request.resource.data.status == 'confirmed'
+            && request.resource.data.escrowStatus == resource.data.escrowStatus
+          )
+          ||
+          // الحالة 0-ب: رفض المعلم للجلسة المعلقة (pending -> rejected) مع استرداد كامل للمتعلم
+          (
+            resource.data.teacherId == request.auth.uid
+            && resource.data.status == 'pending'
+            && request.resource.data.status == 'rejected'
+            && request.resource.data.escrowStatus == 'refunded_to_learner'
+            && getAfterUser(resource.data.learnerId).timeCoins == getUser(resource.data.learnerId).timeCoins + 1
+            && getAfterUser(resource.data.learnerId).lastSessionId == sessionId
+          )
+          ||
+          // الحالة 0-ج: إلغاء المتعلم للجلسة المعلقة قبل قبول المعلم (pending -> cancelled_by_learner) مع استرداد كامل
           (
             resource.data.learnerId == request.auth.uid
+            && resource.data.status == 'pending'
+            && request.resource.data.status == 'cancelled_by_learner'
+            && request.resource.data.escrowStatus == 'refunded_to_learner'
+            && request.resource.data.cancelledBy == request.auth.uid
+            && getAfterUser(resource.data.learnerId).timeCoins == getUser(resource.data.learnerId).timeCoins + 1
+            && getAfterUser(resource.data.learnerId).lastSessionId == sessionId
+          )
+          ||
+          // الحالة 0-د: المعلم يحدد "تم الشرح" (teacherMarkedDoneAt) بعد حلول الموعد scheduledAt بدون أي حركة مالية
+          (
+            resource.data.teacherId == request.auth.uid
+            && resource.data.status == 'confirmed'
+            && request.resource.data.status == resource.data.status
+            && request.resource.data.escrowStatus == resource.data.escrowStatus
+            && (!('scheduledAt' in resource.data) || !(resource.data.scheduledAt is timestamp) || request.time >= resource.data.scheduledAt)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['teacherMarkedDoneAt'])
+            && request.resource.data.teacherMarkedDoneAt is timestamp
+          )
+          ||
+          // الحالة أ: المتعلم يؤكد إتمام الجلسة ويطلق الضمان للمعلم بعد حلول الموعد (مشروط بزيادة رصيد المعلم بـ 1 في نفس المعاملة)
+          (
+            resource.data.learnerId == request.auth.uid
+            && resource.data.status == 'confirmed'
             && request.resource.data.escrowStatus == 'released_to_teacher'
             && request.resource.data.status == 'completed'
+            && (!('scheduledAt' in resource.data) || !(resource.data.scheduledAt is timestamp) || request.time >= resource.data.scheduledAt)
+            && request.resource.data.rating is int
+            && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
             && getAfterUser(resource.data.teacherId).timeCoins == getUser(resource.data.teacherId).timeCoins + 1
             && getAfterUser(resource.data.teacherId).lastSessionId == sessionId
           )
           ||
-          // الحالة ب: المعلم يلغي الجلسة في أي وقت -> استرداد كامل للمتعلم (مشروط بزيادة رصيد المتعلم بـ 1 في نفس المعاملة)
+          // الحالة ب: المعلم يلغي الجلسة المؤكدة في أي وقت -> استرداد كامل للمتعلم (مشروط بزيادة رصيد المتعلم بـ 1 في نفس المعاملة)
           (
             resource.data.teacherId == request.auth.uid
+            && resource.data.status == 'confirmed'
             && request.resource.data.escrowStatus == 'refunded_to_learner'
             && request.resource.data.status == 'cancelled_by_teacher'
             && request.resource.data.cancelledBy == request.auth.uid
@@ -230,9 +367,10 @@ service cloud.firestore {
             && getAfterUser(resource.data.learnerId).lastSessionId == sessionId
           )
           ||
-          // الحالة ج: المتعلم يلغي قبل الموعد بـ > 2 ساعة -> استرداد كامل للمتعلم (مشروط بزيادة رصيد المتعلم بـ 1 في نفس المعاملة)
+          // الحالة ج: المتعلم يلغي قبل الموعد بـ > 2 ساعة بعد التأكيد -> استرداد كامل للمتعلم (مشروط بزيادة رصيد المتعلم بـ 1 في نفس المعاملة)
           (
             resource.data.learnerId == request.auth.uid
+            && resource.data.status == 'confirmed'
             && request.resource.data.escrowStatus == 'refunded_to_learner'
             && request.resource.data.status == 'cancelled_by_learner'
             && request.resource.data.cancelledBy == request.auth.uid
@@ -242,9 +380,10 @@ service cloud.firestore {
             && getAfterUser(resource.data.learnerId).lastSessionId == sessionId
           )
           ||
-          // الحالة د: المتعلم يلغي قبل الموعد بـ <= 2 ساعة -> تعويض للمعلم (مشروط بزيادة رصيد المعلم بـ 1 في نفس المعاملة)
+          // الحالة د: المتعلم يلغي قبل الموعد بـ <= 2 ساعة بعد التأكيد -> تعويض للمعلم (مشروط بزيادة رصيد المعلم بـ 1 في نفس المعاملة)
           (
             resource.data.learnerId == request.auth.uid
+            && resource.data.status == 'confirmed'
             && request.resource.data.escrowStatus == 'released_to_teacher'
             && request.resource.data.status == 'cancelled_by_learner'
             && request.resource.data.cancelledBy == request.auth.uid
@@ -255,19 +394,52 @@ service cloud.firestore {
             && getAfterUser(resource.data.teacherId).timeCoins == getUser(resource.data.teacherId).timeCoins + 1
             && getAfterUser(resource.data.teacherId).lastSessionId == sessionId
           )
+          ||
+          // الحالة هـ: استرداد المتعلم عند انتهاء مهلة الرد (expired) إذا مر أكثر من 24 ساعة أو فات موعد الجلسة
+          (
+            resource.data.learnerId == request.auth.uid
+            && resource.data.status == 'pending'
+            && request.resource.data.status == 'expired'
+            && request.resource.data.escrowStatus == 'refunded_to_learner'
+            && (
+              (resource.data.createdAt is timestamp && (request.time - resource.data.createdAt) > duration.value(24, 'h'))
+              || (resource.data.scheduledAt is timestamp && request.time > resource.data.scheduledAt)
+            )
+            && getAfterUser(resource.data.learnerId).timeCoins == getUser(resource.data.learnerId).timeCoins + 1
+            && getAfterUser(resource.data.learnerId).lastSessionId == sessionId
+          )
+          ||
+          // الحالة و: المطالبة التلقائية بالعملة للمعلم (completed_auto) بعد 48 ساعة من الموعد مع تسجيل تم الشرح وصمت المتعلم
+          (
+            resource.data.teacherId == request.auth.uid
+            && resource.data.status == 'confirmed'
+            && request.resource.data.status == 'completed_auto'
+            && request.resource.data.escrowStatus == 'released_to_teacher'
+            && ('teacherMarkedDoneAt' in resource.data && resource.data.teacherMarkedDoneAt is timestamp)
+            && (resource.data.scheduledAt is timestamp && (request.time - resource.data.scheduledAt) > duration.value(48, 'h'))
+            && getAfterUser(resource.data.teacherId).timeCoins == getUser(resource.data.teacherId).timeCoins + 1
+            && getAfterUser(resource.data.teacherId).lastSessionId == sessionId
+          )
+          ||
+          // الحالة ز: فتح نزاع من قِبل المتعلم (disputed) بعد قيام المعلم بتسجيل "تم الشرح" مع بقاء الضمان محتجزاً
+          (
+            resource.data.learnerId == request.auth.uid
+            && resource.data.status == 'confirmed'
+            && request.resource.data.status == 'disputed'
+            && request.resource.data.escrowStatus == resource.data.escrowStatus
+            && ('teacherMarkedDoneAt' in resource.data && resource.data.teacherMarkedDoneAt is timestamp)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'disputedAt', 'disputeReason'])
+          )
         );
 
       allow delete: if false;
 
-      // محادثة ورسائل تنسيق الجلسة بين الطالبين
+      // محادثة ورسائل تنسيق الجلسة بين الطالبين (مقتصرة على أطراف الجلسة فقط)
       match /messages/{messageId} {
-        allow read, write: if isAuthenticated();
+        allow read: if isSessionParticipant(sessionId);
+        allow create: if isValidMessageCreate(sessionId);
+        allow update, delete: if false;
       }
-    }
-
-    // رسائل ومحادثات تنسيق الجلسات (مجموعة عامة)
-    match /messages/{messageId} {
-      allow read, write: if isAuthenticated();
     }
 
     // ==========================================
@@ -277,17 +449,86 @@ service cloud.firestore {
     match /transactions/{txId} {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
 
-      // إنشاء الحركة: مشروط بربطها بجلسة حقيقية وأن المستخدم أحد طرفيها أو مكافأة مذاكرة
+      // إنشاء الحركة: مشروط بعدم وجود المستند مسبقاً، وهوية حتمية `${sessionId}_${kind}`
+      // أو مكافأة إتمام مذاكرة ذاتية
       allow create: if isEmailVerified()
-        && request.resource.data.amount == 1
         && (
-          ('sessionId' in request.resource.data && request.resource.data.sessionId != null && isTransactionPartyValid())
+          (
+            !exists(/databases/$(database)/documents/transactions/$(txId))
+            && 'sessionId' in request.resource.data
+            && request.resource.data.sessionId != null
+            && 'type' in request.resource.data
+            && request.resource.data.type in ['booking', 'release', 'refund', 'compensation']
+            && txId == request.resource.data.sessionId + '_' + request.resource.data.type
+            && isValidLedgerTransaction()
+          )
           ||
-          (request.resource.data.type == 'study_reward' && request.resource.data.userId == request.auth.uid)
+          (
+            request.resource.data.type == 'study_reward'
+            && request.resource.data.userId == request.auth.uid
+            && request.resource.data.amount == 1
+          )
         );
 
       // السجل المحاسبي غير قابل للتعديل أو الحذف إطلاقاً (Immutable Ledger)
       allow update, delete: if false;
+    }
+
+    // ==========================================
+    // 5. أقفال المواعيد لمنع الحجز المزدوج (Slot Locks)
+    // ==========================================
+    match /slotLocks/{lockId} {
+      allow read: if isAuthenticated();
+
+      // إنشاء القفل: حصرياً بالتزامن مع إنشاء جلسة في نفس المعاملة (existsAfter)
+      // مع صيغة معرف حتمية {uid}_{slotEpochMs}، وحالة أولية 'active'
+      allow create: if isEmailVerified()
+        && !exists(/databases/$(database)/documents/slotLocks/$(lockId))
+        && 'uid' in request.resource.data
+        && 'slotEpochMs' in request.resource.data
+        && 'sessionId' in request.resource.data
+        && 'status' in request.resource.data
+        && request.resource.data.status == 'active'
+        && request.resource.data.slotEpochMs is int
+        && request.resource.data.uid is string
+        && lockId == request.resource.data.uid + '_' + string(request.resource.data.slotEpochMs)
+        && existsAfter(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId));
+
+      // تحديث حالة القفل: مسموح فقط بالتحول الحتمي المرتبط بانتقال حالة الجلسة
+      // مع ثبات المعرفات الأصلية uid و slotEpochMs
+      allow update: if isEmailVerified()
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.slotEpochMs == resource.data.slotEpochMs
+        && (
+          // تحول إلى 'used' عند إتمام الجلسة بنجاح أو تعويض المعلم
+          (
+            resource.data.status == 'active'
+            && request.resource.data.status == 'used'
+            && request.resource.data.sessionId == resource.data.sessionId
+            && getAfter(/databases/$(database)/documents/sessions/$(resource.data.sessionId)).data.escrowStatus == 'released_to_teacher'
+          )
+          ||
+          // تحول إلى 'released' عند إلغاء أو رفض أو انتهاء الجلسة واسترداد المتعلم
+          (
+            resource.data.status == 'active'
+            && request.resource.data.status == 'released'
+            && request.resource.data.sessionId == resource.data.sessionId
+            && (
+              getAfter(/databases/$(database)/documents/sessions/$(resource.data.sessionId)).data.escrowStatus == 'refunded_to_learner'
+              || getAfter(/databases/$(database)/documents/sessions/$(resource.data.sessionId)).data.status in ['cancelled_by_teacher', 'cancelled_by_learner', 'rejected', 'expired']
+            )
+          )
+          ||
+          // تحول إلى 'active' عند إعادة حجز موعد تم إلغاؤه مسبقاً (released -> active)
+          (
+            resource.data.status == 'released'
+            && request.resource.data.status == 'active'
+            && existsAfter(/databases/$(database)/documents/sessions/$(request.resource.data.sessionId))
+          )
+        );
+
+      // لا يسمح بحذف أقفال المواعيد إطلاقاً
+      allow delete: if false;
     }
   }
 }
