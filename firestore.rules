@@ -85,6 +85,16 @@ service cloud.firestore {
             && sessionAfter.status == 'cancelled_by_learner'
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['timeCoins', 'lastSessionId'])
           )
+          ||
+          // تحرير تلقائي للمعلم بعد 48 ساعة من الموعد وتسجيل تم الشرح (completed_auto) دون تغيير التقييم
+          (
+            request.auth.uid == sessionAfter.teacherId
+            && sessionAfter.status == 'completed_auto'
+            && request.resource.data.completedSessions == resource.data.completedSessions + 1
+            && (!('ratingCount' in request.resource.data) || request.resource.data.ratingCount == resource.data.ratingCount)
+            && (!('ratingSum' in request.resource.data) || request.resource.data.ratingSum == resource.data.ratingSum)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['timeCoins', 'lastSessionId', 'completedSessions'])
+          )
         );
     }
 
@@ -136,7 +146,7 @@ service cloud.firestore {
             (txType == 'release' || txType == 'compensation')
             && txUser == session.teacherId
             && (
-              (txType == 'release' && session.escrowStatus == 'released_to_teacher' && session.status == 'completed')
+              (txType == 'release' && session.escrowStatus == 'released_to_teacher' && session.status in ['completed', 'completed_auto'])
               || (txType == 'compensation' && session.escrowStatus == 'released_to_teacher' && session.status == 'cancelled_by_learner')
             )
           )
@@ -376,6 +386,42 @@ service cloud.firestore {
             )
             && getAfterUser(resource.data.teacherId).timeCoins == getUser(resource.data.teacherId).timeCoins + 1
             && getAfterUser(resource.data.teacherId).lastSessionId == sessionId
+          )
+          ||
+          // الحالة هـ: استرداد المتعلم عند انتهاء مهلة الرد (expired) إذا مر أكثر من 24 ساعة أو فات موعد الجلسة
+          (
+            resource.data.learnerId == request.auth.uid
+            && resource.data.status == 'pending'
+            && request.resource.data.status == 'expired'
+            && request.resource.data.escrowStatus == 'refunded_to_learner'
+            && (
+              (resource.data.createdAt is timestamp && (request.time - resource.data.createdAt) > duration.value(24, 'h'))
+              || (resource.data.scheduledAt is timestamp && request.time > resource.data.scheduledAt)
+            )
+            && getAfterUser(resource.data.learnerId).timeCoins == getUser(resource.data.learnerId).timeCoins + 1
+            && getAfterUser(resource.data.learnerId).lastSessionId == sessionId
+          )
+          ||
+          // الحالة و: المطالبة التلقائية بالعملة للمعلم (completed_auto) بعد 48 ساعة من الموعد مع تسجيل تم الشرح وصمت المتعلم
+          (
+            resource.data.teacherId == request.auth.uid
+            && resource.data.status == 'confirmed'
+            && request.resource.data.status == 'completed_auto'
+            && request.resource.data.escrowStatus == 'released_to_teacher'
+            && ('teacherMarkedDoneAt' in resource.data && resource.data.teacherMarkedDoneAt is timestamp)
+            && (resource.data.scheduledAt is timestamp && (request.time - resource.data.scheduledAt) > duration.value(48, 'h'))
+            && getAfterUser(resource.data.teacherId).timeCoins == getUser(resource.data.teacherId).timeCoins + 1
+            && getAfterUser(resource.data.teacherId).lastSessionId == sessionId
+          )
+          ||
+          // الحالة ز: فتح نزاع من قِبل المتعلم (disputed) بعد قيام المعلم بتسجيل "تم الشرح" مع بقاء الضمان محتجزاً
+          (
+            resource.data.learnerId == request.auth.uid
+            && resource.data.status == 'confirmed'
+            && request.resource.data.status == 'disputed'
+            && request.resource.data.escrowStatus == resource.data.escrowStatus
+            && ('teacherMarkedDoneAt' in resource.data && resource.data.teacherMarkedDoneAt is timestamp)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'disputedAt', 'disputeReason'])
           )
         );
 

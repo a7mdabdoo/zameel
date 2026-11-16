@@ -720,4 +720,126 @@ void main() {
       );
     });
   });
+
+  // =========================================================================
+  // المجموعة 13: منع تعليق الضمان المالي والنزاعات (No Stuck Escrow & Disputes)
+  // =========================================================================
+  group('TimeBankPureLogic - No Stuck Escrow & Disputes', () {
+    final baseCreatedAt = DateTime(2026, 11, 20, 10, 0);
+    final scheduledAt = DateTime(2026, 11, 21, 14, 0);
+
+    test('canLearnerClaimExpiredRefund allows refund after 24h or after scheduledAt passes while pending', () {
+      // 1. قبل مرور 24 ساعة والموعد لم يحن بعد -> غير مستحق
+      DateTime clockTooSoon() => DateTime(2026, 11, 20, 20, 0);
+      expect(
+        TimeBankPureLogic.canLearnerClaimExpiredRefund(
+          status: 'pending',
+          escrowStatus: 'held',
+          createdAt: baseCreatedAt,
+          scheduledAt: scheduledAt,
+          clock: clockTooSoon,
+        ),
+        isFalse,
+      );
+
+      // 2. بعد مرور 25 ساعة على الإنشاء -> مستحق
+      DateTime clockAfter25h() => DateTime(2026, 11, 21, 11, 0);
+      expect(
+        TimeBankPureLogic.canLearnerClaimExpiredRefund(
+          status: 'pending',
+          escrowStatus: 'held',
+          createdAt: baseCreatedAt,
+          scheduledAt: scheduledAt,
+          clock: clockAfter25h,
+        ),
+        isTrue,
+      );
+
+      // 3. تجاوز الموعد المحدد وما زالت pending -> مستحق
+      DateTime clockAfterScheduled() => DateTime(2026, 11, 21, 15, 0);
+      expect(
+        TimeBankPureLogic.canLearnerClaimExpiredRefund(
+          status: 'pending',
+          escrowStatus: 'held',
+          createdAt: baseCreatedAt,
+          scheduledAt: scheduledAt,
+          clock: clockAfterScheduled,
+        ),
+        isTrue,
+      );
+    });
+
+    test('canTeacherClaimAutoRelease allows claim after 48h from scheduledAt with teacherMarkedDoneAt', () {
+      final doneAt = DateTime(2026, 11, 21, 15, 0);
+
+      // 1. لم يمر 48 ساعة بعد (مر 24 ساعة فقط) -> غير مستحق
+      DateTime clockAfter24h() => DateTime(2026, 11, 22, 14, 0);
+      expect(
+        TimeBankPureLogic.canTeacherClaimAutoRelease(
+          status: 'confirmed',
+          escrowStatus: 'held',
+          teacherMarkedDoneAt: doneAt,
+          scheduledAt: scheduledAt,
+          clock: clockAfter24h,
+        ),
+        isFalse,
+      );
+
+      // 2. مر 49 ساعة على الموعد -> مستحق
+      DateTime clockAfter49h() => DateTime(2026, 11, 23, 15, 0);
+      expect(
+        TimeBankPureLogic.canTeacherClaimAutoRelease(
+          status: 'confirmed',
+          escrowStatus: 'held',
+          teacherMarkedDoneAt: doneAt,
+          scheduledAt: scheduledAt,
+          clock: clockAfter49h,
+        ),
+        isTrue,
+      );
+
+      // 3. لم يقم المعلم بتسجيل "تم الشرح" -> غير مستحق إطلاقاً
+      expect(
+        TimeBankPureLogic.canTeacherClaimAutoRelease(
+          status: 'confirmed',
+          escrowStatus: 'held',
+          teacherMarkedDoneAt: null,
+          scheduledAt: scheduledAt,
+          clock: clockAfter49h,
+        ),
+        isFalse,
+      );
+    });
+
+    test('canLearnerOpenDispute is eligible only when confirmed and teacher marked done', () {
+      final doneAt = DateTime(2026, 11, 21, 15, 0);
+
+      expect(
+        TimeBankPureLogic.canLearnerOpenDispute(
+          status: 'confirmed',
+          escrowStatus: 'held',
+          teacherMarkedDoneAt: doneAt,
+        ),
+        isTrue,
+      );
+
+      expect(
+        TimeBankPureLogic.canLearnerOpenDispute(
+          status: 'confirmed',
+          escrowStatus: 'held',
+          teacherMarkedDoneAt: null,
+        ),
+        isFalse,
+      );
+
+      expect(
+        TimeBankPureLogic.canLearnerOpenDispute(
+          status: 'completed',
+          escrowStatus: 'released_to_teacher',
+          teacherMarkedDoneAt: doneAt,
+        ),
+        isFalse,
+      );
+    });
+  });
 }

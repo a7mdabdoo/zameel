@@ -533,6 +533,314 @@ class TimeBankRepository {
   }
 
   // =========================================================================
+  // 2-ب. استرداد المتعلم عند انتهاء مهلة الرد (Expired Session Refund)
+  // =========================================================================
+  Future<void> claimExpiredSessionRefund({
+    required String sessionId,
+    required String learnerId,
+    DateTime? currentTime,
+  }) async {
+    final firestore = _firestore;
+    if (firestore == null) {
+      throw FirebaseException(
+        plugin: 'firestore',
+        message: 'Firebase Firestore is not initialized',
+      );
+    }
+
+    final sessionDocRef = firestore.collection('sessions').doc(sessionId);
+
+    await firestore.runTransaction((transaction) async {
+      final sessionSnap = await transaction.get(sessionDocRef);
+      if (!sessionSnap.exists) throw Exception('الجلسة غير موجودة');
+
+      final sessionData = sessionSnap.data()!;
+      final currentLearnerId = sessionData['learnerId'] as String? ?? '';
+      final currentStatus = sessionData['status'] as String? ?? '';
+      final currentEscrow = sessionData['escrowStatus'] as String? ?? '';
+      final courseName = sessionData['courseName'] as String? ?? '';
+      final costCoins = (sessionData['costCoins'] as num?)?.toInt() ?? AppConstants.sessionCostCoins;
+      final teacherId = sessionData['teacherId'] as String? ?? '';
+      final durationMinutes = (sessionData['durationMinutes'] as num?)?.toInt() ?? 60;
+
+      if (currentLearnerId != learnerId) {
+        throw Exception('المتعلم صاحب الجلسة فقط هو المخول بالمطالبة بالاسترداد');
+      }
+
+      DateTime? createdAt;
+      final createdAtRaw = sessionData['createdAt'];
+      if (createdAtRaw is Timestamp) {
+        createdAt = createdAtRaw.toDate();
+      } else if (createdAtRaw is String) {
+        createdAt = DateTime.tryParse(createdAtRaw);
+      }
+
+      DateTime? scheduledAt;
+      final scheduledAtRaw = sessionData['scheduledAt'];
+      if (scheduledAtRaw is Timestamp) {
+        scheduledAt = scheduledAtRaw.toDate();
+      } else if (scheduledAtRaw is String) {
+        scheduledAt = DateTime.tryParse(scheduledAtRaw);
+      }
+
+      final now = currentTime ?? DateTime.now();
+      final isEligible = TimeBankPureLogic.canLearnerClaimExpiredRefund(
+        status: currentStatus,
+        escrowStatus: currentEscrow,
+        createdAt: createdAt ?? now,
+        scheduledAt: scheduledAt,
+        clock: () => now,
+      );
+
+      if (!isEligible) {
+        throw Exception('شروط استرداد العملة غير مستوفاة بعد (يجب مرور 24 ساعة على الطلب أو حلول موعد الجلسة)');
+      }
+
+      final learnerDocRef = firestore.collection('users').doc(learnerId);
+      final learnerSnap = await transaction.get(learnerDocRef);
+      final learnerCoins = (learnerSnap.data()?['timeCoins'] as num?)?.toInt() ?? 0;
+
+      // قراءة الأقفال
+      final existingLockRefs = <DocumentReference>[];
+      if (scheduledAt != null) {
+        final lockIds = TimeBankPureLogic.getLockDocIds(
+          learnerId: learnerId,
+          teacherId: teacherId,
+          scheduledAt: scheduledAt,
+          durationMinutes: durationMinutes,
+        );
+        for (final id in lockIds) {
+          final ref = firestore.collection('slotLocks').doc(id);
+          final snap = await transaction.get(ref);
+          if (snap.exists) existingLockRefs.add(ref);
+        }
+      }
+
+      // رد العملة للمتعلم
+      transaction.update(learnerDocRef, {
+        'timeCoins': learnerCoins + costCoins,
+        'lastSessionId': sessionId,
+      });
+
+      // تحديث الجلسة
+      transaction.update(sessionDocRef, {
+        'status': 'expired',
+        'escrowStatus': 'refunded_to_learner',
+        'expiredAt': FieldValue.serverTimestamp(),
+      });
+
+      // قيد الاسترداد في سجل الحركات
+      final txId = '${sessionId}_refund';
+      final txDocRef = firestore.collection('transactions').doc(txId);
+      final txData = WalletTransactionModel(
+        id: txId,
+        userId: learnerId,
+        sessionId: sessionId,
+        title: 'استرداد عملة: انتهاء مهلة الرد على طلب $courseName',
+        date: 'الآن',
+        amount: costCoins,
+        isNegative: false,
+        type: 'refund',
+        icon: Icons.undo_rounded,
+        createdAt: now,
+      ).toMap();
+      txData['createdAt'] = FieldValue.serverTimestamp();
+      transaction.set(txDocRef, txData);
+
+      // إطلاق الأقفال
+      for (final ref in existingLockRefs) {
+        transaction.update(ref, {
+          'status': 'released',
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    });
+  }
+
+  // =========================================================================
+  // 2-ج. مطالبة المعلم التلقائية بالعملة بعد 48 ساعة وصمت المتعلم (Auto Release)
+  // =========================================================================
+  Future<void> claimTeacherAutoRelease({
+    required String sessionId,
+    required String teacherId,
+    DateTime? currentTime,
+  }) async {
+    final firestore = _firestore;
+    if (firestore == null) {
+      throw FirebaseException(
+        plugin: 'firestore',
+        message: 'Firebase Firestore is not initialized',
+      );
+    }
+
+    final sessionDocRef = firestore.collection('sessions').doc(sessionId);
+
+    await firestore.runTransaction((transaction) async {
+      final sessionSnap = await transaction.get(sessionDocRef);
+      if (!sessionSnap.exists) throw Exception('الجلسة غير موجودة');
+
+      final sessionData = sessionSnap.data()!;
+      final currentTeacherId = sessionData['teacherId'] as String? ?? '';
+      final currentStatus = sessionData['status'] as String? ?? '';
+      final currentEscrow = sessionData['escrowStatus'] as String? ?? '';
+      final courseName = sessionData['courseName'] as String? ?? '';
+      final learnerId = sessionData['learnerId'] as String? ?? '';
+      final durationMinutes = (sessionData['durationMinutes'] as num?)?.toInt() ?? 60;
+
+      if (currentTeacherId != teacherId) {
+        throw Exception('الشارح صاحب الجلسة فقط هو المخول بالمطالبة بالعملة');
+      }
+
+      DateTime? scheduledAt;
+      final scheduledAtRaw = sessionData['scheduledAt'];
+      if (scheduledAtRaw is Timestamp) {
+        scheduledAt = scheduledAtRaw.toDate();
+      } else if (scheduledAtRaw is String) {
+        scheduledAt = DateTime.tryParse(scheduledAtRaw);
+      }
+
+      DateTime? teacherMarkedDoneAt;
+      final doneRaw = sessionData['teacherMarkedDoneAt'];
+      if (doneRaw is Timestamp) {
+        teacherMarkedDoneAt = doneRaw.toDate();
+      } else if (doneRaw is String) {
+        teacherMarkedDoneAt = DateTime.tryParse(doneRaw);
+      }
+
+      final now = currentTime ?? DateTime.now();
+      final isEligible = TimeBankPureLogic.canTeacherClaimAutoRelease(
+        status: currentStatus,
+        escrowStatus: currentEscrow,
+        teacherMarkedDoneAt: teacherMarkedDoneAt,
+        scheduledAt: scheduledAt,
+        clock: () => now,
+      );
+
+      if (!isEligible) {
+        throw Exception('شروط التحرير التلقائي غير مستوفاة (يجب تسجيل "تم الشرح" ومرور 48 ساعة على موعد الجلسة دون نزاع)');
+      }
+
+      final teacherDocRef = firestore.collection('users').doc(teacherId);
+      final teacherSnap = await transaction.get(teacherDocRef);
+      final teacherCoins = (teacherSnap.data()?['timeCoins'] as num?)?.toInt() ?? 0;
+      final completedSessions = (teacherSnap.data()?['completedSessions'] as num?)?.toInt() ?? 0;
+
+      // قراءة الأقفال
+      final existingLockRefs = <DocumentReference>[];
+      if (scheduledAt != null) {
+        final lockIds = TimeBankPureLogic.getLockDocIds(
+          learnerId: learnerId,
+          teacherId: teacherId,
+          scheduledAt: scheduledAt,
+          durationMinutes: durationMinutes,
+        );
+        for (final id in lockIds) {
+          final ref = firestore.collection('slotLocks').doc(id);
+          final snap = await transaction.get(ref);
+          if (snap.exists) existingLockRefs.add(ref);
+        }
+      }
+
+      // تحرير العملة للمعلم (بدون تعديل التقييم)
+      transaction.update(teacherDocRef, {
+        'timeCoins': teacherCoins + AppConstants.sessionCostCoins,
+        'completedSessions': completedSessions + 1,
+        'lastSessionId': sessionId,
+      });
+
+      // تحديث الجلسة كـ completed_auto
+      transaction.update(sessionDocRef, {
+        'status': 'completed_auto',
+        'escrowStatus': 'released_to_teacher',
+        'autoReleasedAt': FieldValue.serverTimestamp(),
+      });
+
+      // قيد حركة المحفظة للمعلم
+      final txId = '${sessionId}_release';
+      final txDocRef = firestore.collection('transactions').doc(txId);
+      final txData = WalletTransactionModel(
+        id: txId,
+        userId: teacherId,
+        sessionId: sessionId,
+        title: 'تحرير تلقائي لمكافأة شرح: $courseName (بعد 48 ساعة)',
+        date: 'الآن',
+        amount: AppConstants.sessionCostCoins,
+        isNegative: false,
+        type: 'release',
+        icon: Icons.volunteer_activism_outlined,
+        createdAt: now,
+      ).toMap();
+      txData['createdAt'] = FieldValue.serverTimestamp();
+      transaction.set(txDocRef, txData);
+
+      // تحديث الأقفال كـ used
+      for (final ref in existingLockRefs) {
+        transaction.update(ref, {
+          'status': 'used',
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+      }
+    });
+  }
+
+  // =========================================================================
+  // 2-د. فتح نزاع من قِبل المتعلم بعد قيام المعلم بتسجيل "تم الشرح" (Dispute)
+  // =========================================================================
+  Future<void> openSessionDispute({
+    required String sessionId,
+    required String learnerId,
+    required String reason,
+  }) async {
+    final firestore = _firestore;
+    if (firestore == null) {
+      throw FirebaseException(
+        plugin: 'firestore',
+        message: 'Firebase Firestore is not initialized',
+      );
+    }
+
+    final sessionDocRef = firestore.collection('sessions').doc(sessionId);
+
+    await firestore.runTransaction((transaction) async {
+      final snap = await transaction.get(sessionDocRef);
+      if (!snap.exists) throw Exception('الجلسة غير موجودة');
+
+      final data = snap.data()!;
+      final currentLearnerId = data['learnerId'] as String? ?? '';
+      final currentStatus = data['status'] as String? ?? '';
+      final currentEscrow = data['escrowStatus'] as String? ?? '';
+      final doneRaw = data['teacherMarkedDoneAt'];
+
+      if (currentLearnerId != learnerId) {
+        throw Exception('المتعلم صاحب الجلسة فقط هو المخول بفتح نزاع');
+      }
+
+      DateTime? teacherMarkedDoneAt;
+      if (doneRaw is Timestamp) {
+        teacherMarkedDoneAt = doneRaw.toDate();
+      } else if (doneRaw is String) {
+        teacherMarkedDoneAt = DateTime.tryParse(doneRaw);
+      }
+
+      final isEligible = TimeBankPureLogic.canLearnerOpenDispute(
+        status: currentStatus,
+        escrowStatus: currentEscrow,
+        teacherMarkedDoneAt: teacherMarkedDoneAt,
+      );
+
+      if (!isEligible) {
+        throw Exception('لا يمكن فتح نزاع إلا بعد تسجيل المعلم "تم الشرح" في جلسة مؤكدة');
+      }
+
+      transaction.update(sessionDocRef, {
+        'status': 'disputed',
+        'disputeReason': reason.isEmpty ? 'اعتراض على تقديم الشرح' : reason,
+        'disputedAt': FieldValue.serverTimestamp(),
+      });
+    });
+  }
+
+  // =========================================================================
   // 3. إلغاء الجلسة وحسم مصير العملة وفقاً لقواعد الوقت (Cancellation Rules)
   // =========================================================================
   /// القواعد المعتمدة:

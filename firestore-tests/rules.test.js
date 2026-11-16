@@ -2511,4 +2511,522 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
 
     await assertFails(batch.commit());
   });
+
+  // =========================================================================
+  // حماية الضمان ومنع تعليق العملة (No Stuck Escrow - Item 6)
+  // =========================================================================
+  test('انتهاء المهلة 1: نجاح استرداد المتعلم عند مرور أكثر من 24 ساعة على الطلب وهو معلق', async () => {
+    const teacherId = 'teacher_exp_1';
+    const learnerId = 'learner_exp_1';
+    const sessionId = 'session_exp_1';
+    const slotEpoch = 1800000000000;
+    const createdAtOld = new Date(Date.now() - 25 * 3600 * 1000); // 25 hours ago
+    const futureScheduled = new Date(Date.now() + 48 * 3600 * 1000);
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(learnerId).set({
+        timeCoins: 2,
+        email: 'learner_exp_1@test.com',
+      });
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'pending',
+        createdAt: createdAtOld,
+        scheduledAt: futureScheduled,
+      });
+      await adminDb.collection('slotLocks').doc(`${learnerId}_${slotEpoch}`).set({
+        uid: learnerId,
+        slotEpochMs: slotEpoch,
+        sessionId: sessionId,
+        status: 'active',
+      });
+      await adminDb.collection('slotLocks').doc(`${teacherId}_${slotEpoch}`).set({
+        uid: teacherId,
+        slotEpochMs: slotEpoch,
+        sessionId: sessionId,
+        status: 'active',
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+    const batch = learnerDb.batch();
+
+    batch.update(learnerDb.collection('users').doc(learnerId), {
+      timeCoins: 3,
+      lastSessionId: sessionId,
+    });
+    batch.update(learnerDb.collection('sessions').doc(sessionId), {
+      status: 'expired',
+      escrowStatus: 'refunded_to_learner',
+    });
+    batch.set(learnerDb.collection('transactions').doc(`${sessionId}_refund`), {
+      userId: learnerId,
+      sessionId: sessionId,
+      amount: 1,
+      type: 'refund',
+    });
+    batch.update(learnerDb.collection('slotLocks').doc(`${learnerId}_${slotEpoch}`), {
+      status: 'released',
+    });
+    batch.update(learnerDb.collection('slotLocks').doc(`${teacherId}_${slotEpoch}`), {
+      status: 'released',
+    });
+
+    await assertSucceeds(batch.commit());
+  });
+
+  test('انتهاء المهلة 2: نجاح استرداد المتعلم عند حلول موعد الجلسة والطلب لا يزال معلقاً', async () => {
+    const teacherId = 'teacher_exp_2';
+    const learnerId = 'learner_exp_2';
+    const sessionId = 'session_exp_2';
+    const slotEpoch = 1800000000001;
+    const createdAtRecent = new Date(Date.now() - 3600 * 1000); // 1 hour ago
+    const pastScheduled = new Date(Date.now() - 60 * 1000); // 1 min in past
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(learnerId).set({
+        timeCoins: 2,
+        email: 'learner_exp_2@test.com',
+      });
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'pending',
+        createdAt: createdAtRecent,
+        scheduledAt: pastScheduled,
+      });
+      await adminDb.collection('slotLocks').doc(`${learnerId}_${slotEpoch}`).set({
+        uid: learnerId,
+        slotEpochMs: slotEpoch,
+        sessionId: sessionId,
+        status: 'active',
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+    const batch = learnerDb.batch();
+
+    batch.update(learnerDb.collection('users').doc(learnerId), {
+      timeCoins: 3,
+      lastSessionId: sessionId,
+    });
+    batch.update(learnerDb.collection('sessions').doc(sessionId), {
+      status: 'expired',
+      escrowStatus: 'refunded_to_learner',
+    });
+    batch.set(learnerDb.collection('transactions').doc(`${sessionId}_refund`), {
+      userId: learnerId,
+      sessionId: sessionId,
+      amount: 1,
+      type: 'refund',
+    });
+    batch.update(learnerDb.collection('slotLocks').doc(`${learnerId}_${slotEpoch}`), {
+      status: 'released',
+    });
+
+    await assertSucceeds(batch.commit());
+  });
+
+  test('انتهاء المهلة 3: رفض استرداد المتعلم قبل مرور 24 ساعة وقبل حلول موعد الجلسة', async () => {
+    const teacherId = 'teacher_exp_3';
+    const learnerId = 'learner_exp_3';
+    const sessionId = 'session_exp_3';
+    const slotEpoch = 1800000000002;
+    const createdAtRecent = new Date(Date.now() - 5 * 3600 * 1000); // 5 hours ago
+    const futureScheduled = new Date(Date.now() + 24 * 3600 * 1000); // in 24 hours
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(learnerId).set({
+        timeCoins: 2,
+        email: 'learner_exp_3@test.com',
+      });
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'pending',
+        createdAt: createdAtRecent,
+        scheduledAt: futureScheduled,
+      });
+      await adminDb.collection('slotLocks').doc(`${learnerId}_${slotEpoch}`).set({
+        uid: learnerId,
+        slotEpochMs: slotEpoch,
+        sessionId: sessionId,
+        status: 'active',
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+    const batch = learnerDb.batch();
+
+    batch.update(learnerDb.collection('users').doc(learnerId), {
+      timeCoins: 3,
+      lastSessionId: sessionId,
+    });
+    batch.update(learnerDb.collection('sessions').doc(sessionId), {
+      status: 'expired',
+      escrowStatus: 'refunded_to_learner',
+    });
+    batch.set(learnerDb.collection('transactions').doc(`${sessionId}_refund`), {
+      userId: learnerId,
+      sessionId: sessionId,
+      amount: 1,
+      type: 'refund',
+    });
+    batch.update(learnerDb.collection('slotLocks').doc(`${learnerId}_${slotEpoch}`), {
+      status: 'released',
+    });
+
+    await assertFails(batch.commit());
+  });
+
+  test('انتهاء المهلة 4: رفض استرداد المعلم بدلاً من المتعلم عند انتهاء مهلة الرد', async () => {
+    const teacherId = 'teacher_exp_4';
+    const learnerId = 'learner_exp_4';
+    const sessionId = 'session_exp_4';
+    const createdAtOld = new Date(Date.now() - 30 * 3600 * 1000);
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(teacherId).set({
+        timeCoins: 2,
+        email: 'teacher_exp_4@test.com',
+      });
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'pending',
+        createdAt: createdAtOld,
+      });
+    });
+
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+    const batch = teacherDb.batch();
+
+    batch.update(teacherDb.collection('users').doc(teacherId), {
+      timeCoins: 3,
+      lastSessionId: sessionId,
+    });
+    batch.update(teacherDb.collection('sessions').doc(sessionId), {
+      status: 'expired',
+      escrowStatus: 'refunded_to_learner',
+    });
+
+    await assertFails(batch.commit());
+  });
+
+  test('تحرير تلقائي 1: نجاح مطالبة المعلم بالعملة بعد مرور 48 ساعة على الموعد مع تسجيل تم الشرح وصمت المتعلم', async () => {
+    const teacherId = 'teacher_auto_1';
+    const learnerId = 'learner_auto_1';
+    const sessionId = 'session_auto_1';
+    const slotEpoch = 1800000000003;
+    const pastScheduled = new Date(Date.now() - 49 * 3600 * 1000); // 49 hours in past
+    const doneAt = new Date(Date.now() - 48 * 3600 * 1000);
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(teacherId).set({
+        timeCoins: 5,
+        completedSessions: 2,
+        ratingSum: 10,
+        ratingCount: 2,
+        email: 'teacher_auto_1@test.com',
+      });
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'confirmed',
+        scheduledAt: pastScheduled,
+        teacherMarkedDoneAt: doneAt,
+      });
+      await adminDb.collection('slotLocks').doc(`${teacherId}_${slotEpoch}`).set({
+        uid: teacherId,
+        slotEpochMs: slotEpoch,
+        sessionId: sessionId,
+        status: 'active',
+      });
+    });
+
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+    const batch = teacherDb.batch();
+
+    batch.update(teacherDb.collection('users').doc(teacherId), {
+      timeCoins: 6,
+      completedSessions: 3,
+      lastSessionId: sessionId,
+    });
+    batch.update(teacherDb.collection('sessions').doc(sessionId), {
+      status: 'completed_auto',
+      escrowStatus: 'released_to_teacher',
+    });
+    batch.set(teacherDb.collection('transactions').doc(`${sessionId}_release`), {
+      userId: teacherId,
+      sessionId: sessionId,
+      amount: 1,
+      type: 'release',
+    });
+    batch.update(teacherDb.collection('slotLocks').doc(`${teacherId}_${slotEpoch}`), {
+      status: 'used',
+    });
+
+    await assertSucceeds(batch.commit());
+  });
+
+  test('تحرير تلقائي 2: رفض مطالبة المعلم بالعملة قبل مرور 48 ساعة على موعد الجلسة', async () => {
+    const teacherId = 'teacher_auto_2';
+    const learnerId = 'learner_auto_2';
+    const sessionId = 'session_auto_2';
+    const pastScheduled = new Date(Date.now() - 20 * 3600 * 1000); // only 20 hours ago
+    const doneAt = new Date(Date.now() - 19 * 3600 * 1000);
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(teacherId).set({
+        timeCoins: 5,
+        completedSessions: 2,
+        email: 'teacher_auto_2@test.com',
+      });
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'confirmed',
+        scheduledAt: pastScheduled,
+        teacherMarkedDoneAt: doneAt,
+      });
+    });
+
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+    const batch = teacherDb.batch();
+
+    batch.update(teacherDb.collection('users').doc(teacherId), {
+      timeCoins: 6,
+      completedSessions: 3,
+      lastSessionId: sessionId,
+    });
+    batch.update(teacherDb.collection('sessions').doc(sessionId), {
+      status: 'completed_auto',
+      escrowStatus: 'released_to_teacher',
+    });
+    batch.set(teacherDb.collection('transactions').doc(`${sessionId}_release`), {
+      userId: teacherId,
+      sessionId: sessionId,
+      amount: 1,
+      type: 'release',
+    });
+
+    await assertFails(batch.commit());
+  });
+
+  test('تحرير تلقائي 3: رفض مطالبة المعلم بالعملة إذا لم يسجل "تم الشرح"', async () => {
+    const teacherId = 'teacher_auto_3';
+    const learnerId = 'learner_auto_3';
+    const sessionId = 'session_auto_3';
+    const pastScheduled = new Date(Date.now() - 50 * 3600 * 1000); // 50 hours ago but no teacherMarkedDoneAt
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(teacherId).set({
+        timeCoins: 5,
+        completedSessions: 2,
+        email: 'teacher_auto_3@test.com',
+      });
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'confirmed',
+        scheduledAt: pastScheduled,
+      });
+    });
+
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+    const batch = teacherDb.batch();
+
+    batch.update(teacherDb.collection('users').doc(teacherId), {
+      timeCoins: 6,
+      completedSessions: 3,
+      lastSessionId: sessionId,
+    });
+    batch.update(teacherDb.collection('sessions').doc(sessionId), {
+      status: 'completed_auto',
+      escrowStatus: 'released_to_teacher',
+    });
+
+    await assertFails(batch.commit());
+  });
+
+  test('تحرير تلقائي 4: رفض تعديل تقييم المعلم (ratingCount/ratingSum) أثناء التحرير التلقائي', async () => {
+    const teacherId = 'teacher_auto_4';
+    const learnerId = 'learner_auto_4';
+    const sessionId = 'session_auto_4';
+    const pastScheduled = new Date(Date.now() - 50 * 3600 * 1000);
+    const doneAt = new Date(Date.now() - 49 * 3600 * 1000);
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(teacherId).set({
+        timeCoins: 5,
+        completedSessions: 2,
+        ratingSum: 10,
+        ratingCount: 2,
+        email: 'teacher_auto_4@test.com',
+      });
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'confirmed',
+        scheduledAt: pastScheduled,
+        teacherMarkedDoneAt: doneAt,
+      });
+    });
+
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+    const batch = teacherDb.batch();
+
+    // محاولة غير مشروعة لزيادة التقييم في completed_auto
+    batch.update(teacherDb.collection('users').doc(teacherId), {
+      timeCoins: 6,
+      completedSessions: 3,
+      ratingSum: 15,
+      ratingCount: 3,
+      lastSessionId: sessionId,
+    });
+    batch.update(teacherDb.collection('sessions').doc(sessionId), {
+      status: 'completed_auto',
+      escrowStatus: 'released_to_teacher',
+    });
+    batch.set(teacherDb.collection('transactions').doc(`${sessionId}_release`), {
+      userId: teacherId,
+      sessionId: sessionId,
+      amount: 1,
+      type: 'release',
+    });
+
+    await assertFails(batch.commit());
+  });
+
+  test('فتح نزاع 1: نجاح المتعلم في فتح نزاع بعد قيام المعلم بتسجيل "تم الشرح"', async () => {
+    const teacherId = 'teacher_disp_1';
+    const learnerId = 'learner_disp_1';
+    const sessionId = 'session_disp_1';
+    const doneAt = new Date(Date.now() - 3600 * 1000);
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'confirmed',
+        scheduledAt: new Date(Date.now() - 2 * 3600 * 1000),
+        teacherMarkedDoneAt: doneAt,
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+
+    await assertSucceeds(
+      learnerDb.collection('sessions').doc(sessionId).update({
+        status: 'disputed',
+        disputedAt: new Date(),
+        disputeReason: 'المعلم لم يحضر في الموعد المحدد',
+      })
+    );
+  });
+
+  test('فتح نزاع 2: رفض فتح نزاع من قِبل المتعلم قبل تسجيل المعلم "تم الشرح"', async () => {
+    const teacherId = 'teacher_disp_2';
+    const learnerId = 'learner_disp_2';
+    const sessionId = 'session_disp_2';
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'confirmed',
+        scheduledAt: new Date(Date.now() - 2 * 3600 * 1000),
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+
+    await assertFails(
+      learnerDb.collection('sessions').doc(sessionId).update({
+        status: 'disputed',
+        disputedAt: new Date(),
+        disputeReason: 'اعتراض استباقي',
+      })
+    );
+  });
+
+  test('فتح نزاع 3: رفض مطالبة المعلم بالتحرير التلقائي طالما الجلسة في حالة نزاع (disputed)', async () => {
+    const teacherId = 'teacher_disp_3';
+    const learnerId = 'learner_disp_3';
+    const sessionId = 'session_disp_3';
+    const pastScheduled = new Date(Date.now() - 50 * 3600 * 1000);
+    const doneAt = new Date(Date.now() - 49 * 3600 * 1000);
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(teacherId).set({
+        timeCoins: 5,
+        completedSessions: 2,
+        email: 'teacher_disp_3@test.com',
+      });
+      // الجلسة متنازع عليها
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'disputed',
+        scheduledAt: pastScheduled,
+        teacherMarkedDoneAt: doneAt,
+        disputeReason: 'النزاع قيد المراجعة اليدوية',
+      });
+    });
+
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+    const batch = teacherDb.batch();
+
+    batch.update(teacherDb.collection('users').doc(teacherId), {
+      timeCoins: 6,
+      completedSessions: 3,
+      lastSessionId: sessionId,
+    });
+    batch.update(teacherDb.collection('sessions').doc(sessionId), {
+      status: 'completed_auto',
+      escrowStatus: 'released_to_teacher',
+    });
+    batch.set(teacherDb.collection('transactions').doc(`${sessionId}_release`), {
+      userId: teacherId,
+      sessionId: sessionId,
+      amount: 1,
+      type: 'release',
+    });
+
+    await assertFails(batch.commit());
+  });
 });

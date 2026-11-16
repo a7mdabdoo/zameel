@@ -246,6 +246,44 @@ class TimeBankPureLogic {
     }
   }
 
+  /// 3-أ. قرار أحقية المتعلم في استرداد العملة لانتهاء مهلة الرد (Expired Refund Decision)
+  static bool canLearnerClaimExpiredRefund({
+    required String status,
+    required String escrowStatus,
+    required DateTime createdAt,
+    DateTime? scheduledAt,
+    DateTime Function()? clock,
+  }) {
+    if (status != 'pending' || escrowStatus != 'held') return false;
+    final now = (clock ?? defaultClock)();
+    final isAfter24h = now.difference(createdAt) > const Duration(hours: 24);
+    final isPastScheduled = scheduledAt != null && now.isAfter(scheduledAt);
+    return isAfter24h || isPastScheduled;
+  }
+
+  /// 3-ب. قرار أحقية المعلم في المطالبة التلقائية بالعملة بعد 48 ساعة من الموعد (Auto Release Decision)
+  static bool canTeacherClaimAutoRelease({
+    required String status,
+    required String escrowStatus,
+    required DateTime? teacherMarkedDoneAt,
+    required DateTime? scheduledAt,
+    DateTime Function()? clock,
+  }) {
+    if (status != 'confirmed' || escrowStatus != 'held') return false;
+    if (teacherMarkedDoneAt == null || scheduledAt == null) return false;
+    final now = (clock ?? defaultClock)();
+    return now.difference(scheduledAt) > const Duration(hours: 48);
+  }
+
+  /// 3-ج. قرار إمكانية فتح نزاع من قِبل المتعلم (Dispute Eligibility)
+  static bool canLearnerOpenDispute({
+    required String status,
+    required String escrowStatus,
+    required DateTime? teacherMarkedDoneAt,
+  }) {
+    return status == 'confirmed' && escrowStatus == 'held' && teacherMarkedDoneAt != null;
+  }
+
   /// 4. دوال مطابقة المواعيد وحساب التعارض (Slot Generation & Collision Filtering)
   /// تحويل صيغة الوقت النصية (مثل "09:00 ص" أو "01:30 م") إلى دقائق من منتصف الليل
   static int parseTimeToMinutes(String timeStr) {
