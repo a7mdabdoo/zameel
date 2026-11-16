@@ -4067,4 +4067,105 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
       })
     );
   });
+
+  // =========================================================================
+  // القسم 21: حماية الخصوصية وحظر رقم الواتساب من وثيقة المستخدم العامة (Hotfix Item 5)
+  // =========================================================================
+
+  test('بند 5 (سلبي 1 - No WhatsApp on User Create): حظر كتابة whatsappNumber عند إنشاء حساب المستخدم', async () => {
+    const userId = 'user_whatsapp_create_bad';
+    const userDb = testEnv.authenticatedContext(userId, { email_verified: true }).firestore();
+
+    await assertFails(
+      userDb.collection('users').doc(userId).set({
+        uid: userId,
+        name: 'مستخدم خصوصية',
+        email: 'user@privacy.com',
+        timeCoins: 2,
+        completedSessions: 0,
+        whatsappNumber: '+201001234567', // محظور للخصوصية!
+      })
+    );
+  });
+
+  test('بند 5 (سلبي 2 - No WhatsApp on User Update): حظر إضافة أو تعديل whatsappNumber في وثيقة المستخدم العامة', async () => {
+    const userId = 'user_whatsapp_update_bad';
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(userId).set({
+        uid: userId,
+        name: 'مستخدم عادي',
+        email: 'user@normal.com',
+        timeCoins: 2,
+        completedSessions: 0,
+      });
+    });
+
+    const userDb = testEnv.authenticatedContext(userId, { email_verified: true }).firestore();
+    await assertFails(
+      userDb.collection('users').doc(userId).update({
+        whatsappNumber: '+201112223334',
+      })
+    );
+  });
+
+  test('بند 5 (إيجابي - Contacts on Session): مشاركة جهات الاتصال داخل الجلسة وقصر قراءتها على الطرفين فقط', async () => {
+    const learnerId = 'learner_contact_test';
+    const teacherId = 'teacher_contact_test';
+    const strangerId = 'stranger_contact_test';
+    const sessionId = 'session_contact_private';
+    const scheduledAt = new Date(Date.now() + 24 * 3600 * 1000);
+    const epochMs = scheduledAt.getTime();
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(learnerId).set({ timeCoins: 2, completedSessions: 0 });
+      await adminDb.collection('users').doc(teacherId).set({ timeCoins: 2, completedSessions: 0 });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+    const strangerDb = testEnv.authenticatedContext(strangerId, { email_verified: true }).firestore();
+
+    // 1. حجز مع learnerContact
+    const batch = learnerDb.batch();
+    batch.update(learnerDb.collection('users').doc(learnerId), { timeCoins: 1, lastSessionId: sessionId });
+    batch.set(learnerDb.collection('sessions').doc(sessionId), {
+      learnerId: learnerId,
+      teacherId: teacherId,
+      costCoins: 1,
+      escrowStatus: 'held',
+      status: 'pending',
+      scheduledAt: scheduledAt,
+      learnerContact: '+201001112223',
+    });
+    batch.set(learnerDb.collection('transactions').doc(`${sessionId}_booking`), {
+      userId: learnerId,
+      sessionId: sessionId,
+      amount: 1,
+      type: 'booking',
+    });
+    batch.set(learnerDb.collection('slotLocks').doc(`${teacherId}_${epochMs}`), {
+      uid: teacherId,
+      slotEpochMs: epochMs,
+      sessionId: sessionId,
+      status: 'active',
+    });
+    await assertSucceeds(batch.commit());
+
+    // 2. قبول المعلم مع إضافة teacherContact
+    await assertSucceeds(
+      teacherDb.collection('sessions').doc(sessionId).update({
+        status: 'confirmed',
+        teacherContact: '+201099988877',
+      })
+    );
+
+    // 3. أطراف الجلسة يمكنهم قراءة الجلسة وبيانات الاتصال
+    await assertSucceeds(learnerDb.collection('sessions').doc(sessionId).get());
+    await assertSucceeds(teacherDb.collection('sessions').doc(sessionId).get());
+
+    // 4. طرف غريب لا يمكنه قراءة الجلسة إطلاقاً (حماية كاملة للخصوصية)
+    await assertFails(strangerDb.collection('sessions').doc(sessionId).get());
+  });
 });
