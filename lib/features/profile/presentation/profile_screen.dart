@@ -8,6 +8,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/data/auth_service.dart';
 import '../../../core/state/app_state.dart';
+import '../../timebank/data/timebank_repository.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -47,7 +48,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final userEmail = user?.email ?? '';
 
     final faculty = userDoc?['faculty'] as String? ?? AppConstants.faculty;
-    final year = userDoc?['year'] as String? ?? AppConstants.academicYear;
+    final year = userDoc?['year'] as String? ??
+        (userDoc?['academicYear'] != null ? CurriculumConstants.academicYearLabels[userDoc!['academicYear']] : null) ??
+        AppConstants.academicYear;
+    final term = userDoc?['term'] as String? ??
+        (userDoc?['semester'] != null ? CurriculumConstants.semesterLabels[userDoc!['semester']] : null) ??
+        'الترم الأول';
     final department = userDoc?['department'] as String? ?? 'عام (General)';
     final completedSessions = (userDoc?['completedSessions'] as num?)?.toInt() ?? 0;
     final ratingSum = (userDoc?['ratingSum'] as num?)?.toInt() ?? 0;
@@ -118,8 +124,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Text(
-                        '$faculty • $year • $department',
+                        '$faculty • $year • $term • $department',
                         style: TextStyle(fontSize: 11, color: textSecondaryColor, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: () => context.push('/academic-setup?edit=true'),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: primaryColor.withValues(alpha: isDark ? 0.2 : 0.08),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: primaryColor.withValues(alpha: 0.25)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.edit_calendar_rounded, size: 14, color: primaryColor),
+                            const SizedBox(width: 6),
+                            Text(
+                              'تعديل الفرقة الدراسية والترم ✏️',
+                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryColor),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
@@ -889,6 +919,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 coursesData: editableCourses.map((c) => c.toMap()).toList(),
                                 courseRatings: editableRatings,
                               );
+
+                              final user = ref.read(authServiceProvider).currentUser;
+                              final profileName = ref.read(userProfileStreamProvider).value?.data()?['name'] as String? ?? user?.displayName ?? 'زميل';
+                              if (user != null) {
+                                await ref.read(timeBankRepositoryProvider).syncTeachingOffersForUser(
+                                  userId: user.uid,
+                                  userName: profileName,
+                                  courses: editableCourses,
+                                  ratings: editableRatings,
+                                );
+                              }
                             } catch (e) {
                               debugPrint('Manage courses firestore update warning: $e');
                             }

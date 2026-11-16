@@ -14,6 +14,7 @@ import '../../features/auth/presentation/welcome_screen.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/signup_screen.dart';
 import '../../features/auth/presentation/email_verification_screen.dart';
+import '../../features/onboarding/presentation/academic_setup_screen.dart';
 import '../../features/onboarding/presentation/onboarding_profile_screen.dart';
 import '../../features/onboarding/presentation/onboarding_courses_screen.dart';
 import '../../features/onboarding/presentation/onboarding_rate_screen.dart';
@@ -90,15 +91,47 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // المستخدم مسجل ومؤكد البريد:
-      // عند تسجيل الدخول بحساب موجود أو الانتقال بعد المصادقة، نوجهه مباشرة إلى الشاشة الرئيسية (/today)
-      // ولا نلزمه بشاشات التهيئة إطلاقاً عند تسجيل الدخول
-      if (isAuthFlow || location == '/verify-email') {
+      // فحص هل المستخدم جديد أم أكمل التهيئة مسبقاً (academicYear, semester, أو isOnboarded: true)
+      final profileAsync = ref.read(userProfileStreamProvider);
+      if (profileAsync.isLoading) {
+        return null;
+      }
+      final userDoc = profileAsync.value?.data();
+
+      final bool isOnboarded = userDoc != null && (
+        (userDoc['isOnboarded'] as bool? ?? false) ||
+        (userDoc['onboardingCompleted'] as bool? ?? false) ||
+        (userDoc['academicYear'] != null && userDoc['semester'] != null)
+      );
+
+      final isAcademicSetupRoute = location == '/academic-setup';
+      final isEditParam = state.uri.queryParameters['edit'] == 'true';
+
+      if (!isOnboarded) {
+        // مستخدم جديد لم يُكمل التهيئة: يُلزم بدخول شاشة الإعداد الأكاديمي
+        return isAcademicSetupRoute ? null : '/academic-setup';
+      }
+
+      // مستخدم أكمل التهيئة مسبقاً (Returning user):
+      // إذا كان يطلب تعديل بياناته من حسابه عمداً، يُسمح له بفتح الشاشة
+      if (isAcademicSetupRoute && isEditParam) {
+        return null;
+      }
+
+      // وإلا فإنه يتجاوز التهيئة وشاشات الدخول وينتقل مباشرة إلى الشاشة الرئيسية (/today)
+      if (isAuthFlow || location == '/verify-email' || isAcademicSetupRoute) {
         return '/today';
       }
 
       return null;
     },
     routes: [
+      GoRoute(
+        path: '/academic-setup',
+        builder: (context, state) => AcademicSetupScreen(
+          isEditMode: state.uri.queryParameters['edit'] == 'true',
+        ),
+      ),
       GoRoute(
         path: '/welcome',
         builder: (context, state) => const WelcomeScreen(),

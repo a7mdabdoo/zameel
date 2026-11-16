@@ -80,7 +80,7 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
     }
     final selectedIds = List<String>.from(userDoc['selectedCourses'] ?? []);
     if (selectedIds.isNotEmpty) {
-      final list = AppConstants.seedCourses.where((c) => selectedIds.contains(c.id)).toList();
+      final list = CurriculumConstants.findCoursesByIds(selectedIds);
       if (list.isNotEmpty) return list;
     }
     return List<CourseSeed>.from(AppConstants.seedCourses);

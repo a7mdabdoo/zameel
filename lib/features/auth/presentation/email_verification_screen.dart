@@ -27,7 +27,7 @@ class _EmailVerificationScreenState extends ConsumerState<EmailVerificationScree
       final isVerified = await ref.read(authServiceProvider).reloadUserAndCheckVerified();
       if (isVerified && mounted) {
         _checkTimer?.cancel();
-        context.go('/onboarding-profile');
+        context.go('/academic-setup');
       }
     });
   }
@@ -50,7 +50,7 @@ class _EmailVerificationScreenState extends ConsumerState<EmailVerificationScree
 
       if (isVerified) {
         _checkTimer?.cancel();
-        context.go('/onboarding-profile');
+        context.go('/academic-setup');
       } else {
         setState(() {
           _isSuccessMessage = false;
