@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/data/auth_service.dart';
-import '../../timebank/data/timebank_repository.dart';
 
 class AcademicSetupScreen extends ConsumerStatefulWidget {
   final bool isEditMode;
@@ -68,22 +67,6 @@ class _AcademicSetupScreenState extends ConsumerState<AcademicSetupScreen> {
             semester: _selectedSemester,
             courses: courses,
           );
-
-      // مزامنة عروض بنك الوقت للمستخدم حتى تظهر مواده فوراً للزملاء
-      final user = ref.read(authServiceProvider).currentUser;
-      if (user != null) {
-        final userProfile = ref.read(userProfileStreamProvider).value?.data();
-        final profileName = (userProfile?['name'] as String?)?.isNotEmpty == true
-            ? userProfile!['name'] as String
-            : (user.displayName ?? 'زميل دراسة');
-        final defaultRatings = {for (final c in courses) c.id: 2};
-        await ref.read(timeBankRepositoryProvider).syncTeachingOffersForUser(
-              userId: user.uid,
-              userName: profileName,
-              courses: courses,
-              ratings: defaultRatings,
-            );
-      }
 
       if (mounted) {
         // الانتقال للوحة التحكم الرئيسية فوراً
