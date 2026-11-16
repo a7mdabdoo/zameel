@@ -117,19 +117,23 @@ class TodayScreen extends ConsumerWidget {
                             const SizedBox(width: 6),
                             Text(
                               '$timeCoins',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF664700),
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? const Color(0xFFFFD54F)
+                                    : const Color(0xFF664700),
                               ),
                             ),
                             const SizedBox(width: 4),
-                            const Text(
+                            Text(
                               'نقاط وقت',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: Color(0xFF664700),
+                                color: Theme.of(context).brightness == Brightness.dark
+                                    ? const Color(0xFFFFD54F)
+                                    : const Color(0xFF664700),
                               ),
                             ),
                           ],

@@ -192,13 +192,15 @@ class PlannerNotifier extends Notifier<PlannerState> {
   void markBlockMissed(String blockId) {
     _missedBlockIds.add(blockId);
     _completedBlockIds.remove(blockId);
+    final updatedBlocks = state.studyBlocks.map((b) {
+      if (b.id == blockId) {
+        return b.copyWith(isCompleted: false, isMissed: true);
+      }
+      return b;
+    }).toList();
     state = state.copyWith(
-      studyBlocks: state.studyBlocks.map((b) {
-        if (b.id == blockId) {
-          return b.copyWith(isCompleted: false, isMissed: true);
-        }
-        return b;
-      }).toList(),
+      studyBlocks: updatedBlocks,
+      completedBlocksCount: updatedBlocks.where((b) => b.isCompleted).length,
     );
   }
 
@@ -213,7 +215,10 @@ class PlannerNotifier extends Notifier<PlannerState> {
       return b;
     }).toList();
 
-    state = state.copyWith(studyBlocks: updatedBlocks);
+    state = state.copyWith(
+      studyBlocks: updatedBlocks,
+      completedBlocksCount: updatedBlocks.where((b) => b.isCompleted).length,
+    );
   }
 
   /// إضافة محاضرة أو موعد انشغال وإعادة توليد الخطة تلقائياً
