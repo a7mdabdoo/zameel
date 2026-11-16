@@ -213,11 +213,15 @@ service cloud.firestore {
 
       // تحديث الحساب
       allow update: if isAuthenticated() && (
-        // أ) صاحب الحساب يعدل بياناته الشخصية (ممنوع منعاً باتاً تعديل الرصيد، التقييم، الجلسات، أو الإيميل)
+        // أ) صاحب الحساب يعدل بياناته الشخصية (ممنوع منعاً باتاً تعديل الرصيد، التقييم، الجلسات، الإيميل، نقاط وساعات المذاكرة، أو كتل المذاكرة)
         (
           isOwner(userId)
           && request.resource.data.timeCoins == resource.data.timeCoins
-          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['timeCoins', 'teacherRating', 'ratingSum', 'ratingCount', 'completedSessions', 'lastSessionId', 'email'])
+          && !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+            'timeCoins', 'teacherRating', 'ratingSum', 'ratingCount', 
+            'completedSessions', 'lastSessionId', 'email',
+            'studyPoints', 'studyHours', 'completedBlockIds'
+          ])
         )
         ||
         // ب) خصم عملة الحجز من المتعلم
@@ -229,11 +233,12 @@ service cloud.firestore {
         // د) استرداد العملة للمتعلم (إلغاء المعلم أو إلغاء مبكر)
         ('lastSessionId' in request.resource.data && isRefundToLearner(userId))
         ||
-        // هـ) مكافأة إتمام جلسة مذاكرة (Study Block Reward)
+        // هـ) تحديث قائمة كتل المذاكرة المنجزة للطالب (completedBlockIds)
         (
           isOwner(userId)
-          && request.resource.data.timeCoins == resource.data.timeCoins + 1
-          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['timeCoins', 'studyHours'])
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['completedBlockIds'])
+          && request.resource.data.completedBlockIds is list
+          && request.resource.data.completedBlockIds.size() <= 500
         )
       );
 
@@ -450,25 +455,14 @@ service cloud.firestore {
       allow read: if isAuthenticated() && resource.data.userId == request.auth.uid;
 
       // إنشاء الحركة: مشروط بعدم وجود المستند مسبقاً، وهوية حتمية `${sessionId}_${kind}`
-      // أو مكافأة إتمام مذاكرة ذاتية
       allow create: if isEmailVerified()
-        && (
-          (
-            !exists(/databases/$(database)/documents/transactions/$(txId))
-            && 'sessionId' in request.resource.data
-            && request.resource.data.sessionId != null
-            && 'type' in request.resource.data
-            && request.resource.data.type in ['booking', 'release', 'refund', 'compensation']
-            && txId == request.resource.data.sessionId + '_' + request.resource.data.type
-            && isValidLedgerTransaction()
-          )
-          ||
-          (
-            request.resource.data.type == 'study_reward'
-            && request.resource.data.userId == request.auth.uid
-            && request.resource.data.amount == 1
-          )
-        );
+        && !exists(/databases/$(database)/documents/transactions/$(txId))
+        && 'sessionId' in request.resource.data
+        && request.resource.data.sessionId != null
+        && 'type' in request.resource.data
+        && request.resource.data.type in ['booking', 'release', 'refund', 'compensation']
+        && txId == request.resource.data.sessionId + '_' + request.resource.data.type
+        && isValidLedgerTransaction();
 
       // السجل المحاسبي غير قابل للتعديل أو الحذف إطلاقاً (Immutable Ledger)
       allow update, delete: if false;

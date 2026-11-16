@@ -3029,4 +3029,203 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
 
     await assertFails(batch.commit());
   });
+
+  // =========================================================================
+  // القسم 16: حماية العملات ومنع التوليد الذاتي والتحقق من حقول المذاكرة (Item A)
+  // =========================================================================
+
+  test('بند أ (سلبي): منع صاحب الحساب من زيادة timeCoins بنفسه بأي قيمة (+1 أو غيرها)', async () => {
+    const userId = 'user_mint_test';
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(userId).set({
+        uid: userId,
+        email: 'user_mint@test.com',
+        timeCoins: 2,
+        completedSessions: 0,
+      });
+    });
+
+    const authedDb = testEnv.authenticatedContext(userId, { email_verified: true }).firestore();
+    // محاولة رفع الرصيد بـ +1
+    await assertFails(
+      authedDb.collection('users').doc(userId).update({
+        timeCoins: 3,
+      })
+    );
+    // محاولة رفع الرصيد بـ +10
+    await assertFails(
+      authedDb.collection('users').doc(userId).update({
+        timeCoins: 12,
+      })
+    );
+  });
+
+  test('بند أ (سلبي): منع المستخدم غير الموثق بريده من زيادة العملات أو إنشاء معاملات', async () => {
+    const userId = 'unverified_user';
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(userId).set({
+        uid: userId,
+        email: 'unverified@test.com',
+        timeCoins: 2,
+        completedSessions: 0,
+      });
+    });
+
+    const unverifiedDb = testEnv.authenticatedContext(userId, { email_verified: false }).firestore();
+    await assertFails(
+      unverifiedDb.collection('users').doc(userId).update({
+        timeCoins: 3,
+      })
+    );
+    await assertFails(
+      unverifiedDb.collection('transactions').doc('tx_unverified').set({
+        userId: userId,
+        amount: 1,
+        type: 'study_reward',
+      })
+    );
+  });
+
+  test('بند أ (سلبي): منع إنشاء حركة محفظة من نوع study_reward منعاً باتاً', async () => {
+    const userId = 'user_reward_forger';
+    const txId = 'tx_study_forged_123';
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(userId).set({
+        uid: userId,
+        email: 'forger@test.com',
+        timeCoins: 2,
+      });
+    });
+
+    const authedDb = testEnv.authenticatedContext(userId, { email_verified: true }).firestore();
+    await assertFails(
+      authedDb.collection('transactions').doc(txId).set({
+        userId: userId,
+        amount: 1,
+        type: 'study_reward',
+      })
+    );
+  });
+
+  test('بند أ (سلبي): منع صاحب الحساب من تعديل studyPoints أو studyHours مباشرة', async () => {
+    const userId = 'user_study_fields';
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(userId).set({
+        uid: userId,
+        email: 'study@test.com',
+        timeCoins: 2,
+        studyPoints: 0,
+        studyHours: 0,
+      });
+    });
+
+    const authedDb = testEnv.authenticatedContext(userId, { email_verified: true }).firestore();
+    await assertFails(
+      authedDb.collection('users').doc(userId).update({
+        studyPoints: 10,
+      })
+    );
+    await assertFails(
+      authedDb.collection('users').doc(userId).update({
+        studyHours: 5,
+      })
+    );
+  });
+
+  test('بند أ (سلبي): منع تحديث completedBlockIds مع حقول إضافية في نفس العملية', async () => {
+    const userId = 'user_extra_fields';
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(userId).set({
+        uid: userId,
+        email: 'extra@test.com',
+        timeCoins: 2,
+        completedBlockIds: ['block_1'],
+      });
+    });
+
+    const authedDb = testEnv.authenticatedContext(userId, { email_verified: true }).firestore();
+    await assertFails(
+      authedDb.collection('users').doc(userId).update({
+        completedBlockIds: ['block_1', 'block_2'],
+        studyPoints: 1, // حقل إضافي مرفوض
+      })
+    );
+    await assertFails(
+      authedDb.collection('users').doc(userId).update({
+        completedBlockIds: ['block_1', 'block_2'],
+        displayName: 'Hacked Name', // حقل إضافي
+      })
+    );
+  });
+
+  test('بند أ (سلبي): منع تحديث completedBlockIds بنوع بيانات غير مصفوفة', async () => {
+    const userId = 'user_wrong_type';
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(userId).set({
+        uid: userId,
+        email: 'wrong@test.com',
+        timeCoins: 2,
+        completedBlockIds: [],
+      });
+    });
+
+    const authedDb = testEnv.authenticatedContext(userId, { email_verified: true }).firestore();
+    await assertFails(
+      authedDb.collection('users').doc(userId).update({
+        completedBlockIds: 'not_a_list',
+      })
+    );
+    await assertFails(
+      authedDb.collection('users').doc(userId).update({
+        completedBlockIds: { block_1: true },
+      })
+    );
+  });
+
+  test('بند أ (سلبي): منع تجاوز الحد الأقصى 500 عنصر في completedBlockIds', async () => {
+    const userId = 'user_oversized_blocks';
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(userId).set({
+        uid: userId,
+        email: 'oversized@test.com',
+        timeCoins: 2,
+        completedBlockIds: [],
+      });
+    });
+
+    const oversizedList = Array.from({ length: 501 }, (_, i) => `block_${i}`);
+    const authedDb = testEnv.authenticatedContext(userId, { email_verified: true }).firestore();
+    await assertFails(
+      authedDb.collection('users').doc(userId).update({
+        completedBlockIds: oversizedList,
+      })
+    );
+  });
+
+  test('بند أ (إيجابي): نجاح تحديث completedBlockIds بصورة شرعية بمفردها بمصفوفة صالحة', async () => {
+    const userId = 'user_normal_block';
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(userId).set({
+        uid: userId,
+        email: 'normal@test.com',
+        timeCoins: 2,
+        completedBlockIds: ['block_101'],
+      });
+    });
+
+    const authedDb = testEnv.authenticatedContext(userId, { email_verified: true }).firestore();
+    await assertSucceeds(
+      authedDb.collection('users').doc(userId).update({
+        completedBlockIds: ['block_101', 'block_102'],
+      })
+    );
+  });
 });
