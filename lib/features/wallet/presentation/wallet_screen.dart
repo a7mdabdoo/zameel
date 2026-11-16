@@ -1,7 +1,7 @@
 // مطور 1
 // فيجما: محفظتي - ذاكر وعلّم (الربط الحي بالرصيد والعملات من Firestore)
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';

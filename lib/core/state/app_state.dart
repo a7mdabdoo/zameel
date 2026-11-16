@@ -1,7 +1,7 @@
 // مطور 1
 // إدارة الحالة المركزية لمنظومة «زَميل» عبر Riverpod 3
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../constants/app_constants.dart';
 import '../algorithms/planner_algorithm.dart';

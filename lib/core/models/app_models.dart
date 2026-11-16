@@ -1,7 +1,7 @@
 // مطور 1
 // نماذج البيانات الأساسية لمنظومة «زَميل» المتوافقة مع Firestore والـ Escrow Transactions
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../constants/app_constants.dart';
 import '../theme/app_colors.dart';
 

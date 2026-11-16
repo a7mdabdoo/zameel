@@ -1,7 +1,7 @@
 // مطور 1
 // فيجما: التقييم وتحويل الرصيد - ذاكر وعلّم (المعاملة الذرية الحقيقية مع الضمان)
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/models/app_models.dart';

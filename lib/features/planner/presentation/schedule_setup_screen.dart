@@ -1,7 +1,7 @@
 // مطور 3
 // شاشة إعداد وتخصيص جدول المحاضرات الأسبوعي يدوياً وبناء خطة المذاكرة الذكية بناءً عليه
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
