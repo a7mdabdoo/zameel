@@ -59,10 +59,25 @@ class PlannerState {
 }
 
 class PlannerNotifier extends Notifier<PlannerState> {
+  String? _lastUserId;
   List<CourseSeed> _currentCourses = [];
   Map<String, int> _currentRatings = {};
-  static final Set<String> _completedBlockIds = {};
-  static final Set<String> _missedBlockIds = {};
+  final Set<String> _completedBlockIds = {};
+  final Set<String> _missedBlockIds = {};
+
+  Set<String> get completedBlockIds => Set.unmodifiable(_completedBlockIds);
+  Set<String> get missedBlockIds => Set.unmodifiable(_missedBlockIds);
+
+  /// تبديل أو تصفير حالة المستخدم لمنع تسريب بيانات الحسابات على نفس الجهاز
+  void switchUser(String? newUserId) {
+    if (_lastUserId != newUserId) {
+      _lastUserId = newUserId;
+      _completedBlockIds.clear();
+      _missedBlockIds.clear();
+      _currentCourses = [];
+      _currentRatings = {};
+    }
+  }
 
   List<CourseStudyInput> _buildInputs(List<CourseSeed>? courses, Map<String, int>? ratings) {
     if (courses != null && courses.isNotEmpty) _currentCourses = courses;
@@ -80,6 +95,9 @@ class PlannerNotifier extends Notifier<PlannerState> {
 
   @override
   PlannerState build() {
+    final currentUserId = ref.watch(authServiceProvider).currentUser?.uid;
+    switchUser(currentUserId);
+
     final userProfileAsync = ref.watch(userProfileStreamProvider);
     final userDoc = userProfileAsync.value?.data();
 
