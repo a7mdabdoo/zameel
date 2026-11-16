@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/models/app_models.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/data/auth_service.dart';
+import '../../timebank/application/timebank_pure_logic.dart';
 import '../../timebank/data/timebank_repository.dart';
 import 'widgets/session_chat_sheet.dart';
 
@@ -107,6 +108,33 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('تعذر الاعتذار عن الجلسة: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessingAction = false);
+    }
+  }
+
+  Future<void> _claimAutoRelease(TimeBankSessionModel session) async {
+    final user = ref.read(authServiceProvider).currentUser;
+    if (user == null) return;
+
+    setState(() => _isProcessingAction = true);
+    try {
+      await ref.read(timeBankRepositoryProvider).claimTeacherAutoRelease(
+            sessionId: session.id,
+            teacherId: user.uid,
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم تحرير العملة بنجاح إلى محفظتك! شكراً لمجهودك 💰')),
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر تحرير العملة: $e')),
         );
       }
     } finally {
@@ -542,6 +570,30 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                 const SizedBox(height: 14),
               ],
 
+              if (session != null && session.status == 'disputed') ...[
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.gavel_rounded, color: AppColors.error, size: 24),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'هذه الجلسة قيد النزاع بناءً على اعتراض المتعلم. العملة محتجزة في الضمان لحين المراجعة اليدوية من الإدارة.',
+                          style: TextStyle(fontSize: 13, color: AppColors.textPrimary, fontWeight: FontWeight.bold, height: 1.4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
+
               if (session != null && session.status == 'pending') ...[
                 SizedBox(
                   height: 52,
@@ -575,7 +627,7 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                   ),
                 ),
                 const SizedBox(height: 14),
-              ] else if (isHeld) ...[
+              ] else if (isHeld && session?.status != 'disputed') ...[
                 if (session != null && session.status == 'confirmed') ...[
                   if (session.teacherMarkedDoneAt != null) ...[
                     Container(
@@ -599,6 +651,29 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                       ),
                     ),
                     const SizedBox(height: 12),
+                    if (TimeBankPureLogic.canTeacherClaimAutoRelease(
+                      status: session.status,
+                      escrowStatus: session.escrowStatus,
+                      teacherMarkedDoneAt: session.teacherMarkedDoneAt,
+                      scheduledAt: session.scheduledAt,
+                    )) ...[
+                      SizedBox(
+                        height: 52,
+                        child: ElevatedButton.icon(
+                          onPressed: _isProcessingAction ? null : () => _claimAutoRelease(session),
+                          icon: const Icon(Icons.monetization_on_outlined, color: Colors.white),
+                          label: Text(
+                            _isProcessingAction ? 'جاري تحرير العملة...' : 'المطالبة بالعملة (تحرير تلقائي) 💰',
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
                   ] else if (session.scheduledAt == null || DateTime.now().isAfter(session.scheduledAt!)) ...[
                     SizedBox(
                       height: 52,

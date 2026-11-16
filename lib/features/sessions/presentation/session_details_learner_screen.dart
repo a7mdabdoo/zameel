@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/models/app_models.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/data/auth_service.dart';
+import '../../timebank/application/timebank_pure_logic.dart';
 import '../../timebank/data/timebank_repository.dart';
 import 'widgets/session_chat_sheet.dart';
 
@@ -78,6 +79,97 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
       if (mounted) {
         setState(() => _isCancelling = false);
       }
+    }
+  }
+
+  Future<void> _claimExpiredRefund(TimeBankSessionModel session) async {
+    final user = ref.read(authServiceProvider).currentUser;
+    if (user == null) return;
+
+    setState(() => _isCancelling = true);
+    try {
+      await ref.read(timeBankRepositoryProvider).claimExpiredSessionRefund(
+            sessionId: session.id,
+            learnerId: user.uid,
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم استرداد عملة الوقت إلى محفظتك بنجاح لانتهاء المهلة 🔄')),
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر استرداد العملة: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isCancelling = false);
+    }
+  }
+
+  Future<void> _showDisputeDialog(TimeBankSessionModel session) async {
+    final user = ref.read(authServiceProvider).currentUser;
+    if (user == null) return;
+
+    final controller = TextEditingController();
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('فتح نزاع واعتراض'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'إذا لم يقم الزميل بتقديم الشرح أو لم يحضر، يمكنك فتح نزاع. ستبقى العملة محتجزة في الضمان ولن يتم تحريرها حتى يتم مراجعة الأمر يدوياً.',
+              style: TextStyle(fontSize: 13, height: 1.4),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                labelText: 'سبب النزاع (مثال: لم يحضر الشارح)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('تراجع')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('فتح النزاع', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isCancelling = true);
+    try {
+      await ref.read(timeBankRepositoryProvider).openSessionDispute(
+            sessionId: session.id,
+            learnerId: user.uid,
+            reason: controller.text.trim(),
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم فتح النزاع بنجاح. العملة محتجزة في أمان الضمان 🛡️')),
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر فتح النزاع: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isCancelling = false);
     }
   }
 
@@ -315,6 +407,30 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                 const SizedBox(height: 14),
               ],
 
+              if (session != null && session.status == 'disputed') ...[
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.gavel_rounded, color: AppColors.error, size: 24),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'هذه الجلسة قيد النزاع بناءً على طلبك. عملتك محتجزة بأمان في الضمان ولن يتم تحريرها حتى تراجع الإدارة المشكلة.',
+                          style: TextStyle(fontSize: 13, color: AppColors.textPrimary, fontWeight: FontWeight.bold, height: 1.4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
+
               // أزرار التحكم بحالة الجلسة للمتعلم
               if (session != null && session.status == 'pending') ...[
                 Container(
@@ -338,22 +454,67 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                   ),
                 ),
                 const SizedBox(height: 12),
-                SizedBox(
-                  height: 48,
-                  child: OutlinedButton.icon(
-                    onPressed: _isCancelling ? null : () => _cancelSession(session),
-                    icon: const Icon(Icons.cancel_outlined, color: AppColors.error),
-                    label: Text(
-                      _isCancelling ? 'جاري إلغاء الطلب...' : 'إلغاء الطلب واسترداد العملة فوراً',
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.error),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.error),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                if (session.createdAt != null &&
+                    TimeBankPureLogic.canLearnerClaimExpiredRefund(
+                      status: session.status,
+                      escrowStatus: session.escrowStatus,
+                      createdAt: session.createdAt!,
+                      scheduledAt: session.scheduledAt,
+                    )) ...[
+                  SizedBox(
+                    height: 52,
+                    child: ElevatedButton.icon(
+                      onPressed: _isCancelling ? null : () => _claimExpiredRefund(session),
+                      icon: const Icon(Icons.undo_rounded, color: Colors.white),
+                      label: Text(
+                        _isCancelling ? 'جاري الاسترداد...' : 'استرداد العملة (انتهاء مهلة الرد) 🔄',
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
                     ),
                   ),
-                ),
-              ] else if (isHeld) ...[
+                  const SizedBox(height: 12),
+                ] else ...[
+                  SizedBox(
+                    height: 48,
+                    child: OutlinedButton.icon(
+                      onPressed: _isCancelling ? null : () => _cancelSession(session),
+                      icon: const Icon(Icons.cancel_outlined, color: AppColors.error),
+                      label: Text(
+                        _isCancelling ? 'جاري إلغاء الطلب...' : 'إلغاء الطلب واسترداد العملة فوراً',
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.error),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppColors.error),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                    ),
+                  ),
+                ],
+              ] else if (isHeld && session?.status != 'disputed') ...[
+                if (session != null &&
+                    session.status == 'confirmed' &&
+                    session.teacherMarkedDoneAt != null) ...[
+                  SizedBox(
+                    height: 48,
+                    child: OutlinedButton.icon(
+                      onPressed: _isCancelling ? null : () => _showDisputeDialog(session),
+                      icon: const Icon(Icons.report_problem_outlined, color: AppColors.error),
+                      label: const Text(
+                        'فتح نزاع / الشارح لم يقدم الجلسة ⚠️',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.error),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: AppColors.error),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 SizedBox(
                   height: 52,
                   child: ElevatedButton.icon(
