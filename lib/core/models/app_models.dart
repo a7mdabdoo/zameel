@@ -12,6 +12,9 @@ class UserModel {
   final String email;
   final String faculty;
   final String year;
+  final dynamic academicYear; // 1, 2, 3, 4
+  final dynamic semester;     // 1, 2
+  final bool isOnboarded;
   final String department;
   final String? whatsappNumber;
   final int timeCoins;
@@ -33,6 +36,9 @@ class UserModel {
     required this.email,
     required this.faculty,
     required this.year,
+    this.academicYear,
+    this.semester,
+    this.isOnboarded = false,
     this.department = 'عام (General)',
     this.whatsappNumber,
     this.timeCoins = AppConstants.welcomeCoins,
@@ -54,6 +60,9 @@ class UserModel {
       'email': email,
       'faculty': faculty,
       'year': year,
+      'academicYear': academicYear,
+      'semester': semester,
+      'isOnboarded': isOnboarded,
       'department': department,
       'whatsappNumber': whatsappNumber,
       'timeCoins': timeCoins,
@@ -65,17 +74,22 @@ class UserModel {
       'studyHours': studyHours,
       'ratingSum': ratingSum,
       'ratingCount': ratingCount,
-      'onboardingCompleted': onboardingCompleted,
+      'teacherRating': teacherRating,
+      'onboardingCompleted': onboardingCompleted || isOnboarded,
     };
   }
 
   factory UserModel.fromMap(Map<String, dynamic> map, String uid) {
+    final isOnboardedVal = map['isOnboarded'] as bool? ?? (map['onboardingCompleted'] as bool? ?? false);
     return UserModel(
       uid: uid,
       name: map['name'] as String? ?? 'طالب زميل',
       email: map['email'] as String? ?? '',
       faculty: map['faculty'] as String? ?? AppConstants.faculty,
       year: map['year'] as String? ?? AppConstants.academicYear,
+      academicYear: map['academicYear'],
+      semester: map['semester'],
+      isOnboarded: isOnboardedVal,
       department: map['department'] as String? ?? 'عام (General)',
       whatsappNumber: map['whatsappNumber'] as String?,
       timeCoins: (map['timeCoins'] as num?)?.toInt() ?? AppConstants.welcomeCoins,
@@ -92,7 +106,7 @@ class UserModel {
       studyHours: (map['studyHours'] as num?)?.toInt() ?? 0,
       ratingSum: (map['ratingSum'] as num?)?.toInt() ?? 0,
       ratingCount: (map['ratingCount'] as num?)?.toInt() ?? 0,
-      onboardingCompleted: map['onboardingCompleted'] as bool? ?? false,
+      onboardingCompleted: isOnboardedVal,
     );
   }
 
@@ -101,6 +115,9 @@ class UserModel {
     String? email,
     String? faculty,
     String? year,
+    dynamic academicYear,
+    dynamic semester,
+    bool? isOnboarded,
     String? department,
     String? whatsappNumber,
     int? timeCoins,
@@ -120,6 +137,9 @@ class UserModel {
       email: email ?? this.email,
       faculty: faculty ?? this.faculty,
       year: year ?? this.year,
+      academicYear: academicYear ?? this.academicYear,
+      semester: semester ?? this.semester,
+      isOnboarded: isOnboarded ?? this.isOnboarded,
       department: department ?? this.department,
       whatsappNumber: whatsappNumber ?? this.whatsappNumber,
       timeCoins: timeCoins ?? this.timeCoins,

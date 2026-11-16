@@ -1253,6 +1253,54 @@ class TimeBankRepository {
       return false;
     }
   }
+
+  // =========================================================================
+  // مزامنة عروض الشرح للمستخدم بناءً على المواد والتقييمات
+  // =========================================================================
+  Future<void> syncTeachingOffersForUser({
+    required String userId,
+    required String userName,
+    required List<CourseSeed> courses,
+    required Map<String, int> ratings,
+  }) async {
+    final firestore = _firestore;
+    if (firestore == null || userId.isEmpty) return;
+
+    try {
+      final batch = firestore.batch();
+      for (final course in courses) {
+        final rate = ratings[course.id] ?? 2;
+        final docRef = firestore.collection('offers').doc('offer_auto_${userId}_${course.id}');
+        if (rate == 3) {
+          final autoOffer = TimeBankOfferModel(
+            id: 'offer_auto_${userId}_${course.id}',
+            teacherId: userId,
+            teacherName: userName.trim().isNotEmpty ? userName : 'زميل دراسة',
+            courseId: course.id,
+            courseName: course.name,
+            courseCode: course.code,
+            topic: 'مستعد للشرح ومراجعة أهم المفاهيم والتطبيقات 💡',
+            day: 'السبت',
+            time: '10:00 ص – 01:00 م',
+            durationMinutes: 60,
+            location: 'مكتبة الكلية / أونلاين',
+            courseColor: course.color,
+            isAvailable: true,
+            slots: const [
+              OfferTimeSlot(weekday: 0, startMin: 600, endMin: 780),
+            ],
+            createdAt: DateTime.now(),
+          );
+          batch.set(docRef, autoOffer.toMap());
+        } else {
+          batch.delete(docRef);
+        }
+      }
+      await batch.commit();
+    } catch (e) {
+      debugPrint('Sync teaching offers warning: $e');
+    }
+  }
 }
 
 final timeBankRepositoryProvider = Provider<TimeBankRepository>((ref) {

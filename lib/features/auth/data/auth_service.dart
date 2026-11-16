@@ -85,15 +85,21 @@ class AuthService {
         'uid': cred.user!.uid,
         'name': name.trim(),
         'username': cleanUsername.isEmpty ? cleanEmail.split('@').first : cleanUsername,
+        'email': cleanEmail,
         'timeCoins': AppConstants.welcomeCoins,
         'faculty': AppConstants.faculty,
-        'year': AppConstants.academicYear,
+        'year': null,
+        'academicYear': null,
+        'semester': null,
         'selectedCourses': <String>[],
+        'coursesData': <Map<String, dynamic>>[],
         'courseRatings': <String, dynamic>{},
         'completedSessions': 0,
         'ratingSum': 0,
         'ratingCount': 0,
+        'teacherRating': 0.0,
         'lastSessionId': null,
+        'isOnboarded': false,
         'onboardingCompleted': false,
         'createdAt': FieldValue.serverTimestamp(),
       });
@@ -206,12 +212,16 @@ class AuthService {
   Future<void> updateUserProfile({
     String? faculty,
     String? year,
+    dynamic academicYear,
+    dynamic semester,
+    String? term,
     String? department,
     List<String>? selectedCourses,
     Map<String, int>? courseRatings,
     List<Map<String, dynamic>>? coursesData,
     List<Map<String, dynamic>>? lecturesData,
     bool? onboardingCompleted,
+    bool? isOnboarded,
   }) async {
     final uid = currentUser?.uid;
     final firestore = _firestore;
@@ -220,12 +230,16 @@ class AuthService {
     final updates = <String, dynamic>{};
     if (faculty != null) updates['faculty'] = faculty;
     if (year != null) updates['year'] = year;
+    if (academicYear != null) updates['academicYear'] = academicYear;
+    if (semester != null) updates['semester'] = semester;
+    if (term != null) updates['term'] = term;
     if (department != null) updates['department'] = department;
     if (selectedCourses != null) updates['selectedCourses'] = selectedCourses;
     if (courseRatings != null) updates['courseRatings'] = courseRatings;
     if (coursesData != null) updates['coursesData'] = coursesData;
     if (lecturesData != null) updates['lecturesData'] = lecturesData;
     if (onboardingCompleted != null) updates['onboardingCompleted'] = onboardingCompleted;
+    if (isOnboarded != null) updates['isOnboarded'] = isOnboarded;
 
     try {
       final docRef = firestore.collection('users').doc(uid);
@@ -234,6 +248,48 @@ class AuthService {
       debugPrint('updateUserProfile error: $e');
       rethrow;
     }
+  }
+
+  /// حفظ اختيار الفرقة الدراسية والفصل الدراسي وإسناد المواد تلقائياً (بشكل Idempotent)
+  Future<void> saveAcademicSetup({
+    required int academicYear,
+    required int semester,
+    required List<CourseSeed> courses,
+  }) async {
+    final uid = currentUser?.uid;
+    final firestore = _firestore;
+    if (uid == null || firestore == null) {
+      throw Exception('المستخدم غير مسجل الدخول');
+    }
+
+    final yearLabel = CurriculumConstants.academicYearLabels[academicYear] ?? 'الفرقة $academicYear';
+    final semesterLabel = CurriculumConstants.semesterLabels[semester] ?? 'الترم $semester';
+
+    // ضمان الـ Idempotency: عدم تكرار المواد وحفظ معرفات وقيم فريدة
+    final uniqueMap = <String, CourseSeed>{};
+    for (final c in courses) {
+      uniqueMap[c.id] = c;
+    }
+    final uniqueCourses = uniqueMap.values.toList();
+    final courseIds = uniqueCourses.map((c) => c.id).toList();
+    final coursesData = uniqueCourses.map((c) => c.toMap()).toList();
+    final defaultRatings = {for (final c in uniqueCourses) c.id: 2};
+
+    final updates = <String, dynamic>{
+      'academicYear': academicYear,
+      'semester': semester,
+      'year': yearLabel,
+      'term': semesterLabel,
+      'isOnboarded': true,
+      'onboardingCompleted': true,
+      'selectedCourses': courseIds,
+      'coursesData': coursesData,
+      'courseRatings': defaultRatings,
+      'updatedAt': FieldValue.serverTimestamp(),
+    };
+
+    final docRef = firestore.collection('users').doc(uid);
+    await docRef.set(updates, SetOptions(merge: true));
   }
 
   Stream<DocumentSnapshot<Map<String, dynamic>>?> getUserProfileStream() {
