@@ -173,6 +173,12 @@ service cloud.firestore {
     }
 
     // 7. التحقق من صحة واكتمال بيانات عروض الشرح (Offers Rules)
+    function isValidSlot(slot) {
+      return slot.weekday is int && slot.weekday >= 0 && slot.weekday <= 6
+        && slot.startMin is int && slot.startMin >= 0 && slot.startMin < 1440
+        && slot.endMin is int && slot.endMin > slot.startMin && slot.endMin <= 1440;
+    }
+
     function isValidOfferData(data) {
       return data.teacherId is string
         && data.teacherName is string && data.teacherName.size() > 0
@@ -186,10 +192,14 @@ service cloud.firestore {
         && !('meetingUrl' in data)
         && !('meetingLink' in data)
         && !('link' in data)
-        && ('slots' in data && data.slots is list && data.slots.size() > 0 && data.slots.size() <= 20)
-        && data.slots[0].weekday is int && data.slots[0].weekday >= 0 && data.slots[0].weekday <= 6
-        && data.slots[0].startMin is int && data.slots[0].startMin >= 0 && data.slots[0].startMin < 1440
-        && data.slots[0].endMin is int && data.slots[0].endMin > data.slots[0].startMin && data.slots[0].endMin <= 1440;
+        && ('slots' in data && data.slots is list && data.slots.size() > 0 && data.slots.size() <= 7)
+        && isValidSlot(data.slots[0])
+        && (data.slots.size() < 2 || isValidSlot(data.slots[1]))
+        && (data.slots.size() < 3 || isValidSlot(data.slots[2]))
+        && (data.slots.size() < 4 || isValidSlot(data.slots[3]))
+        && (data.slots.size() < 5 || isValidSlot(data.slots[4]))
+        && (data.slots.size() < 6 || isValidSlot(data.slots[5]))
+        && (data.slots.size() < 7 || isValidSlot(data.slots[6]));
     }
 
     function isValidMeetingUrl(url) {

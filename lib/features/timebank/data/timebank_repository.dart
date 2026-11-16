@@ -1066,9 +1066,13 @@ class TimeBankRepository {
         .where('teacherId', isEqualTo: userId)
         .snapshots()
         .map((snapshot) {
-      final list = snapshot.docs
-          .map((doc) => TimeBankOfferModel.fromMap(doc.data(), doc.id))
-          .toList();
+      final list = <TimeBankOfferModel>[];
+      for (final doc in snapshot.docs) {
+        final offer = TimeBankOfferModel.fromMapSafe(doc.data(), doc.id);
+        if (offer != null) {
+          list.add(offer);
+        }
+      }
       list.sort((a, b) => (b.createdAt ?? DateTime.now()).compareTo(a.createdAt ?? DateTime.now()));
       return list;
     });
@@ -1085,9 +1089,13 @@ class TimeBankRepository {
         .where('isAvailable', isEqualTo: true)
         .snapshots()
         .map((snapshot) {
-      final list = snapshot.docs
-          .map((doc) => TimeBankOfferModel.fromMap(doc.data(), doc.id))
-          .toList();
+      final list = <TimeBankOfferModel>[];
+      for (final doc in snapshot.docs) {
+        final offer = TimeBankOfferModel.fromMapSafe(doc.data(), doc.id);
+        if (offer != null) {
+          list.add(offer);
+        }
+      }
       list.sort((a, b) => (b.createdAt ?? DateTime.now()).compareTo(a.createdAt ?? DateTime.now()));
       return list;
     });

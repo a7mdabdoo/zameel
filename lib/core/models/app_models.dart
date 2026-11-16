@@ -653,16 +653,90 @@ class TimeBankOfferModel {
     };
   }
 
+  /// تحليل العرض بشكل دفاعي آمن: يتخطى البيانات الفاسدة ويعيد null إن كان العرض غير صالح
+  static TimeBankOfferModel? fromMapSafe(Map<String, dynamic>? map, String id) {
+    if (map == null) return null;
+    try {
+      final teacherId = map['teacherId'] as String?;
+      final courseName = map['courseName'] as String?;
+      if (teacherId == null || teacherId.trim().isEmpty || courseName == null || courseName.trim().isEmpty) {
+        return null;
+      }
+
+      final colorInt = (map['courseColor'] as num?)?.toInt();
+      final rawSlots = map['slots'];
+      final parsedSlots = <OfferTimeSlot>[];
+      if (rawSlots is List) {
+        for (final item in rawSlots) {
+          if (item is Map) {
+            try {
+              final slotMap = Map<String, dynamic>.from(item);
+              final weekday = (slotMap['weekday'] as num?)?.toInt();
+              final startMin = (slotMap['startMin'] as num?)?.toInt();
+              final endMin = (slotMap['endMin'] as num?)?.toInt();
+              if (weekday != null &&
+                  weekday >= 0 &&
+                  weekday <= 6 &&
+                  startMin != null &&
+                  startMin >= 0 &&
+                  startMin < 1440 &&
+                  endMin != null &&
+                  endMin > startMin &&
+                  endMin <= 1440) {
+                parsedSlots.add(OfferTimeSlot(
+                  weekday: weekday,
+                  startMin: startMin,
+                  endMin: endMin,
+                ));
+              }
+            } catch (_) {
+              // تخطي الشريحة التالفة
+            }
+          }
+        }
+      }
+
+      if (parsedSlots.isEmpty) {
+        // العرض بدون أي فترات زمنية صالحة يُعتبر غير قابل للحجز ويتم تخطيه
+        return null;
+      }
+
+      // الحد الأقصى للشرائح هو 7
+      final limitedSlots = parsedSlots.length > 7 ? parsedSlots.sublist(0, 7) : parsedSlots;
+
+      return TimeBankOfferModel(
+        id: id,
+        teacherId: teacherId,
+        teacherName: map['teacherName'] as String? ?? 'زميل',
+        courseId: map['courseId'] as String? ?? '',
+        courseName: courseName,
+        courseCode: map['courseCode'] as String? ?? '',
+        topic: map['topic'] as String? ?? '',
+        day: map['day'] as String? ?? '',
+        time: map['time'] as String? ?? '',
+        durationMinutes: (map['durationMinutes'] as num?)?.toInt() ?? 60,
+        location: map['location'] as String? ?? '',
+        mode: map['mode'] as String? ?? 'in_person',
+        courseColor: colorInt != null ? Color(colorInt) : const Color(0xFF2F8F89),
+        isAvailable: map['isAvailable'] as bool? ?? true,
+        slots: limitedSlots,
+        createdAt: map['createdAt'] != null
+            ? DateTime.tryParse(map['createdAt'].toString())
+            : null,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   factory TimeBankOfferModel.fromMap(Map<String, dynamic> map, String id) {
-    final colorInt = (map['courseColor'] as num?)?.toInt();
-    final parsedSlots = (map['slots'] as List<dynamic>?)
-        ?.map((s) => OfferTimeSlot.fromMap(Map<String, dynamic>.from(s as Map)))
-        .toList() ?? [];
+    final safe = fromMapSafe(map, id);
+    if (safe != null) return safe;
 
     return TimeBankOfferModel(
       id: id,
       teacherId: map['teacherId'] as String? ?? '',
-      teacherName: map['teacherName'] as String? ?? '',
+      teacherName: map['teacherName'] as String? ?? 'زميل',
       courseId: map['courseId'] as String? ?? '',
       courseName: map['courseName'] as String? ?? '',
       courseCode: map['courseCode'] as String? ?? '',
@@ -672,12 +746,10 @@ class TimeBankOfferModel {
       durationMinutes: (map['durationMinutes'] as num?)?.toInt() ?? 60,
       location: map['location'] as String? ?? '',
       mode: map['mode'] as String? ?? 'in_person',
-      courseColor: colorInt != null ? Color(colorInt) : const Color(0xFF2F8F89),
+      courseColor: const Color(0xFF2F8F89),
       isAvailable: map['isAvailable'] as bool? ?? true,
-      slots: parsedSlots,
-      createdAt: map['createdAt'] != null
-          ? DateTime.tryParse(map['createdAt'].toString())
-          : null,
+      slots: const [],
+      createdAt: null,
     );
   }
 }
