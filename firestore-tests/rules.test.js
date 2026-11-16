@@ -3773,4 +3773,221 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
       })
     );
   });
+
+  // =========================================================================
+  // القسم 19: تحصين تحديثات الجلسات وقوائم الحقول المسموحة (Hotfix Item 3)
+  // =========================================================================
+
+  test('بند 3 (سلبي 1 - Accept Past ScheduledAt): رفض قبول المعلم للجلسة بعد حلول موعدها (request.time >= scheduledAt)', async () => {
+    const teacherId = 'teacher_accept_late';
+    const learnerId = 'learner_accept_late';
+    const sessionId = 'session_accept_late';
+    const pastScheduledAt = new Date(Date.now() - 3600 * 1000); // قبل ساعة
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'pending',
+        scheduledAt: pastScheduledAt,
+      });
+    });
+
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+    await assertFails(
+      teacherDb.collection('sessions').doc(sessionId).update({
+        status: 'confirmed',
+      })
+    );
+  });
+
+  test('بند 3 (سلبي 2 - Accept Forbidden Field): رفض تعديل رابط الاجتماع أو حقول ممنوعة أثناء قبول المعلم', async () => {
+    const teacherId = 'teacher_accept_harden';
+    const learnerId = 'learner_accept_harden';
+    const sessionId = 'session_accept_harden';
+    const scheduledAt = new Date(Date.now() + 24 * 3600 * 1000);
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'pending',
+        scheduledAt: scheduledAt,
+      });
+    });
+
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+    // محاولة تغيير meetingUrl مع القبول تفشل لمخالفتها hasOnly(['status', 'confirmedAt'])
+    await assertFails(
+      teacherDb.collection('sessions').doc(sessionId).update({
+        status: 'confirmed',
+        meetingUrl: 'https://meet.google.com/abc-defg-hij',
+      })
+    );
+  });
+
+  test('بند 3 (سلبي 3 - Complete Forbidden Field teacherMarkedDoneAt): منع المتعلم من لمس teacherMarkedDoneAt أثناء الإتمام', async () => {
+    const learnerId = 'learner_comp_harden';
+    const teacherId = 'teacher_comp_harden';
+    const sessionId = 'session_comp_harden';
+    const scheduledAt = new Date(Date.now() - 3600 * 1000); // موعد حل بالفعل
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(teacherId).set({ timeCoins: 1, completedSessions: 0 });
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'confirmed',
+        scheduledAt: scheduledAt,
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+    await assertFails(
+      learnerDb.runTransaction(async (t) => {
+        t.update(learnerDb.collection('users').doc(teacherId), { timeCoins: 2, lastSessionId: sessionId });
+        t.update(learnerDb.collection('sessions').doc(sessionId), {
+          status: 'completed',
+          escrowStatus: 'released_to_teacher',
+          rating: 5,
+          teacherMarkedDoneAt: new Date(),
+        });
+      })
+    );
+  });
+
+  test('بند 3 (سلبي 4 - Complete Forbidden Field meetingUrl): منع تعديل meetingUrl أثناء إتمام الجلسة', async () => {
+    const learnerId = 'learner_comp_url';
+    const teacherId = 'teacher_comp_url';
+    const sessionId = 'session_comp_url';
+    const scheduledAt = new Date(Date.now() - 3600 * 1000);
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(teacherId).set({ timeCoins: 1, completedSessions: 0 });
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'confirmed',
+        scheduledAt: scheduledAt,
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+    await assertFails(
+      learnerDb.runTransaction(async (t) => {
+        t.update(learnerDb.collection('users').doc(teacherId), { timeCoins: 2, lastSessionId: sessionId });
+        t.update(learnerDb.collection('sessions').doc(sessionId), {
+          status: 'completed',
+          escrowStatus: 'released_to_teacher',
+          rating: 5,
+          meetingUrl: 'https://meet.google.com/new-link-hacked',
+        });
+      })
+    );
+  });
+
+  test('بند 3 (سلبي 5 - Cancel Forbidden Field rating): منع تزوير التقييم rating أثناء إلغاء الجلسة', async () => {
+    const learnerId = 'learner_cancel_rating';
+    const teacherId = 'teacher_cancel_rating';
+    const sessionId = 'session_cancel_rating';
+    const scheduledAt = new Date(Date.now() + 24 * 3600 * 1000);
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(learnerId).set({ timeCoins: 1, completedSessions: 0 });
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'confirmed',
+        scheduledAt: scheduledAt,
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+    // محاولة إرسال rating مع الإلغاء المبكر تفشل لمخالفتها hasOnly
+    await assertFails(
+      learnerDb.runTransaction(async (t) => {
+        t.update(learnerDb.collection('users').doc(learnerId), { timeCoins: 2, lastSessionId: sessionId });
+        t.update(learnerDb.collection('sessions').doc(sessionId), {
+          status: 'cancelled_by_learner',
+          escrowStatus: 'refunded_to_learner',
+          cancelledBy: learnerId,
+          rating: 1, // ممنوع أثناء الإلغاء!
+        });
+      })
+    );
+  });
+
+  test('بند 3 (سلبي 6 - Cancel Forbidden Field costCoins): منع التلاعب بقيمة costCoins أثناء الإلغاء', async () => {
+    const teacherId = 'teacher_cancel_coins';
+    const learnerId = 'learner_cancel_coins';
+    const sessionId = 'session_cancel_coins';
+    const scheduledAt = new Date(Date.now() + 24 * 3600 * 1000);
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(learnerId).set({ timeCoins: 1, completedSessions: 0 });
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'confirmed',
+        scheduledAt: scheduledAt,
+      });
+    });
+
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+    await assertFails(
+      teacherDb.runTransaction(async (t) => {
+        t.update(teacherDb.collection('users').doc(learnerId), { timeCoins: 2, lastSessionId: sessionId });
+        t.update(teacherDb.collection('sessions').doc(sessionId), {
+          status: 'cancelled_by_teacher',
+          escrowStatus: 'refunded_to_learner',
+          cancelledBy: teacherId,
+          costCoins: 5, // ممنوع!
+        });
+      })
+    );
+  });
+
+  test('بند 3 (سلبي 7 - Invalid meetingUrl): منع المعلم من حفظ رابط اجتماع مشبوه أو غير معتمد', async () => {
+    const teacherId = 'teacher_fake_meet';
+    const learnerId = 'learner_fake_meet';
+    const sessionId = 'session_fake_meet';
+    const scheduledAt = new Date(Date.now() + 24 * 3600 * 1000);
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('sessions').doc(sessionId).set({
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'confirmed',
+        scheduledAt: scheduledAt,
+      });
+    });
+
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+    await assertFails(
+      teacherDb.collection('sessions').doc(sessionId).update({
+        meetingUrl: 'https://phishing-site.com/session-room',
+      })
+    );
+  });
 });

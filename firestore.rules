@@ -311,12 +311,15 @@ service cloud.firestore {
             && isValidMeetingUrl(request.resource.data.meetingUrl)
           )
           ||
-          // الحالة 0-أ: قبول المعلم للجلسة المعلقة (pending -> confirmed) بدون أي حركة مالية
+          // الحالة 0-أ: قبول المعلم للجلسة المعلقة (pending -> confirmed) بدون أي حركة مالية قبل حلول الموعد
           (
             resource.data.teacherId == request.auth.uid
             && resource.data.status == 'pending'
             && request.resource.data.status == 'confirmed'
             && request.resource.data.escrowStatus == resource.data.escrowStatus
+            && resource.data.scheduledAt is timestamp
+            && request.time < resource.data.scheduledAt
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'confirmedAt'])
           )
           ||
           // الحالة 0-ب: رفض المعلم للجلسة المعلقة (pending -> rejected) مع استرداد كامل للمتعلم
@@ -325,6 +328,7 @@ service cloud.firestore {
             && resource.data.status == 'pending'
             && request.resource.data.status == 'rejected'
             && request.resource.data.escrowStatus == 'refunded_to_learner'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'escrowStatus', 'rejectedAt', 'rejectionReason'])
             && getAfterUser(resource.data.learnerId).timeCoins == getUser(resource.data.learnerId).timeCoins + 1
             && getAfterUser(resource.data.learnerId).lastSessionId == sessionId
           )
@@ -336,6 +340,7 @@ service cloud.firestore {
             && request.resource.data.status == 'cancelled_by_learner'
             && request.resource.data.escrowStatus == 'refunded_to_learner'
             && request.resource.data.cancelledBy == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'escrowStatus', 'cancelledAt', 'cancelledBy', 'cancellationReason'])
             && getAfterUser(resource.data.learnerId).timeCoins == getUser(resource.data.learnerId).timeCoins + 1
             && getAfterUser(resource.data.learnerId).lastSessionId == sessionId
           )
@@ -358,6 +363,7 @@ service cloud.firestore {
             && request.resource.data.escrowStatus == 'released_to_teacher'
             && request.resource.data.status == 'completed'
             && (!('scheduledAt' in resource.data) || !(resource.data.scheduledAt is timestamp) || request.time >= resource.data.scheduledAt)
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'escrowStatus', 'completedAt', 'rating', 'reviewComment'])
             && request.resource.data.rating is int
             && request.resource.data.rating >= 1 && request.resource.data.rating <= 5
             && getAfterUser(resource.data.teacherId).timeCoins == getUser(resource.data.teacherId).timeCoins + 1
@@ -371,6 +377,7 @@ service cloud.firestore {
             && request.resource.data.escrowStatus == 'refunded_to_learner'
             && request.resource.data.status == 'cancelled_by_teacher'
             && request.resource.data.cancelledBy == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'escrowStatus', 'cancelledAt', 'cancelledBy', 'cancellationReason'])
             && getAfterUser(resource.data.learnerId).timeCoins == getUser(resource.data.learnerId).timeCoins + 1
             && getAfterUser(resource.data.learnerId).lastSessionId == sessionId
           )
@@ -384,6 +391,7 @@ service cloud.firestore {
             && request.resource.data.cancelledBy == request.auth.uid
             && resource.data.scheduledAt is timestamp
             && (resource.data.scheduledAt - request.time) > duration.value(2, 'h')
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'escrowStatus', 'cancelledAt', 'cancelledBy', 'cancellationReason'])
             && getAfterUser(resource.data.learnerId).timeCoins == getUser(resource.data.learnerId).timeCoins + 1
             && getAfterUser(resource.data.learnerId).lastSessionId == sessionId
           )
@@ -399,6 +407,7 @@ service cloud.firestore {
               !(resource.data.scheduledAt is timestamp)
               || (resource.data.scheduledAt - request.time) <= duration.value(2, 'h')
             )
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'escrowStatus', 'cancelledAt', 'cancelledBy', 'cancellationReason'])
             && getAfterUser(resource.data.teacherId).timeCoins == getUser(resource.data.teacherId).timeCoins + 1
             && getAfterUser(resource.data.teacherId).lastSessionId == sessionId
           )
@@ -413,6 +422,7 @@ service cloud.firestore {
               (resource.data.createdAt is timestamp && (request.time - resource.data.createdAt) > duration.value(24, 'h'))
               || (resource.data.scheduledAt is timestamp && request.time > resource.data.scheduledAt)
             )
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'escrowStatus', 'cancelledAt', 'expiredAt'])
             && getAfterUser(resource.data.learnerId).timeCoins == getUser(resource.data.learnerId).timeCoins + 1
             && getAfterUser(resource.data.learnerId).lastSessionId == sessionId
           )
@@ -425,6 +435,7 @@ service cloud.firestore {
             && request.resource.data.escrowStatus == 'released_to_teacher'
             && ('teacherMarkedDoneAt' in resource.data && resource.data.teacherMarkedDoneAt is timestamp)
             && (resource.data.scheduledAt is timestamp && (request.time - resource.data.scheduledAt) > duration.value(48, 'h'))
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'escrowStatus', 'autoCompletedAt', 'autoReleasedAt'])
             && getAfterUser(resource.data.teacherId).timeCoins == getUser(resource.data.teacherId).timeCoins + 1
             && getAfterUser(resource.data.teacherId).lastSessionId == sessionId
           )
