@@ -8,7 +8,6 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/data/auth_service.dart';
 import '../../../core/state/app_state.dart';
-import '../../timebank/data/timebank_repository.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -923,17 +922,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 coursesData: editableCourses.map((c) => c.toMap()).toList(),
                                 courseRatings: editableRatings,
                               );
-
-                              final user = ref.read(authServiceProvider).currentUser;
-                              final profileName = ref.read(userProfileStreamProvider).value?.data()?['name'] as String? ?? user?.displayName ?? 'زميل';
-                              if (user != null) {
-                                await ref.read(timeBankRepositoryProvider).syncTeachingOffersForUser(
-                                  userId: user.uid,
-                                  userName: profileName,
-                                  courses: editableCourses,
-                                  ratings: editableRatings,
-                                );
-                              }
                             } catch (e) {
                               debugPrint('Manage courses firestore update warning: $e');
                             }
