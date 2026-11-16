@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/state/app_state.dart';
 import '../../auth/data/auth_service.dart';
+import '../../timebank/application/timebank_pure_logic.dart';
 import '../../timebank/data/timebank_repository.dart';
 
 class WalletScreen extends ConsumerWidget {
@@ -17,7 +18,12 @@ class WalletScreen extends ConsumerWidget {
     final user = ref.watch(authServiceProvider).currentUser;
     final userId = user?.uid ?? '';
 
-    final timeCoins = ref.watch(userTimeCoinsProvider);
+    final availableCoins = ref.watch(userTimeCoinsProvider);
+
+    final learnerSessionsAsync = ref.watch(learnerSessionsStreamProvider(userId));
+    final learnerSessions = learnerSessionsAsync.value ?? [];
+    final heldCoins = TimeBankPureLogic.calculateHeldCoins(learnerSessions);
+    final totalCoins = availableCoins + heldCoins;
 
     final transactionsAsync = ref.watch(userTransactionsStreamProvider(userId));
     final transactions = transactionsAsync.value ?? [];
@@ -63,10 +69,10 @@ class WalletScreen extends ConsumerWidget {
                 child: Column(
                   children: [
                     const Text(
-                      'رصيد عملات الوقت المتاح',
+                      'إجمالي رصيد محفظة الوقت',
                       style: TextStyle(fontSize: 13, color: Colors.white70),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.baseline,
@@ -75,9 +81,9 @@ class WalletScreen extends ConsumerWidget {
                         const Icon(Icons.monetization_on_rounded, size: 36, color: AppColors.pointsAmber),
                         const SizedBox(width: 8),
                         Text(
-                          '$timeCoins',
+                          '$totalCoins',
                           style: const TextStyle(
-                            fontSize: 48,
+                            fontSize: 46,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
@@ -89,7 +95,95 @@ class WalletScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 14),
+
+                    // تفصيل الرصيد المتاح والرصيد المعلق
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0xFF34D399),
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    const Text(
+                                      'الرصيد المتاح',
+                                      style: TextStyle(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.w600),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '$availableCoins عملة',
+                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                                ),
+                                const SizedBox(height: 2),
+                                const Text(
+                                  'جاهز للحجز الفوري',
+                                  style: TextStyle(fontSize: 10, color: Colors.white60),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            width: 1,
+                            height: 44,
+                            color: Colors.white.withValues(alpha: 0.2),
+                          ),
+                          Expanded(
+                            child: Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        color: AppColors.pointsAmber,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    const Text(
+                                      'الرصيد المعلق',
+                                      style: TextStyle(fontSize: 12, color: Colors.white70, fontWeight: FontWeight.w600),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '$heldCoins عملة',
+                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                                ),
+                                const SizedBox(height: 2),
+                                const Text(
+                                  'محتجز في الضمان',
+                                  style: TextStyle(fontSize: 10, color: Colors.white60),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                       decoration: BoxDecoration(
@@ -97,13 +191,41 @@ class WalletScreen extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        'تعادل ${(timeCoins * 60 / 60).toStringAsFixed(0)} ساعة تعلّم مجانية مع زملائك',
-                        style: const TextStyle(fontSize: 12, color: Colors.white),
+                        'الرصيد المتاح يعادل ${(availableCoins * 60 / 60).toStringAsFixed(0)} ساعة تعلّم مجانية مع زملائك',
+                        style: const TextStyle(fontSize: 11, color: Colors.white),
                       ),
                     ),
                   ],
                 ),
               ),
+
+              if (heldCoins > 0) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.pointsAmber.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.pointsAmber.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.lock_clock_outlined, size: 20, color: AppColors.pointsAmber),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'لديك $heldCoins عملة محتجزة في الضمان لجلسات قيد الانتظار أو التأكيد أو النزاع. ستُحرر للمعلم أو تُسترد تلقائياً بحسب مسار كل جلسة.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context).colorScheme.onSurface,
+                            height: 1.35,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 20),
 

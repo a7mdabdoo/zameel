@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/models/app_models.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/data/auth_service.dart';
+import '../../timebank/application/timebank_pure_logic.dart';
 import '../../timebank/data/timebank_repository.dart';
 import 'widgets/session_chat_sheet.dart';
 
@@ -21,6 +22,230 @@ class SessionDetailsTeacherScreen extends ConsumerStatefulWidget {
 
 class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeacherScreen> {
   bool _isCancelling = false;
+  bool _isProcessingAction = false;
+
+  Future<void> _acceptSession(TimeBankSessionModel session) async {
+    final user = ref.read(authServiceProvider).currentUser;
+    if (user == null) return;
+
+    setState(() => _isProcessingAction = true);
+    try {
+      await ref.read(timeBankRepositoryProvider).acceptSession(
+            sessionId: session.id,
+            teacherId: user.uid,
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم قبول جلسة الشرح بنجاح! تم تأكيد الموعد 🤝')),
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر قبول الجلسة: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessingAction = false);
+    }
+  }
+
+  Future<void> _rejectSession(TimeBankSessionModel session) async {
+    final user = ref.read(authServiceProvider).currentUser;
+    if (user == null) return;
+
+    final controller = TextEditingController();
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('الاعتذار عن الجلسة'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'إذا اعتذرت عن الجلسة، فسيتم استرداد عملة الوقت بالكامل إلى محفظة زميلك المتعلم فوراً.',
+              style: TextStyle(fontSize: 13, height: 1.4),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                labelText: 'سبب الاعتذار (اختياري)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('تراجع')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('تأكيد الاعتذار', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _isProcessingAction = true);
+    try {
+      await ref.read(timeBankRepositoryProvider).rejectSession(
+            sessionId: session.id,
+            teacherId: user.uid,
+            reason: controller.text.trim(),
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم الاعتذار عن الجلسة وإعادة العملة للمتعلم 🔄')),
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر الاعتذار عن الجلسة: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessingAction = false);
+    }
+  }
+
+  Future<void> _claimAutoRelease(TimeBankSessionModel session) async {
+    final user = ref.read(authServiceProvider).currentUser;
+    if (user == null) return;
+
+    setState(() => _isProcessingAction = true);
+    try {
+      await ref.read(timeBankRepositoryProvider).claimTeacherAutoRelease(
+            sessionId: session.id,
+            teacherId: user.uid,
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم تحرير العملة بنجاح إلى محفظتك! شكراً لمجهودك 💰')),
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر تحرير العملة: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessingAction = false);
+    }
+  }
+
+  Future<void> _markDone(TimeBankSessionModel session) async {
+    final user = ref.read(authServiceProvider).currentUser;
+    if (user == null) return;
+
+    setState(() => _isProcessingAction = true);
+    try {
+      await ref.read(timeBankRepositoryProvider).markSessionDoneByTeacher(
+            sessionId: session.id,
+            teacherId: user.uid,
+          );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('تم تسجيل "تم الشرح" بنجاح! بانتظار تأكيد الزميل 🎉')),
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('تعذر تسجيل تم الشرح: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessingAction = false);
+    }
+  }
+
+  Future<void> _showEditMeetingUrlDialog(TimeBankSessionModel session) async {
+    final controller = TextEditingController(text: session.meetingUrl ?? '');
+    String? errorText;
+
+    final updated = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: const Text('رابط جلسة الشرح الأونلاين', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'أدخل رابط Google Meet أو Zoom ليتمكن زميلك من الانضمام للجلسة:',
+                style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                keyboardType: TextInputType.url,
+                decoration: InputDecoration(
+                  hintText: 'https://meet.google.com/xyz-abcd-efg',
+                  errorText: errorText,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('إلغاء'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final url = controller.text.trim();
+                final uri = Uri.tryParse(url);
+                if (uri == null || uri.scheme != 'https') {
+                  setDialogState(() => errorText = 'يجب أن يبدأ الرابط بـ https://');
+                  return;
+                }
+                final host = uri.host.toLowerCase();
+                final isAllowed = host == 'meet.google.com' ||
+                    host == 'zoom.us' ||
+                    host.endsWith('.zoom.us') ||
+                    host == 'teams.microsoft.com';
+                if (!isAllowed) {
+                  setDialogState(() => errorText = 'مسموح بروابط Google Meet أو Zoom أو MS Teams فقط');
+                  return;
+                }
+
+                try {
+                  await ref.read(timeBankRepositoryProvider).updateSessionMeetingUrl(
+                        sessionId: session.id,
+                        teacherId: session.teacherId,
+                        meetingUrl: url,
+                      );
+                  if (ctx.mounted) Navigator.pop(ctx, true);
+                } catch (e) {
+                  setDialogState(() => errorText = 'تعذر الحفظ: $e');
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+              child: const Text('حفظ الرابط', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (updated == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تم تحديث رابط اللقاء بنجاح 🎉')),
+      );
+    }
+  }
 
   Future<void> _cancelSession(TimeBankSessionModel session) async {
     final user = ref.read(authServiceProvider).currentUser;
@@ -216,57 +441,111 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                     Divider(height: 20, color: hairline),
                     _RowItem('المدة المقررة', duration),
                     Divider(height: 20, color: hairline),
-                    _RowItem('المكان / طريقة اللقاء', location.contains('أونلاين') || location.contains('http') || location.contains('zoom') || location.contains('meet') ? 'أونلاين (Zoom / Google Meet) 💻' : location),
+                    _RowItem('المكان / طريقة اللقاء', session?.mode == 'online' ? 'أونلاين عن بُعد 💻' : location),
                   ],
                 ),
               ),
 
               const SizedBox(height: 16),
 
-              if (location.contains('http') || location.contains('meet') || location.contains('zoom') || location.contains('أونلاين')) ...[
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.videocam_rounded, color: AppColors.primary, size: 20),
-                          SizedBox(width: 8),
-                          Text(
-                            'رابط جلسة الشرح الأونلاين',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primary),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      SelectableText(
-                        location.replaceAll('أونلاين:', '').trim(),
-                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                      ),
-                      const SizedBox(height: 10),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          Clipboard.setData(ClipboardData(text: location.replaceAll('أونلاين:', '').trim()));
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('تم نسخ رابط الاجتماع (Zoom / Meet) بنجاح 📋')),
-                          );
-                        },
-                        icon: const Icon(Icons.copy_rounded, size: 16, color: Colors.white),
-                        label: const Text('نسخ رابط الاجتماع', style: TextStyle(color: Colors.white, fontSize: 13)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              if (session?.mode == 'online') ...[
+                if (session?.meetingUrl != null && session!.meetingUrl!.isNotEmpty) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.videocam_rounded, color: AppColors.primary, size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  'رابط جلسة الشرح الأونلاين',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primary),
+                                ),
+                              ],
+                            ),
+                            if (isHeld)
+                              TextButton.icon(
+                                onPressed: () => _showEditMeetingUrlDialog(session),
+                                icon: const Icon(Icons.edit_outlined, size: 16),
+                                label: const Text('تعديل', style: TextStyle(fontSize: 12)),
+                              ),
+                          ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                        SelectableText(
+                          session.meetingUrl!,
+                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                        ),
+                        const SizedBox(height: 10),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            Clipboard.setData(ClipboardData(text: session.meetingUrl!));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('تم نسخ رابط الاجتماع بنجاح 📋')),
+                            );
+                          },
+                          icon: const Icon(Icons.copy_rounded, size: 16, color: Colors.white),
+                          label: const Text('نسخ رابط الاجتماع', style: TextStyle(color: Colors.white, fontSize: 13)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                ] else ...[
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 22),
+                            SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'هذه الجلسة أونلاين ولكنك لم تقم بإضافة رابط اللقاء بعد!',
+                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'يرجى إنشاء رابط Google Meet أو Zoom وإضافته هنا ليتمكن زميلك من الانضمام للجلسة.',
+                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+                        ),
+                        const SizedBox(height: 10),
+                        ElevatedButton.icon(
+                          onPressed: () => _showEditMeetingUrlDialog(session!),
+                          icon: const Icon(Icons.add_link_rounded, size: 18, color: Colors.white),
+                          label: const Text('أضف رابط الاجتماع الآن', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 14),
               ] else
                 const SizedBox(height: 8),
@@ -291,7 +570,129 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                 const SizedBox(height: 14),
               ],
 
-              if (isHeld) ...[
+              if (session != null && session.status == 'disputed') ...[
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.error.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.gavel_rounded, color: AppColors.error, size: 24),
+                      SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'هذه الجلسة قيد النزاع بناءً على اعتراض المتعلم. العملة محتجزة في الضمان لحين المراجعة اليدوية من الإدارة.',
+                          style: TextStyle(fontSize: 13, color: AppColors.textPrimary, fontWeight: FontWeight.bold, height: 1.4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ],
+
+              if (session != null && session.status == 'pending') ...[
+                SizedBox(
+                  height: 52,
+                  child: ElevatedButton.icon(
+                    onPressed: _isProcessingAction ? null : () => _acceptSession(session),
+                    icon: const Icon(Icons.check_circle_outline_rounded, color: Colors.white),
+                    label: Text(
+                      _isProcessingAction ? 'جاري القبول...' : 'قبول الجلسة وتأكيد الموعد 🤝',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    onPressed: _isProcessingAction ? null : () => _rejectSession(session),
+                    icon: const Icon(Icons.close_rounded, color: AppColors.error),
+                    label: Text(
+                      _isProcessingAction ? 'جاري معالجة الطلب...' : 'اعتذار عن الجلسة وإعادة العملة',
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.error),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.error),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+              ] else if (isHeld && session?.status != 'disputed') ...[
+                if (session != null && session.status == 'confirmed') ...[
+                  if (session.teacherMarkedDoneAt != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.check_circle_outline_rounded, color: AppColors.primary, size: 20),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'قمت بتسجيل "تم الشرح" بنجاح ✓ بانتظار تأكيد وتقييم الزميل',
+                              style: TextStyle(fontSize: 12, color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    if (TimeBankPureLogic.canTeacherClaimAutoRelease(
+                      status: session.status,
+                      escrowStatus: session.escrowStatus,
+                      teacherMarkedDoneAt: session.teacherMarkedDoneAt,
+                      scheduledAt: session.scheduledAt,
+                    )) ...[
+                      SizedBox(
+                        height: 52,
+                        child: ElevatedButton.icon(
+                          onPressed: _isProcessingAction ? null : () => _claimAutoRelease(session),
+                          icon: const Icon(Icons.monetization_on_outlined, color: Colors.white),
+                          label: Text(
+                            _isProcessingAction ? 'جاري تحرير العملة...' : 'المطالبة بالعملة (تحرير تلقائي) 💰',
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                  ] else if (session.scheduledAt == null || DateTime.now().isAfter(session.scheduledAt!)) ...[
+                    SizedBox(
+                      height: 52,
+                      child: ElevatedButton.icon(
+                        onPressed: _isProcessingAction ? null : () => _markDone(session),
+                        icon: const Icon(Icons.school_rounded, color: Colors.white),
+                        label: Text(
+                          _isProcessingAction ? 'جاري التأكيد...' : 'تم الشرح بنجاح 🎓',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                ],
                 SizedBox(
                   height: 48,
                   child: OutlinedButton.icon(

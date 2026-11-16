@@ -104,6 +104,9 @@ class PlannerNotifier extends Notifier<PlannerState> {
       final selectedIds = (userDoc?['selectedCourses'] as List<dynamic>?)?.cast<String>();
       if (selectedIds != null && selectedIds.isNotEmpty) {
         courses = AppConstants.seedCourses.where((c) => selectedIds.contains(c.id)).toList();
+      } else {
+        // إذا لم يختر الطالب مواد بعد، نعتمد مواد الكلية الأساسية افتراضياً لتوليد خطة المذاكرة وأزرار (تم / لم تتم)
+        courses = List<CourseSeed>.from(AppConstants.seedCourses);
       }
     }
 

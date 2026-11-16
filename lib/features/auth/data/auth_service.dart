@@ -14,7 +14,9 @@ class AuthService {
       if (Firebase.apps.isNotEmpty) {
         return FirebaseAuth.instance;
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('AuthService: Failed to get FirebaseAuth instance: $e');
+    }
     return null;
   }
 
@@ -23,7 +25,9 @@ class AuthService {
       if (Firebase.apps.isNotEmpty) {
         return FirebaseFirestore.instance;
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('AuthService: Failed to get FirebaseFirestore instance: $e');
+    }
     return null;
   }
 
@@ -72,21 +76,23 @@ class AuthService {
       // إرسال رسالة التأكيد إلى البريد الإلكتروني فوراً
       try {
         await cred.user!.sendEmailVerification();
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('AuthService: Failed to send initial email verification: $e');
+      }
 
       // إنشاء مستند المستخدم الأولي برصيد ترحيبي 2 عملة وتقييم 0
       await firestore.collection('users').doc(cred.user!.uid).set({
         'uid': cred.user!.uid,
         'name': name.trim(),
         'username': cleanUsername.isEmpty ? cleanEmail.split('@').first : cleanUsername,
-        'email': cleanEmail,
         'timeCoins': AppConstants.welcomeCoins,
         'faculty': AppConstants.faculty,
         'year': AppConstants.academicYear,
         'selectedCourses': <String>[],
         'courseRatings': <String, dynamic>{},
         'completedSessions': 0,
-        'teacherRating': 0.0,
+        'ratingSum': 0,
+        'ratingCount': 0,
         'lastSessionId': null,
         'onboardingCompleted': false,
         'createdAt': FieldValue.serverTimestamp(),
@@ -120,7 +126,9 @@ class AuthService {
     if (cred.user != null) {
       try {
         await cred.user!.getIdToken(true);
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('AuthService: Failed to force refresh ID token on signIn: $e');
+      }
 
       // التحقق من وجود مستند المستخدم، وإذا كان المستخدم يسجل دخوله نضمن أن onboardingCompleted = true
       // حتى لا تظهر له شاشات التهيئة مرة أخرى عند كل تسجيل دخول
@@ -133,7 +141,6 @@ class AuthService {
               'uid': cred.user!.uid,
               'name': cred.user!.displayName ?? email.split('@').first,
               'username': email.split('@').first.toLowerCase(),
-              'email': cred.user!.email ?? email.trim(),
               'timeCoins': AppConstants.welcomeCoins,
               'faculty': AppConstants.faculty,
               'year': AppConstants.academicYear,
@@ -141,7 +148,8 @@ class AuthService {
               'selectedCourses': <String>[],
               'courseRatings': <String, dynamic>{},
               'completedSessions': 0,
-              'teacherRating': 0.0,
+              'ratingSum': 0,
+              'ratingCount': 0,
               'lastSessionId': null,
               'onboardingCompleted': true,
               'createdAt': FieldValue.serverTimestamp(),
@@ -152,9 +160,6 @@ class AuthService {
             if ((data?['onboardingCompleted'] as bool? ?? false) == false) {
               updates['onboardingCompleted'] = true;
             }
-            if ((data?['email'] as String?)?.isEmpty ?? true) {
-              updates['email'] = cred.user!.email ?? email.trim();
-            }
             if ((data?['name'] as String?)?.isEmpty ?? true) {
               updates['name'] = cred.user!.displayName ?? email.split('@').first;
             }
@@ -162,7 +167,9 @@ class AuthService {
               await docRef.update(updates);
             }
           }
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('AuthService: Failed to sync user doc during signIn: $e');
+        }
       }
     }
 
@@ -224,7 +231,8 @@ class AuthService {
       final docRef = firestore.collection('users').doc(uid);
       await docRef.set(updates, SetOptions(merge: true));
     } catch (e) {
-      debugPrint('updateUserProfile warning: $e');
+      debugPrint('updateUserProfile error: $e');
+      rethrow;
     }
   }
 
