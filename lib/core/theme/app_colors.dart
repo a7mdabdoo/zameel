@@ -1,7 +1,7 @@
 // مطور 1
 // فيجما: لوحة نظام التصميم - ذاكر وعلّم
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class AppColors {
   // Light Palette

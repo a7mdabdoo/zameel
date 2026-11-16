@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../theme/app_colors.dart';
 
 /// ويدجت عرض الأخطاء (Error State) مع خيار إعادة المحاولة
