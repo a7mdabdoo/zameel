@@ -339,24 +339,26 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
   // القسم الثاني: اختبارات المعاملات الحقيقية كما يستدعيها TimeBankRepository
   // =========================================================================
 
-  test('معاملة ناجحة 1: حجز جلسة مع حجز العملة في الضمان (bookSessionWithEscrow)', async () => {
-    const learnerId = 'learner_real';
-    const teacherId = 'teacher_real';
-    const sessionId = 'session_book_real_1';
+  test('معاملة ناجحة 1-أ: حجز جلسة 30 دقيقة مطابقة حرفياً لكتابات bookSessionWithEscrow (status: pending وأقفال الطرفين)', async () => {
+    const learnerId = 'learner_real_30m';
+    const teacherId = 'teacher_real_30m';
+    const sessionId = 'session_book_30m';
     const txId = `${sessionId}_booking`;
+    const scheduledAt = new Date(Date.now() + 24 * 3600 * 1000);
+    const epochMs = scheduledAt.getTime();
 
     await testEnv.withSecurityRulesDisabled(async (context) => {
       const adminDb = context.firestore();
       await adminDb.collection('users').doc(learnerId).set({
         uid: learnerId,
-        email: 'learner@gmail.com',
+        email: 'learner30@gmail.com',
         timeCoins: 2,
         completedSessions: 0,
         teacherRating: 0.0,
       });
       await adminDb.collection('users').doc(teacherId).set({
         uid: teacherId,
-        email: 'teacher@gmail.com',
+        email: 'teacher30@gmail.com',
         timeCoins: 2,
         completedSessions: 0,
         teacherRating: 0.0,
@@ -365,7 +367,84 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
 
     const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
 
-    // المعاملة الذرية لحجز الجلسة مطابقة لـ TimeBankRepository.bookSessionWithEscrow
+    // المعاملة الذرية لحجز الجلسة مطابقة حرفياً لـ bookSessionWithEscrow في TimeBankRepository
+    await assertSucceeds(
+      learnerDb.runTransaction(async (t) => {
+        // 1. خصم العملة من المتعلم مع ربط الجلسة
+        t.update(learnerDb.collection('users').doc(learnerId), {
+          timeCoins: 1,
+          lastSessionId: sessionId,
+        });
+
+        // 2. إنشاء الجلسة بحالة معلقة (pending) وضمان معلق (held)
+        t.set(learnerDb.collection('sessions').doc(sessionId), {
+          id: sessionId,
+          learnerId: learnerId,
+          teacherId: teacherId,
+          courseId: 'math101',
+          courseName: 'الجبر الخطي',
+          courseCode: 'MATH101',
+          durationMinutes: 30,
+          costCoins: 1,
+          escrowStatus: 'held',
+          status: 'pending',
+          scheduledAt: scheduledAt,
+        });
+
+        // 3. قيد حركة المحفظة (حجز الضمان)
+        t.set(learnerDb.collection('transactions').doc(txId), {
+          id: txId,
+          userId: learnerId,
+          sessionId: sessionId,
+          amount: 1,
+          isNegative: true,
+          type: 'booking',
+        });
+
+        // 4. أقفال الموعد للمتعلم والمعلم (حصة واحدة 30 دقيقة = قفلين)
+        t.set(learnerDb.collection('slotLocks').doc(`${learnerId}_${epochMs}`), {
+          uid: learnerId,
+          slotEpochMs: epochMs,
+          sessionId: sessionId,
+          status: 'active',
+        });
+        t.set(learnerDb.collection('slotLocks').doc(`${teacherId}_${epochMs}`), {
+          uid: teacherId,
+          slotEpochMs: epochMs,
+          sessionId: sessionId,
+          status: 'active',
+        });
+      })
+    );
+  });
+
+  test('معاملة ناجحة 1-ب: حجز جلسة 60 دقيقة مطابقة حرفياً لكتابات bookSessionWithEscrow (4 أقفال والتحقق من حدود القواعد)', async () => {
+    const learnerId = 'learner_real_60m';
+    const teacherId = 'teacher_real_60m';
+    const sessionId = 'session_book_60m';
+    const txId = `${sessionId}_booking`;
+    const scheduledAt = new Date(Date.now() + 48 * 3600 * 1000);
+    const epoch1 = scheduledAt.getTime();
+    const epoch2 = epoch1 + 30 * 60 * 1000;
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(learnerId).set({
+        uid: learnerId,
+        email: 'learner60@gmail.com',
+        timeCoins: 2,
+        completedSessions: 0,
+      });
+      await adminDb.collection('users').doc(teacherId).set({
+        uid: teacherId,
+        email: 'teacher60@gmail.com',
+        timeCoins: 2,
+        completedSessions: 0,
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+
     await assertSucceeds(
       learnerDb.runTransaction(async (t) => {
         // 1. خصم العملة من المتعلم
@@ -374,16 +453,18 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
           lastSessionId: sessionId,
         });
 
-        // 2. إنشاء الجلسة بضمان معلّق (held)
+        // 2. إنشاء مستند الجلسة 60 دقيقة
         t.set(learnerDb.collection('sessions').doc(sessionId), {
           id: sessionId,
           learnerId: learnerId,
           teacherId: teacherId,
-          courseName: 'الجبر الخطي',
+          courseId: 'cs101',
+          courseName: 'هياكل البيانات',
+          durationMinutes: 60,
           costCoins: 1,
           escrowStatus: 'held',
-          status: 'confirmed',
-          scheduledAt: new Date(Date.now() + 86400000),
+          status: 'pending',
+          scheduledAt: scheduledAt,
         });
 
         // 3. قيد حركة المحفظة
@@ -394,6 +475,32 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
           amount: 1,
           isNegative: true,
           type: 'booking',
+        });
+
+        // 4. أقفال الموعد للشريحتين (2 للمتعلم + 2 للمعلم = 4 أقفال ذرية)
+        t.set(learnerDb.collection('slotLocks').doc(`${learnerId}_${epoch1}`), {
+          uid: learnerId,
+          slotEpochMs: epoch1,
+          sessionId: sessionId,
+          status: 'active',
+        });
+        t.set(learnerDb.collection('slotLocks').doc(`${teacherId}_${epoch1}`), {
+          uid: teacherId,
+          slotEpochMs: epoch1,
+          sessionId: sessionId,
+          status: 'active',
+        });
+        t.set(learnerDb.collection('slotLocks').doc(`${learnerId}_${epoch2}`), {
+          uid: learnerId,
+          slotEpochMs: epoch2,
+          sessionId: sessionId,
+          status: 'active',
+        });
+        t.set(learnerDb.collection('slotLocks').doc(`${teacherId}_${epoch2}`), {
+          uid: teacherId,
+          slotEpochMs: epoch2,
+          sessionId: sessionId,
+          status: 'active',
         });
       })
     );
@@ -1087,7 +1194,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
           learnerId: learnerId,
           teacherId: teacherId,
           costCoins: 1,
-          status: 'confirmed',
+          status: 'pending',
           escrowStatus: 'held',
           rating: null,
           scheduledAt: new Date(Date.now() + 86400000),
@@ -1909,7 +2016,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
       teacherId: teacherId,
       costCoins: 1,
       escrowStatus: 'held',
-      status: 'confirmed',
+      status: 'pending',
       scheduledAt: validScheduledAt,
     });
 
@@ -1950,7 +2057,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
       teacherId: teacherId,
       costCoins: 1,
       escrowStatus: 'held',
-      status: 'confirmed',
+      status: 'pending',
       scheduledAt: tooSoonScheduledAt,
     });
 
@@ -1991,7 +2098,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
       teacherId: teacherId,
       costCoins: 1,
       escrowStatus: 'held',
-      status: 'confirmed',
+      status: 'pending',
       scheduledAt: tooFarScheduledAt,
     });
 
@@ -2038,7 +2145,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
       teacherId: teacherId,
       costCoins: 1,
       escrowStatus: 'held',
-      status: 'confirmed',
+      status: 'pending',
       scheduledAt: scheduledAt,
     });
 
@@ -2112,7 +2219,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
       teacherId: teacherId,
       costCoins: 1,
       escrowStatus: 'held',
-      status: 'confirmed',
+      status: 'pending',
       scheduledAt: scheduledAt,
     });
 
@@ -2179,7 +2286,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
       teacherId: teacherId,
       costCoins: 1,
       escrowStatus: 'held',
-      status: 'confirmed',
+      status: 'pending',
       scheduledAt: scheduledAt,
     });
     batchA.set(dbA.collection('transactions').doc(`${sessionA}_booking`), {
@@ -2209,7 +2316,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
       teacherId: teacherId,
       costCoins: 1,
       escrowStatus: 'held',
-      status: 'confirmed',
+      status: 'pending',
       scheduledAt: scheduledAt,
     });
     batchB.set(dbB.collection('transactions').doc(`${sessionB}_booking`), {
@@ -3225,6 +3332,315 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
     await assertSucceeds(
       authedDb.collection('users').doc(userId).update({
         completedBlockIds: ['block_101', 'block_102'],
+      })
+    );
+  });
+
+  // =========================================================================
+  // القسم 17: عقد الحجز ومسار الحجز الكامل وفحوصات المطابقة (Hotfix Item 1)
+  // =========================================================================
+
+  test('بند 1 (عقد سلبي): فشل إنشاء جلسة بحالة confirmed (مسموح فقط بـ pending)', async () => {
+    const learnerId = 'learner_contract_err';
+    const teacherId = 'teacher_contract_err';
+    const sessionId = 'session_contract_err';
+    const scheduledAt = new Date(Date.now() + 24 * 3600 * 1000);
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(learnerId).set({ timeCoins: 2, email: 'learner@test.com' });
+      await adminDb.collection('users').doc(teacherId).set({ timeCoins: 2, email: 'teacher@test.com' });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+    await assertFails(
+      learnerDb.runTransaction(async (t) => {
+        t.update(learnerDb.collection('users').doc(learnerId), {
+          timeCoins: 1,
+          lastSessionId: sessionId,
+        });
+        t.set(learnerDb.collection('sessions').doc(sessionId), {
+          id: sessionId,
+          learnerId: learnerId,
+          teacherId: teacherId,
+          costCoins: 1,
+          escrowStatus: 'held',
+          status: 'confirmed', // غير مسموح عند الإنشاء!
+          scheduledAt: scheduledAt,
+        });
+        t.set(learnerDb.collection('transactions').doc(`${sessionId}_booking`), {
+          userId: learnerId,
+          sessionId: sessionId,
+          amount: 1,
+          type: 'booking',
+        });
+      })
+    );
+  });
+
+  test('بند 1 (المسار الذهبي الكامل): حجز -> قبول -> تم الشرح -> إتمام مع التقييم والأقفال', async () => {
+    const learnerId = 'learner_golden';
+    const teacherId = 'teacher_golden';
+    const sessionId = 'session_golden_full';
+    const scheduledAt = new Date(Date.now() + 24 * 3600 * 1000);
+    const epochMs = scheduledAt.getTime();
+    const learnerLockId = `${learnerId}_${epochMs}`;
+    const teacherLockId = `${teacherId}_${epochMs}`;
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(learnerId).set({
+        uid: learnerId,
+        email: 'learner@golden.com',
+        timeCoins: 2,
+        completedSessions: 0,
+      });
+      await adminDb.collection('users').doc(teacherId).set({
+        uid: teacherId,
+        email: 'teacher@golden.com',
+        timeCoins: 2,
+        completedSessions: 0,
+        teacherRating: 0.0,
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+
+    // 1. الحجز بواسطة المتعلم مع قيد الضمان وأقفال الموعد (status: pending)
+    await assertSucceeds(
+      learnerDb.runTransaction(async (t) => {
+        t.update(learnerDb.collection('users').doc(learnerId), {
+          timeCoins: 1,
+          lastSessionId: sessionId,
+        });
+        t.set(learnerDb.collection('sessions').doc(sessionId), {
+          id: sessionId,
+          learnerId: learnerId,
+          teacherId: teacherId,
+          courseName: 'الجبر الخطي',
+          durationMinutes: 30,
+          costCoins: 1,
+          escrowStatus: 'held',
+          status: 'pending',
+          scheduledAt: scheduledAt,
+        });
+        t.set(learnerDb.collection('transactions').doc(`${sessionId}_booking`), {
+          userId: learnerId,
+          sessionId: sessionId,
+          amount: 1,
+          type: 'booking',
+        });
+        t.set(learnerDb.collection('slotLocks').doc(learnerLockId), {
+          uid: learnerId,
+          slotEpochMs: epochMs,
+          sessionId: sessionId,
+          status: 'active',
+        });
+        t.set(learnerDb.collection('slotLocks').doc(teacherLockId), {
+          uid: teacherId,
+          slotEpochMs: epochMs,
+          sessionId: sessionId,
+          status: 'active',
+        });
+      })
+    );
+
+    // 2. قبول المعلم للجلسة (pending -> confirmed)
+    await assertSucceeds(
+      teacherDb.collection('sessions').doc(sessionId).update({
+        status: 'confirmed',
+        confirmedAt: new Date(),
+      })
+    );
+
+    // محاكاة حلول موعد الجلسة وانتهائها (تقديم موعد الجلسة للماضي حتى يسمح بتم الشرح والإتمام)
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('sessions').doc(sessionId).update({
+        scheduledAt: new Date(Date.now() - 3600 * 1000),
+      });
+    });
+
+    // 3. تأكيد المعلم إتمام الشرح (teacherMarkedDoneAt)
+    await assertSucceeds(
+      teacherDb.collection('sessions').doc(sessionId).update({
+        teacherMarkedDoneAt: new Date(),
+      })
+    );
+
+    // 4. إتمام المتعلم للجلسة مع التقييم، تحرير الضمان، وتحويل الأقفال إلى used
+    await assertSucceeds(
+      learnerDb.runTransaction(async (t) => {
+        t.update(learnerDb.collection('users').doc(teacherId), {
+          timeCoins: 3,
+          completedSessions: 1,
+          ratingSum: 5,
+          ratingCount: 1,
+          lastSessionId: sessionId,
+        });
+        t.update(learnerDb.collection('sessions').doc(sessionId), {
+          status: 'completed',
+          escrowStatus: 'released_to_teacher',
+          rating: 5,
+          reviewComment: 'شرح ممتاز جداً',
+          completedAt: new Date(),
+        });
+        t.set(learnerDb.collection('transactions').doc(`${sessionId}_release`), {
+          userId: teacherId,
+          sessionId: sessionId,
+          amount: 1,
+          type: 'release',
+        });
+        t.update(learnerDb.collection('slotLocks').doc(learnerLockId), {
+          status: 'used',
+        });
+        t.update(learnerDb.collection('slotLocks').doc(teacherLockId), {
+          status: 'used',
+        });
+      })
+    );
+  });
+
+  test('بند 1 (مسار استرداد عند الرفض): رفض المعلم يحول الضمان إلى refunded والأقفال إلى released', async () => {
+    const learnerId = 'learner_reject';
+    const teacherId = 'teacher_reject';
+    const sessionId = 'session_reject';
+    const scheduledAt = new Date(Date.now() + 24 * 3600 * 1000);
+    const epochMs = scheduledAt.getTime();
+    const learnerLockId = `${learnerId}_${epochMs}`;
+    const teacherLockId = `${teacherId}_${epochMs}`;
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(learnerId).set({ timeCoins: 1, completedSessions: 0 });
+      await adminDb.collection('users').doc(teacherId).set({ timeCoins: 2, completedSessions: 0 });
+      await adminDb.collection('sessions').doc(sessionId).set({
+        id: sessionId,
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'pending',
+        scheduledAt: scheduledAt,
+      });
+      await adminDb.collection('slotLocks').doc(learnerLockId).set({
+        uid: learnerId,
+        slotEpochMs: epochMs,
+        sessionId: sessionId,
+        status: 'active',
+      });
+      await adminDb.collection('slotLocks').doc(teacherLockId).set({
+        uid: teacherId,
+        slotEpochMs: epochMs,
+        sessionId: sessionId,
+        status: 'active',
+      });
+    });
+
+    const teacherDb = testEnv.authenticatedContext(teacherId, { email_verified: true }).firestore();
+
+    await assertSucceeds(
+      teacherDb.runTransaction(async (t) => {
+        t.update(teacherDb.collection('users').doc(learnerId), {
+          timeCoins: 2,
+          lastSessionId: sessionId,
+        });
+        t.update(teacherDb.collection('sessions').doc(sessionId), {
+          status: 'rejected',
+          escrowStatus: 'refunded_to_learner',
+          rejectedAt: new Date(),
+        });
+        t.set(teacherDb.collection('transactions').doc(`${sessionId}_refund`), {
+          userId: learnerId,
+          sessionId: sessionId,
+          amount: 1,
+          type: 'refund',
+        });
+        t.update(teacherDb.collection('slotLocks').doc(learnerLockId), {
+          uid: learnerId,
+          slotEpochMs: epochMs,
+          sessionId: sessionId,
+          status: 'released',
+        });
+        t.update(teacherDb.collection('slotLocks').doc(teacherLockId), {
+          uid: teacherId,
+          slotEpochMs: epochMs,
+          sessionId: sessionId,
+          status: 'released',
+        });
+      })
+    );
+  });
+
+  test('بند 1 (مسار استرداد عند الإلغاء المبكر): إلغاء المتعلم للجلسة المعلقة يسترد العملة ويحرر الأقفال', async () => {
+    const learnerId = 'learner_cancel_pending';
+    const teacherId = 'teacher_cancel_pending';
+    const sessionId = 'session_cancel_pending';
+    const scheduledAt = new Date(Date.now() + 24 * 3600 * 1000);
+    const epochMs = scheduledAt.getTime();
+    const learnerLockId = `${learnerId}_${epochMs}`;
+    const teacherLockId = `${teacherId}_${epochMs}`;
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(learnerId).set({ timeCoins: 1, completedSessions: 0 });
+      await adminDb.collection('users').doc(teacherId).set({ timeCoins: 2, completedSessions: 0 });
+      await adminDb.collection('sessions').doc(sessionId).set({
+        id: sessionId,
+        learnerId: learnerId,
+        teacherId: teacherId,
+        costCoins: 1,
+        escrowStatus: 'held',
+        status: 'pending',
+        scheduledAt: scheduledAt,
+      });
+      await adminDb.collection('slotLocks').doc(learnerLockId).set({
+        uid: learnerId,
+        slotEpochMs: epochMs,
+        sessionId: sessionId,
+        status: 'active',
+      });
+      await adminDb.collection('slotLocks').doc(teacherLockId).set({
+        uid: teacherId,
+        slotEpochMs: epochMs,
+        sessionId: sessionId,
+        status: 'active',
+      });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+
+    await assertSucceeds(
+      learnerDb.runTransaction(async (t) => {
+        t.update(learnerDb.collection('users').doc(learnerId), {
+          timeCoins: 2,
+          lastSessionId: sessionId,
+        });
+        t.update(learnerDb.collection('sessions').doc(sessionId), {
+          status: 'cancelled_by_learner',
+          escrowStatus: 'refunded_to_learner',
+          cancelledBy: learnerId,
+          cancelledAt: new Date(),
+        });
+        t.set(learnerDb.collection('transactions').doc(`${sessionId}_refund`), {
+          userId: learnerId,
+          sessionId: sessionId,
+          amount: 1,
+          type: 'refund',
+        });
+        t.update(learnerDb.collection('slotLocks').doc(learnerLockId), {
+          uid: learnerId,
+          slotEpochMs: epochMs,
+          sessionId: sessionId,
+          status: 'released',
+        });
+        t.update(learnerDb.collection('slotLocks').doc(teacherLockId), {
+          uid: teacherId,
+          slotEpochMs: epochMs,
+          sessionId: sessionId,
+          status: 'released',
+        });
       })
     );
   });

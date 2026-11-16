@@ -47,7 +47,7 @@ service cloud.firestore {
         && sessionAfter.learnerId == userId
         && sessionAfter.costCoins == 1
         && sessionAfter.escrowStatus == 'held'
-        && sessionAfter.status == 'confirmed'
+        && sessionAfter.status == 'pending'
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['timeCoins', 'lastSessionId']);
     }
 
@@ -136,7 +136,7 @@ service cloud.firestore {
             (txType == 'booking' || txType == 'refund')
             && txUser == session.learnerId
             && (
-              (txType == 'booking' && session.escrowStatus == 'held' && session.status in ['pending', 'confirmed'])
+              (txType == 'booking' && session.escrowStatus == 'held' && session.status == 'pending')
               || (txType == 'refund' && session.escrowStatus == 'refunded_to_learner')
             )
           )
@@ -277,7 +277,7 @@ service cloud.firestore {
         && request.resource.data.teacherId != request.auth.uid
         && request.resource.data.costCoins == 1
         && request.resource.data.escrowStatus == 'held'
-        && request.resource.data.status in ['pending', 'confirmed']
+        && request.resource.data.status == 'pending'
         && ('scheduledAt' in request.resource.data)
         && request.resource.data.scheduledAt is timestamp
         && request.resource.data.scheduledAt >= request.time + duration.value(2, 'h')
