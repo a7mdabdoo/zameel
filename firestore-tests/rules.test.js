@@ -1189,6 +1189,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
           timeCoins: 1,
           lastSessionId: sessionId,
         });
+        const schedTime = new Date(Date.now() + 86400000);
         t.set(learnerDb.collection('sessions').doc(sessionId), {
           id: sessionId,
           learnerId: learnerId,
@@ -1197,7 +1198,7 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
           status: 'pending',
           escrowStatus: 'held',
           rating: null,
-          scheduledAt: new Date(Date.now() + 86400000),
+          scheduledAt: schedTime,
         });
         t.set(learnerDb.collection('transactions').doc(`${sessionId}_booking`), {
           id: `${sessionId}_booking`,
@@ -1206,6 +1207,12 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
           amount: 1,
           isNegative: true,
           type: 'booking',
+        });
+        t.set(learnerDb.collection('slotLocks').doc(`${teacherId}_${schedTime.getTime()}`), {
+          uid: teacherId,
+          slotEpochMs: schedTime.getTime(),
+          sessionId: sessionId,
+          status: 'active',
         });
       })
     );
@@ -2025,6 +2032,13 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
       sessionId: sessionId,
       amount: 1,
       type: 'booking',
+    });
+
+    batch.set(learnerDb.collection('slotLocks').doc(`${teacherId}_${validScheduledAt.getTime()}`), {
+      uid: teacherId,
+      slotEpochMs: validScheduledAt.getTime(),
+      sessionId: sessionId,
+      status: 'active',
     });
 
     await assertSucceeds(batch.commit());
@@ -3641,6 +3655,121 @@ describe('قواعد أمان زَميل المحصنة - Zameel Hardened Securi
           sessionId: sessionId,
           status: 'released',
         });
+      })
+    );
+  });
+
+  // =========================================================================
+  // القسم 18: تحصين أقفال المواعيد ومنع التلاعب وحظر التخطي (Hotfix Item 2)
+  // =========================================================================
+
+  test('بند 2 (سلبي 1 - Griefing): منع إنشاء أقفال مواعيد لمستخدمين آخرين دون جلسة حقيقية للمنشئ', async () => {
+    const maliciousUid = 'attacker_1';
+    const victimUid = 'victim_1';
+    const epoch = Math.floor((Date.now() + 24 * 3600 * 1000) / 1800000) * 1800000;
+    const lockId = `${victimUid}_${epoch}`;
+
+    const attackerDb = testEnv.authenticatedContext(maliciousUid, { email_verified: true }).firestore();
+    await assertFails(
+      attackerDb.collection('slotLocks').doc(lockId).set({
+        uid: victimUid,
+        slotEpochMs: epoch,
+        sessionId: 'fake_session_123',
+        status: 'active',
+      })
+    );
+  });
+
+  test('بند 2 (سلبي 2 - Skipping Locks): فشل إنشاء الجلسة في حال تخطي إنشاء قفل موعد المعلم', async () => {
+    const learnerId = 'learner_skip_lock';
+    const teacherId = 'teacher_skip_lock';
+    const sessionId = 'session_skipped_locks';
+    const scheduledAt = new Date(Date.now() + 24 * 3600 * 1000);
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('users').doc(learnerId).set({ timeCoins: 2, completedSessions: 0 });
+      await adminDb.collection('users').doc(teacherId).set({ timeCoins: 2, completedSessions: 0 });
+    });
+
+    const learnerDb = testEnv.authenticatedContext(learnerId, { email_verified: true }).firestore();
+    const batch = learnerDb.batch();
+
+    batch.update(learnerDb.collection('users').doc(learnerId), {
+      timeCoins: 1,
+      lastSessionId: sessionId,
+    });
+    batch.set(learnerDb.collection('sessions').doc(sessionId), {
+      learnerId: learnerId,
+      teacherId: teacherId,
+      costCoins: 1,
+      escrowStatus: 'held',
+      status: 'pending',
+      scheduledAt: scheduledAt,
+    });
+    batch.set(learnerDb.collection('transactions').doc(`${sessionId}_booking`), {
+      userId: learnerId,
+      sessionId: sessionId,
+      amount: 1,
+      type: 'booking',
+    });
+    // تم تخطي قفل المعلم عمداً هنا
+    await assertFails(batch.commit());
+  });
+
+  test('بند 2 (سلبي 3 - Other Session): منع إنشاء قفل بالربط مع جلسة موجودة مسبقاً لمستخدم آخر', async () => {
+    const maliciousUid = 'attacker_lock_session';
+    const victimLearner = 'victim_learner_existing';
+    const victimTeacher = 'victim_teacher_existing';
+    const existingSessionId = 'session_already_exists';
+    const scheduledAt = new Date(Date.now() + 24 * 3600 * 1000);
+    const epoch = scheduledAt.getTime();
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('sessions').doc(existingSessionId).set({
+        id: existingSessionId,
+        learnerId: victimLearner,
+        teacherId: victimTeacher,
+        status: 'pending',
+        escrowStatus: 'held',
+        scheduledAt: scheduledAt,
+        durationMinutes: 30,
+        costCoins: 1,
+      });
+    });
+
+    const attackerDb = testEnv.authenticatedContext(maliciousUid, { email_verified: true }).firestore();
+    await assertFails(
+      attackerDb.collection('slotLocks').doc(`${victimTeacher}_${epoch}`).set({
+        uid: victimTeacher,
+        slotEpochMs: epoch,
+        sessionId: existingSessionId,
+        status: 'active',
+      })
+    );
+  });
+
+  test('بند 2 (سلبي 4 - Reactivate Released): منع إعادة تنشيط قفل released إلى active دون معاملة جلسة جديدة', async () => {
+    const userId = 'user_released_lock';
+    const epoch = Math.floor((Date.now() + 24 * 3600 * 1000) / 1800000) * 1800000;
+    const lockId = `${userId}_${epoch}`;
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const adminDb = context.firestore();
+      await adminDb.collection('slotLocks').doc(lockId).set({
+        uid: userId,
+        slotEpochMs: epoch,
+        sessionId: 'session_old_cancelled',
+        status: 'released',
+      });
+    });
+
+    const authedDb = testEnv.authenticatedContext(userId, { email_verified: true }).firestore();
+    // محاولة إعادة التنشيط مباشرة بدون إنشاء جلسة جديدة تفشل
+    await assertFails(
+      authedDb.collection('slotLocks').doc(lockId).update({
+        status: 'active',
       })
     );
   });
