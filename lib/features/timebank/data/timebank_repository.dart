@@ -686,6 +686,63 @@ class TimeBankRepository {
       ),
     ];
   }
+
+  // =========================================================================
+  // 4. مكافأة إتمام جلسة مذاكرة أو تركيز (+1 نقطة وقت)
+  // =========================================================================
+  Future<bool> awardStudyPoint({
+    required String userId,
+    required String title,
+    int points = 1,
+  }) async {
+    final firestore = _firestore;
+    if (firestore == null || userId.isEmpty) return false;
+    try {
+      final userDocRef = firestore.collection('users').doc(userId);
+      final txId = 'tx_study_${DateTime.now().millisecondsSinceEpoch}';
+      final txDocRef = firestore.collection('transactions').doc(txId);
+
+      await firestore.runTransaction((transaction) async {
+        final userSnap = await transaction.get(userDocRef);
+        final currentCoins = (userSnap.data()?['timeCoins'] as num?)?.toInt() ?? AppConstants.welcomeCoins;
+        final currentStudyHours = (userSnap.data()?['studyHours'] as num?)?.toInt() ?? 0;
+
+        if (!userSnap.exists) {
+          transaction.set(userDocRef, {
+            'uid': userId,
+            'timeCoins': AppConstants.welcomeCoins + points,
+            'studyHours': 1,
+            'completedSessions': 0,
+            'teacherRating': 0.0,
+            'createdAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+        } else {
+          transaction.set(userDocRef, {
+            'timeCoins': currentCoins + points,
+            'studyHours': currentStudyHours + 1,
+          }, SetOptions(merge: true));
+        }
+
+        final txData = WalletTransactionModel(
+          id: txId,
+          userId: userId,
+          title: title,
+          date: 'اليوم',
+          amount: points,
+          isNegative: false,
+          type: 'study_reward',
+          icon: Icons.stars_rounded,
+          createdAt: DateTime.now(),
+        ).toMap();
+        txData['createdAt'] = FieldValue.serverTimestamp();
+        transaction.set(txDocRef, txData);
+      });
+      return true;
+    } catch (e) {
+      debugPrint('awardStudyPoint error: $e');
+      return false;
+    }
+  }
 }
 
 final timeBankRepositoryProvider = Provider<TimeBankRepository>((ref) {

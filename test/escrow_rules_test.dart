@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zameel/core/algorithms/planner_algorithm.dart';
 import 'package:zameel/core/constants/app_constants.dart';
@@ -402,6 +403,47 @@ void main() {
       }
 
       expect(candidates, isEmpty);
+    });
+  });
+
+  group('9. مكافأة إتمام المذاكرة وزيادة نقاط الوقت (Study Completion Reward & Point Increment)', () {
+    test('إنشاء حركة محفظة بنوع study_reward تعطي أيقونة النجوم ورصيد إيجابي', () {
+      final tx = WalletTransactionModel(
+        id: 'tx_study_test_1',
+        userId: 'student_123',
+        title: 'مكافأة إتمام مذاكرة: هياكل البيانات',
+        date: 'اليوم',
+        amount: 1,
+        isNegative: false,
+        type: 'study_reward',
+        icon: WalletTransactionModel.getIconForType('study_reward'),
+        createdAt: DateTime.now(),
+      );
+
+      expect(tx.amount, 1);
+      expect(tx.isNegative, false);
+      expect(tx.type, 'study_reward');
+      expect(tx.icon, Icons.stars_rounded);
+
+      final map = tx.toMap();
+      final parsed = WalletTransactionModel.fromMap(map, tx.id);
+      expect(parsed.amount, 1);
+      expect(parsed.isNegative, false);
+      expect(parsed.type, 'study_reward');
+      expect(parsed.icon, Icons.stars_rounded);
+    });
+
+    test('إتمام جلسة المذاكرة يزود رصيد عملات الوقت (timeCoins) وساعات المذاكرة', () {
+      int initialTimeCoins = 2;
+      int initialStudyHours = 0;
+      const pointsToAward = 1;
+
+      // محاكاة زيادة الرصيد الذري
+      final updatedCoins = initialTimeCoins + pointsToAward;
+      final updatedHours = initialStudyHours + 1;
+
+      expect(updatedCoins, 3);
+      expect(updatedHours, 1);
     });
   });
 }

@@ -454,15 +454,28 @@ class TodayScreen extends ConsumerWidget {
                           isDone: block.isCompleted,
                           canToggle: true,
                           onToggleDone: () {
+                            final wasCompleted = block.isCompleted;
                             ref.read(plannerProvider.notifier).toggleBlockCompleted(block.id);
+
+                            if (!wasCompleted) {
+                              final uid = ref.read(authServiceProvider).currentUser?.uid;
+                              if (uid != null && uid.isNotEmpty) {
+                                ref.read(timeBankRepositoryProvider).awardStudyPoint(
+                                  userId: uid,
+                                  title: 'مكافأة إتمام مذاكرة: ${block.courseName}',
+                                  points: 1,
+                                );
+                              }
+                            }
+
                             ScaffoldMessenger.of(context).hideCurrentSnackBar();
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                backgroundColor: !block.isCompleted ? AppColors.success : AppColors.primary,
+                                backgroundColor: !wasCompleted ? AppColors.success : AppColors.primary,
                                 duration: const Duration(seconds: 2),
                                 content: Text(
-                                  !block.isCompleted
-                                      ? 'عاش! تم تسجيل مذاكرة "${block.courseName}" بنجاح 🎉'
+                                  !wasCompleted
+                                      ? 'عاش! تم تسجيل مذاكرة "${block.courseName}" وحصلت على +1 نقطة وقت 🪙🎉'
                                       : 'تم إلغاء تحديد "${block.courseName}"',
                                   style: const TextStyle(fontWeight: FontWeight.bold),
                                 ),

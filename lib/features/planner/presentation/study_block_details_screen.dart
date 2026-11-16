@@ -8,6 +8,8 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/models/app_models.dart';
 import '../../../core/state/app_state.dart';
+import '../../auth/data/auth_service.dart';
+import '../../timebank/data/timebank_repository.dart';
 
 class StudyBlockDetailsScreen extends ConsumerStatefulWidget {
   final StudyBlockModel? block;
@@ -137,6 +139,17 @@ class _StudyBlockDetailsScreenState
       setState(() {
         _completedSessions++;
       });
+
+      // إضافة نقطة وقت لمكافأة الطالب عند إتمام جلسة التركيز
+      final uid = ref.read(authServiceProvider).currentUser?.uid;
+      if (uid != null && uid.isNotEmpty) {
+        ref.read(timeBankRepositoryProvider).awardStudyPoint(
+          userId: uid,
+          title: 'إتمام جلسة تركيز: ${block.courseName}',
+          points: 1,
+        );
+      }
+
       final remainingForLongBreak = _sessionsBeforeLongBreak -
           (_completedSessions % _sessionsBeforeLongBreak);
       if (_completedSessions % _sessionsBeforeLongBreak == 0) {
@@ -145,7 +158,7 @@ class _StudyBlockDetailsScreenState
             backgroundColor: const Color(0xFF0D9488),
             duration: const Duration(seconds: 4),
             content: Text(
-              'أحسنت في مذاكرة ${block.courseName}! أتممت $_sessionsBeforeLongBreak جلسات تركيز 🎉 حان وقت الاستراحة الطويلة ($_longBreakMinutes دقيقة)!',
+              'أحسنت في مذاكرة ${block.courseName}! حصلت على +1 نقطة وقت 🪙 وأتممت $_sessionsBeforeLongBreak جلسات تركيز 🎉 حان وقت الاستراحة الطويلة ($_longBreakMinutes دقيقة)!',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
@@ -157,7 +170,7 @@ class _StudyBlockDetailsScreenState
             backgroundColor: AppColors.success,
             duration: const Duration(seconds: 3),
             content: Text(
-              'أحسنت! أنهيت جلسة تركيز بنجاح 🎉 متبقي $remainingForLongBreak جلسات على الاستراحة الكبيرة!',
+              'أحسنت! أنهيت جلسة تركيز بنجاح وحصلت على +1 نقطة وقت 🪙🎉 متبقي $remainingForLongBreak جلسات على الاستراحة الكبيرة!',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
@@ -527,11 +540,27 @@ class _StudyBlockDetailsScreenState
 
   void _markCompleted() {
     final block = _block;
+    final wasCompleted = block.isCompleted;
     ref.read(plannerProvider.notifier).markBlockCompleted(block.id);
+
+    // إضافة نقطة وقت لمكافأة الطالب عند الضغط على زرار تمت المذاكرة (دون تكرار لنفس الجلسة)
+    if (!wasCompleted) {
+      final uid = ref.read(authServiceProvider).currentUser?.uid;
+      if (uid != null && uid.isNotEmpty) {
+        ref.read(timeBankRepositoryProvider).awardStudyPoint(
+          userId: uid,
+          title: 'مكافأة إتمام مذاكرة: ${block.courseName}',
+          points: 1,
+        );
+      }
+    }
+
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('أحسنت! تم تسجيل إتمام مذاكرة "${block.courseName}" بنجاح 🎉'),
+          content: Text(!wasCompleted
+              ? 'أحسنت! تم تسجيل إتمام مذاكرة "${block.courseName}" وحصلت على +1 نقطة وقت بنجاح 🪙🎉'
+              : 'تم تسجيل إتمام مذاكرة "${block.courseName}" بنجاح 🎉'),
           backgroundColor: AppColors.success,
         ),
       );
