@@ -687,6 +687,7 @@ class TodayScreen extends ConsumerWidget {
                             strokeWidth: 6,
                             backgroundColor: AppColors.surfaceAlt,
                             valueColor: AlwaysStoppedAnimation<Color>(
+                             
                               dailyProgressPct >= 1.0 && todayBlocksCount > 0
                                   ? AppColors.success
                                   : AppColors.primary,
