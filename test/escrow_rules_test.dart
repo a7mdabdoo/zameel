@@ -1282,4 +1282,85 @@ void main() {
       expect(satStudyBlocks.length, lessThanOrEqualTo(2));
     });
   });
+
+  // =========================================================================
+  // المجموعة 22: استقرار القوائم المنسدلة والستريك اليومي للمذاكرة (Dropdown Stability & Study Streak)
+  // =========================================================================
+  group('22. استقرار القوائم المنسدلة وحساب الستريك اليومي (Dropdown Stability & Streak Calculation)', () {
+    test('تساوي كائنات CourseSeed بالقيمة وليس بالمرجع (Value Equality) وحظر الانهيار في DropdownButton', () {
+      const course1 = CourseSeed(
+        id: 'cs101',
+        name: 'برمجة 1',
+        code: 'CS101',
+        color: Colors.blue,
+        creditHours: 3,
+      );
+
+      final course2 = CourseSeed.fromMap({
+        'id': 'cs101',
+        'name': 'برمجة 1',
+        'code': 'CS101',
+        'color': Colors.blue.toARGB32(),
+        'creditHours': 3,
+      });
+
+      // الكائنان ليسا نفس المرجع في الذاكرة لكنهما متساويان في القيمة
+      expect(identical(course1, course2), isFalse);
+      expect(course1 == course2, isTrue);
+      expect(course1.hashCode, equals(course2.hashCode));
+
+      // القوائم والمجموعات تستبعد التكرار بدقة
+      final coursesSet = {course1, course2};
+      expect(coursesSet.length, equals(1));
+    });
+
+    test('حساب الستريك اليومي بدقة عند إتمام مهام اليوم (Streak = 1)', () {
+      final now = DateTime(2026, 11, 17); // الثلاثاء
+      final todayKey = 'daily_done_2026_11_17';
+
+      final streak = PlannerAlgorithm.calculateStudyStreak([todayKey], referenceDate: now);
+      expect(streak, equals(1));
+    });
+
+    test('استمرار الستريك حياً في الصباح قبل إتمام مهام اليوم بناءً على إتمام الأمس (Streak = 1)', () {
+      final now = DateTime(2026, 11, 17); // الثلاثاء (لم يكتمل بعد)
+      final yesterdayKey = 'daily_done_2026_11_16'; // الاثنين مكتمل
+
+      final streak = PlannerAlgorithm.calculateStudyStreak([yesterdayKey], referenceDate: now);
+      expect(streak, equals(1));
+    });
+
+    test('زيادة الستريك إلى يومين عند إتمام الأمس واليوم معاً (Streak = 2)', () {
+      final now = DateTime(2026, 11, 17);
+      final keys = ['daily_done_2026_11_16', 'daily_done_2026_11_17'];
+
+      final streak = PlannerAlgorithm.calculateStudyStreak(keys, referenceDate: now);
+      expect(streak, equals(2));
+    });
+
+    test('تصفير الستريك عند تفويت يوم دراسي كامل (Streak = 0)', () {
+      final now = DateTime(2026, 11, 17); // الثلاثاء
+      // المستخدم أتم الأحد لكنه فوت الاثنين ولم يتم الثلاثاء
+      final keys = ['daily_done_2026_11_15'];
+
+      final streak = PlannerAlgorithm.calculateStudyStreak(keys, referenceDate: now);
+      expect(streak, equals(0));
+    });
+
+    test('عطلة الجمعة لا تكسر الستريك وتتيح استمراره من الخميس إلى السبت (Weekend Immunity)', () {
+      // السبت 21 نوفمبر 2026
+      final saturday = DateTime(2026, 11, 21);
+      // الجمعة 20 نوفمبر (عطلة أسبوعية)، والخميس 19 نوفمبر كان مكتملاً
+      final keys = ['daily_done_2026_11_18', 'daily_done_2026_11_19'];
+
+      // صباح السبت قبل إتمام مذاكرة السبت: الستريك لا ينكسر بسبب الجمعة
+      final streakSaturdayMorning = PlannerAlgorithm.calculateStudyStreak(keys, referenceDate: saturday);
+      expect(streakSaturdayMorning, equals(2));
+
+      // بعد إتمام مذاكرة السبت: يصبح الستريك 3 أيام
+      final keysWithSaturday = [...keys, 'daily_done_2026_11_21'];
+      final streakSaturdayEvening = PlannerAlgorithm.calculateStudyStreak(keysWithSaturday, referenceDate: saturday);
+      expect(streakSaturdayEvening, equals(3));
+    });
+  });
 }

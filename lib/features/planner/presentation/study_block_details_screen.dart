@@ -155,6 +155,7 @@ class _StudyBlockDetailsScreenState
             blockId: block.id,
             points: 1,
           );
+          _checkAndAwardDailyDone(uid, block.id);
         }
       }
 
@@ -550,6 +551,32 @@ class _StudyBlockDetailsScreenState
     return '$m:$s';
   }
 
+  void _checkAndAwardDailyDone(String uid, String completedBlockId) {
+    final now = DateTime.now();
+    const dayNames = {
+      DateTime.saturday: 'السبت',
+      DateTime.sunday: 'الأحد',
+      DateTime.monday: 'الاثنين',
+      DateTime.tuesday: 'الثلاثاء',
+      DateTime.wednesday: 'الأربعاء',
+      DateTime.thursday: 'الخميس',
+      DateTime.friday: 'الجمعة',
+    };
+    final todayArabic = dayNames[now.weekday] ?? 'السبت';
+    final planner = ref.read(plannerProvider);
+    final todayBlocks = planner.studyBlocks.where((b) => b.day == todayArabic).toList();
+    final remaining = todayBlocks.where((b) => !b.isCompleted && b.id != completedBlockId).length;
+    if (remaining == 0 && todayBlocks.isNotEmpty) {
+      final todayKey = 'daily_done_${now.year}_${now.month}_${now.day}';
+      ref.read(timeBankRepositoryProvider).awardStudyPoint(
+        userId: uid,
+        title: 'مكافأة إتمام جميع مهام اليوم',
+        blockId: todayKey,
+        points: 1,
+      );
+    }
+  }
+
   void _markCompleted() {
     final block = _block;
     final wasAlreadyAwarded = _pointAwardedInThisScreen || block.isCompleted;
@@ -577,6 +604,7 @@ class _StudyBlockDetailsScreenState
         blockId: block.id,
         points: 1,
       );
+      _checkAndAwardDailyDone(uid, block.id);
     }
 
     if (mounted) {

@@ -75,6 +75,22 @@ class TodayScreen extends ConsumerWidget {
         : 1.0;
     final int dailyProgressInt = (dailyProgressPct * 100).round();
 
+    final streak = ref.watch(userStreakProvider);
+    final savedCompleted = (userDoc?['completedBlockIds'] as List<dynamic>?)?.cast<String>() ?? [];
+    final todayKey = 'daily_done_${now.year}_${now.month}_${now.day}';
+
+    // فحص ذاتي: إذا كانت جميع مهام اليوم مكتملة بنسبة 100% ولم يسجل مفتاح اليوم في Firestore بعد، يتم تسجيله فوراً
+    if (todayBlocksCount > 0 && todayRemainingCount == 0 && !savedCompleted.contains(todayKey) && userId.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(timeBankRepositoryProvider).awardStudyPoint(
+          userId: userId,
+          title: 'مكافأة إتمام جميع مهام اليوم',
+          blockId: todayKey,
+          points: 1,
+        );
+      });
+    }
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -101,49 +117,111 @@ class TodayScreen extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Time Coin Chip
-                    GestureDetector(
-                      onTap: () => context.push('/wallet'),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: AppColors.pointsAmber.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppColors.pointsAmber.withValues(alpha: 0.3)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.monetization_on_rounded,
-                              size: 18,
-                              color: AppColors.pointsAmber,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              '$timeCoins',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Theme.of(context).brightness == Brightness.dark
-                                    ? const Color(0xFFFFD54F)
-                                    : const Color(0xFF664700),
+                    // Time Coin & Streak Chips Row
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Streak Chip 🔥
+                        Tooltip(
+                          message: streak > 0
+                              ? 'سلسلة الستريك اليومي: $streak ${streak == 1 ? "يوم متواصل" : "أيام متواصلة"}'
+                              : 'أتمم مهام اليوم لبدء الستريك اليومي 🔥',
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: streak > 0
+                                  ? Colors.deepOrange.withValues(alpha: 0.15)
+                                  : (Theme.of(context).brightness == Brightness.dark
+                                      ? AppColors.darkSurfaceAlt
+                                      : AppColors.surfaceAlt),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: streak > 0
+                                    ? Colors.deepOrange.withValues(alpha: 0.4)
+                                    : AppColors.hairline,
                               ),
                             ),
-                            const SizedBox(width: 4),
-                            Text(
-                              'عملات وقت',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: Theme.of(context).brightness == Brightness.dark
-                                    ? const Color(0xFFFFD54F)
-                                    : const Color(0xFF664700),
-                              ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text(
+                                  '🔥',
+                                  style: TextStyle(fontSize: 14),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '$streak',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                    color: streak > 0
+                                        ? Colors.deepOrange
+                                        : AppColors.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  streak == 1 ? 'يوم' : 'أيام',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: streak > 0
+                                        ? Colors.deepOrange
+                                        : AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
-                      ),
+
+                        const SizedBox(width: 8),
+
+                        // Time Coin Chip
+                        GestureDetector(
+                          onTap: () => context.push('/wallet'),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppColors.pointsAmber.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: AppColors.pointsAmber.withValues(alpha: 0.3)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.monetization_on_rounded,
+                                  size: 18,
+                                  color: AppColors.pointsAmber,
+                                ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  '$timeCoins',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? const Color(0xFFFFD54F)
+                                        : const Color(0xFF664700),
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'عملات وقت',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? const Color(0xFFFFD54F)
+                                        : const Color(0xFF664700),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
 
                     const SizedBox(width: 8),
@@ -507,19 +585,22 @@ class TodayScreen extends ConsumerWidget {
                                 );
                               }
 
+                              final currentStreak = ref.read(userStreakProvider);
+                              final streakText = currentStreak <= 1 ? 'يوم واحد' : '$currentStreak أيام';
+
                               ScaffoldMessenger.of(context).hideCurrentSnackBar();
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
+                                SnackBar(
                                   backgroundColor: AppColors.success,
-                                  duration: Duration(seconds: 4),
+                                  duration: const Duration(seconds: 4),
                                   content: Row(
                                     children: [
-                                      Icon(Icons.stars_rounded, color: Colors.amber, size: 28),
-                                      SizedBox(width: 10),
+                                      const Text('🔥', style: TextStyle(fontSize: 26)),
+                                      const SizedBox(width: 10),
                                       Expanded(
                                         child: Text(
-                                          '🎉 مبروك! أتممت جميع مهام مذاكرة اليوم وحصلت على نقطة الإنجاز اليومي! 🌟',
-                                          style: TextStyle(fontWeight: FontWeight.bold),
+                                          '🎉 مبروك! أتممت جميع مهام مذاكرة اليوم وحصلت على نقطة الإنجاز ورفعت الستريك (🔥 $streakText)! 🌟',
+                                          style: const TextStyle(fontWeight: FontWeight.bold),
                                         ),
                                       ),
                                     ],
@@ -612,8 +693,8 @@ class TodayScreen extends ConsumerWidget {
                             todayBlocksCount == 0
                                 ? 'استمتع بيومك أو أضف محاضراتك لتوليد الخطة'
                                 : (todayRemainingCount == 0
-                                    ? 'أحسنت! أتممت جميع مهام اليوم بنجاح 🌟'
-                                    : 'متبقي $todayRemainingCount مهام لتحقيق هدف اليوم'),
+                                    ? 'أحسنت! أتممت جميع مهام اليوم وحافظت على الستريك (🔥 $streak ${streak == 1 ? "يوم" : "أيام"}) 🌟'
+                                    : 'متبقي $todayRemainingCount مهام لتحقيق هدف اليوم وحماية الستريك 🔥'),
                             style: TextStyle(
                               fontSize: 11,
                               color: todayRemainingCount == 0 && todayBlocksCount > 0

@@ -306,4 +306,65 @@ class PlannerAlgorithm {
     }
     return false;
   }
+
+  /// حساب الستريك اليومي للمذاكرة (Daily Study Streak)
+  /// يحسب عدد الأيام المتتالية التي أتم فيها الطالب جميع مهام المذاكرة
+  /// القواعد:
+  /// 1. إذا كان اليوم مكتملاً، يبدأ العد من اليوم ويتجه للخلف.
+  /// 2. إذا لم يكن اليوم مكتملاً بعد، يتم فحص الأيام السابقة (الستريك يظل حياً استناداً للأمس في انتظار إتمام مهام اليوم).
+  /// 3. يوم الجمعة هو يوم العطلة الأسبوعية والراحة الأكاديمية (لا يحتوي على مهام مجدولة)، لذا لا يكسر الستريك.
+  static int calculateStudyStreak(List<String> completedBlockIds, {DateTime? referenceDate}) {
+    if (completedBlockIds.isEmpty) return 0;
+
+    final now = referenceDate ?? DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    bool isDateDone(DateTime d) {
+      final key = 'daily_done_${d.year}_${d.month}_${d.day}';
+      return completedBlockIds.contains(key);
+    }
+
+    int streak = 0;
+    final todayCompleted = isDateDone(today);
+
+    DateTime cursor;
+    if (todayCompleted) {
+      streak = 1;
+      cursor = today.subtract(const Duration(days: 1));
+    } else {
+      // اليوم لم يكتمل بعد: نفحص هل الستريك ما زال حياً من اليوم السابق
+      if (today.weekday == DateTime.friday) {
+        // اليوم جمعة (يوم راحة): نفحص الخميس
+        cursor = today.subtract(const Duration(days: 1));
+      } else {
+        final yesterday = today.subtract(const Duration(days: 1));
+        if (yesterday.weekday == DateTime.friday && !isDateDone(yesterday)) {
+          // أمس كان جمعة غير مسجل: نرجع للخميس
+          cursor = yesterday.subtract(const Duration(days: 1));
+        } else {
+          cursor = yesterday;
+        }
+      }
+
+      if (!isDateDone(cursor)) {
+        return 0; // انقطع الستريك
+      }
+    }
+
+    // عد الأيام المتتالية السابقة
+    while (true) {
+      if (isDateDone(cursor)) {
+        streak++;
+        cursor = cursor.subtract(const Duration(days: 1));
+      } else if (cursor.weekday == DateTime.friday) {
+        // الجمعة عطلة أسبوعية لا تكسر الستريك
+        cursor = cursor.subtract(const Duration(days: 1));
+      } else {
+        // انقطاع تسلسل الأيام الدراسية
+        break;
+      }
+    }
+
+    return streak;
+  }
 }

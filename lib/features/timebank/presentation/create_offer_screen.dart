@@ -217,10 +217,17 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
         ?.map((m) => CourseSeed.fromMap(Map<String, dynamic>.from(m)))
         .toList() ?? [];
 
-    final availableCourses = customCoursesData.isNotEmpty ? customCoursesData : AppConstants.seedCourses;
-    if (!availableCourses.any((c) => c.id == _selectedCourse.id)) {
-      _selectedCourse = availableCourses.first;
+    final rawCourses = customCoursesData.isNotEmpty ? customCoursesData : AppConstants.seedCourses;
+    final uniqueMap = <String, CourseSeed>{};
+    for (final c in rawCourses) {
+      if (c.id.isNotEmpty) uniqueMap.putIfAbsent(c.id, () => c);
     }
+    final availableCourses = uniqueMap.values.toList();
+    final effectiveCourse = availableCourses.firstWhere(
+      (c) => c.id == _selectedCourse.id,
+      orElse: () => availableCourses.first,
+    );
+    _selectedCourse = effectiveCourse;
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -265,7 +272,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<CourseSeed>(
-                    value: availableCourses.contains(_selectedCourse) ? _selectedCourse : availableCourses.first,
+                    value: effectiveCourse,
                     isExpanded: true,
                     items: availableCourses.map((c) {
                       return DropdownMenuItem(
