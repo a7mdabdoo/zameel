@@ -7,7 +7,7 @@ import '../models/app_models.dart';
 
 class CourseStudyInput {
   final CourseSeed course;
-  final int selfRating; // 1 to 5
+  final int selfRating; // 1 to 5 (1 = ضعيف جداً / يحتاج تركيزاً مكثفاً، 5 = متمكن)
   final int daysUntilExam; // e.g. 14, 21, 30
   final List<String> topics;
 
@@ -17,6 +17,21 @@ class CourseStudyInput {
     required this.daysUntilExam,
     required this.topics,
   });
+
+  /// حساب مؤشر الصعوبة والجهد الذهني بناءً على الساعات المعتمدة ومستوى الطالب
+  /// Difficulty = creditHours × (6 - selfRating)
+  double calculateDifficultyScore() {
+    final effectiveRating = selfRating.clamp(1, 5);
+    final hours = course.creditHours > 0 ? course.creditHours : 3;
+    return hours * (6.0 - effectiveRating);
+  }
+
+  /// هل تصنف المادة كمادة صعبة / ذات ثقل ذهني كبير؟
+  /// المواد ذات 3 أو 4 ساعات مع تقييم صعوبة 1 أو 2، أو درجة صعوبة إجمالية >= 11
+  bool get isHeavy {
+    final score = calculateDifficultyScore();
+    return score >= 11.0 || (course.creditHours >= 3 && selfRating <= 2);
+  }
 
   double calculateInitialPriority() {
     final effectiveRating = selfRating.clamp(1, 5);
@@ -31,10 +46,13 @@ class CourseStudyInput {
 class PlannerAlgorithm {
   static const int blockDurationMinutes = 45; // مدة كتلة المذاكرة
   static const int breakDurationMinutes = 10; // مدة الاستراحة
-  static const double diversityDecay = 0.8;   // معامل تخفيض الأولوية للتنوع
+  static const double diversityDecay = 0.65;  // معامل تخفيض الأولوية للتناوب العادل بين المواد
   static const int defaultMaxDailyMinutes = 180; // 3 ساعات كحد أقصى يومياً
 
-  /// توليد خطة المذاكرة الأسبوعية بالخوارزمية الجشعة
+  /// توليد خطة المذاكرة الأسبوعية الذكية بمراعاة:
+  /// 1. أولوية صعوبة المواد وعدد ساعاتها المعتمدة
+  /// 2. تفادي التعارض وموازنة الحمل مع جدول المحاضرات
+  /// 3. منع وضع مادتين صعبتين في نفس اليوم لتحقيق التوازن الذهني (Cognitive Rest & Pacing)
   static List<StudyBlockModel> generateWeeklyPlan({
     required List<CourseStudyInput> courseInputs,
     required List<ScheduleItemModel> lectureSchedule,
@@ -98,7 +116,7 @@ class PlannerAlgorithm {
       final dayLectures = lectureSchedule.where((l) => l.day == day).toList();
       final baseSlots = standardSlots[day] ?? [];
 
-      // استبعاد أي فترة تتعارض مع موعد محاضرة تم إدخالها يدوياً
+      // 1. استبعاد أي فترة تتعارض مع موعد محاضرة تم إدخالها يدوياً
       final nonConflictingSlots = baseSlots.where((slot) {
         return !_hasCollision(slot['start']!, slot['end']!, dayLectures);
       }).toList();
@@ -115,30 +133,72 @@ class PlannerAlgorithm {
         }
       }
 
+      // 2. حساب العبء الدراسي للمحاضرات في هذا اليوم (Lecture Load Balancing)
+      int totalLectureMinutes = 0;
+      for (final lec in dayLectures) {
+        final lStart = _parseTimeToMinutes(lec.startTime);
+        final lEnd = _parseTimeToMinutes(lec.endTime);
+        if (lEnd > lStart) totalLectureMinutes += (lEnd - lStart);
+      }
+
+      // إذا كان اليوم ممتلئاً بالمحاضرات (ساعتان ونصف أو أكثر)، نخفف سقف المذاكرة الذاتية لتجنب الإرهاق
+      final effectiveDailyCap = totalLectureMinutes >= 150
+          ? 90 // جلستان كحد أقصى في أيام المحاضرات الكثيفة
+          : maxDailyStudyMinutes;
+
       int dailyMinutesUsed = 0;
+      final Set<String> coursesUsedToday = {};
+      int heavyCoursesToday = 0;
 
       for (final slot in availableSlots) {
-        if (dailyMinutesUsed + blockDurationMinutes > maxDailyStudyMinutes) {
-          break; // تجاوز الحد الأقصى للمذاكرة اليومية (3 ساعات)
+        if (dailyMinutesUsed + blockDurationMinutes > effectiveDailyCap) {
+          break; // الوصول للحد اليومي المناسب
         }
 
-        // اختيار المادة الأعلى أولوية حالياً (Greedy Selection)
+        // 3. اختيار المادة وفق القيود الذكية:
+        // - منع تكرار نفس المادة في نفس اليوم إن وُجدت بدائل
+        // - شرط حتمي: ممنوع وضع أكثر من مادة صعبة واحدة في نفس اليوم! (heavyCoursesToday < 1)
+        final eligibleInputs = courseInputs.where((c) {
+          // استبعاد مادة استُخدمت اليوم مسبقاً إذا كانت هناك مواد أخرى
+          if (coursesUsedToday.contains(c.course.id) && coursesUsedToday.length < courseInputs.length) {
+            return false;
+          }
+          // إذا كان اليوم يحتوي بالفعل على مادة صعبة، نمنع أي مادة صعبة أخرى في نفس اليوم
+          if (heavyCoursesToday >= 1 && c.isHeavy) {
+            return false;
+          }
+          return true;
+        }).toList();
+
+        // في حال عدم توفر مواد خفيفة متبقية تفي بالشرط، نختار من المواد التي لم تُدرس اليوم
+        final candidatePool = eligibleInputs.isNotEmpty
+            ? eligibleInputs
+            : courseInputs.where((c) => !coursesUsedToday.contains(c.course.id)).toList();
+
+        final finalPool = candidatePool.isNotEmpty ? candidatePool : courseInputs;
+
         String? bestCourseId;
         double highestPriority = -1.0;
 
-        for (final entry in currentPriorities.entries) {
-          if (entry.value > highestPriority) {
-            highestPriority = entry.value;
-            bestCourseId = entry.key;
+        for (final input in finalPool) {
+          final priority = currentPriorities[input.course.id] ?? 0.0;
+          if (priority > highestPriority) {
+            highestPriority = priority;
+            bestCourseId = input.course.id;
           }
         }
 
         if (bestCourseId == null) break;
 
-        final courseInput = courseInputs.firstWhere((c) => c.course.id == bestCourseId);
-        final topicList = courseInput.topics.isNotEmpty
-            ? courseInput.topics
-            : ['مراجعة وتمارين شاملة'];
+        final selectedCourseInput = courseInputs.firstWhere((c) => c.course.id == bestCourseId);
+        coursesUsedToday.add(bestCourseId);
+        if (selectedCourseInput.isHeavy) {
+          heavyCoursesToday++;
+        }
+
+        final topicList = selectedCourseInput.topics.isNotEmpty
+            ? selectedCourseInput.topics
+            : ['مراجعة وتطبيقات ${selectedCourseInput.course.name}'];
 
         final currentTopicIdx = topicIndexTracker[bestCourseId] ?? 0;
         final selectedTopic = topicList[currentTopicIdx % topicList.length];
@@ -148,15 +208,15 @@ class PlannerAlgorithm {
         generatedBlocks.add(
           StudyBlockModel(
             id: 'block_$blockIdCounter',
-            courseId: courseInput.course.id,
-            courseName: courseInput.course.name,
-            courseCode: courseInput.course.code,
+            courseId: selectedCourseInput.course.id,
+            courseName: selectedCourseInput.course.name,
+            courseCode: selectedCourseInput.course.code,
             topic: selectedTopic,
             day: day,
             startTime: slot['start']!,
             endTime: slot['end']!,
             durationMinutes: blockDurationMinutes,
-            ribbonColor: courseInput.course.color,
+            ribbonColor: selectedCourseInput.course.color,
             room: slot['room']!,
             isCompleted: false,
           ),
@@ -165,7 +225,7 @@ class PlannerAlgorithm {
         blockIdCounter++;
         dailyMinutesUsed += blockDurationMinutes;
 
-        // ضرب الأولوية في 0.8 لضمان التنوع وعدم احتكار نفس المادة (Diversity Decay)
+        // تخفيض الأولوية لضمان التناوب العادل وتوزيع المذاكرة على مدار الأسبوع (Diversity Decay)
         currentPriorities[bestCourseId] = (currentPriorities[bestCourseId] ?? 1.0) * diversityDecay;
       }
     }

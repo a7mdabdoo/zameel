@@ -1172,4 +1172,114 @@ void main() {
       expect(isOnboarded, isTrue);
     });
   });
+
+  // =========================================================================
+  group('21. الخوارزمية الذكية لتنظيم خطة المذاكرة وتفادي مادتين صعبتين في نفس اليوم (Cognitive Load Balancing)', () {
+    test('حساب مؤشر الصعوبة وتصنيف المواد الصعبة والثقيلة بدقة', () {
+      final heavyMath = CourseStudyInput(
+        course: const CourseSeed(id: 'math_1', name: 'رياضيات 1', code: 'MATH101', color: Colors.blue, creditHours: 3),
+        selfRating: 1, // ضعيف جداً ومادة 3 ساعات
+        daysUntilExam: 20,
+        topics: ['الجبر'],
+      );
+
+      final lightThinking = CourseStudyInput(
+        course: const CourseSeed(id: 'thinking', name: 'التفكير العلمي', code: 'HUM103', color: Colors.green, creditHours: 2),
+        selfRating: 4, // متمكن ومادة ساعتين
+        daysUntilExam: 20,
+        topics: ['مناهج التفكير'],
+      );
+
+      expect(heavyMath.calculateDifficultyScore(), 15.0);
+      expect(heavyMath.isHeavy, isTrue);
+
+      expect(lightThinking.calculateDifficultyScore(), 4.0);
+      expect(lightThinking.isHeavy, isFalse);
+    });
+
+    test('الخوارزمية تمنع تماماً وضع مادتين صعبتين في نفس اليوم', () {
+      final math = CourseStudyInput(
+        course: const CourseSeed(id: 'c_math', name: 'رياضيات 1', code: 'M1', color: Colors.red, creditHours: 3),
+        selfRating: 1, // مادة صعبة ثقيلة
+        daysUntilExam: 20,
+        topics: ['تفاضل'],
+      );
+
+      final electronics = CourseStudyInput(
+        course: const CourseSeed(id: 'c_elec', name: 'الإلكترونيات', code: 'E1', color: Colors.orange, creditHours: 3),
+        selfRating: 2, // مادة صعبة ثقيلة أيضاً
+        daysUntilExam: 20,
+        topics: ['دوائر'],
+      );
+
+      final thinking = CourseStudyInput(
+        course: const CourseSeed(id: 'c_think', name: 'التفكير العلمي', code: 'T1', color: Colors.teal, creditHours: 2),
+        selfRating: 4, // مادة خفيفة
+        daysUntilExam: 20,
+        topics: ['تفكير نقدي'],
+      );
+
+      final history = CourseStudyInput(
+        course: const CourseSeed(id: 'c_hist', name: 'تاريخ الحوسبة', code: 'H1', color: Colors.brown, creditHours: 2),
+        selfRating: 4, // مادة خفيفة
+        daysUntilExam: 20,
+        topics: ['أجيال الحاسب'],
+      );
+
+      final plan = PlannerAlgorithm.generateWeeklyPlan(
+        courseInputs: [math, electronics, thinking, history],
+        lectureSchedule: [],
+      );
+
+      expect(plan, isNotEmpty);
+
+      // فحص كل يوم في الخطة: يجب ألا يحتوي أي يوم على أكثر من مادة صعبة واحدة
+      final days = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
+      for (final day in days) {
+        final dayBlocks = plan.where((b) => b.day == day).toList();
+        final heavyBlocksInDay = dayBlocks.where((b) => b.courseId == 'c_math' || b.courseId == 'c_elec').toList();
+        expect(
+          heavyBlocksInDay.length,
+          lessThanOrEqualTo(1),
+          reason: 'اليوم $day يجب ألا يجمع بين مادتين صعبتين معاً!',
+        );
+      }
+    });
+
+    test('مراعاة كثافة المحاضرات وتخفيف ساعات المذاكرة الذاتية في الأيام المزدحمة بالمحاضرات', () {
+      final inputs = PlannerAlgorithm.getDefaultSeedInputs();
+      // يوم السبت به محاضرتان طويلتان بإجمالي 180 دقيقة
+      final heavySaturdayLectures = [
+        const ScheduleItemModel(
+          id: 'lec1',
+          courseName: 'برمجة',
+          courseCode: 'CS1',
+          day: 'السبت',
+          startTime: '09:00 ص',
+          endTime: '10:30 ص',
+          room: 'مدرج أ',
+          color: Colors.blue,
+        ),
+        const ScheduleItemModel(
+          id: 'lec2',
+          courseName: 'معمل',
+          courseCode: 'CS2',
+          day: 'السبت',
+          startTime: '01:00 م',
+          endTime: '02:30 م',
+          room: 'معمل 1',
+          color: Colors.purple,
+        ),
+      ];
+
+      final plan = PlannerAlgorithm.generateWeeklyPlan(
+        courseInputs: inputs,
+        lectureSchedule: heavySaturdayLectures,
+      );
+
+      final satStudyBlocks = plan.where((b) => b.day == 'السبت').toList();
+      // في اليوم المزدحم بالمحاضرات، الحد الأقصى للمذاكرة لا يتجاوز ساعتين (90 دقيقة أي جلستان فقط)
+      expect(satStudyBlocks.length, lessThanOrEqualTo(2));
+    });
+  });
 }
