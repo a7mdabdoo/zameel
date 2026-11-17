@@ -185,29 +185,29 @@ class PlannerNotifier extends Notifier<PlannerState> {
   }
 
   /// تبديل حالة إتمام المذاكرة (تم / لم تتم)
+  /// ملاحظة: بمجرد إتمام المهمة، لا يمكن التراجع عن هذه الخطوة نهائياً
   void toggleBlockCompleted(String blockId) {
-    final currentBlock = state.studyBlocks.firstWhere((b) => b.id == blockId, orElse: () => state.studyBlocks.first);
-    final willBeCompleted = !currentBlock.isCompleted;
-    if (willBeCompleted) {
-      _completedBlockIds.add(blockId);
-      _missedBlockIds.remove(blockId);
-    } else {
-      _completedBlockIds.remove(blockId);
-    }
-    final updatedBlocks = state.studyBlocks.map((b) {
-      if (b.id == blockId) {
-        return b.copyWith(isCompleted: willBeCompleted, isMissed: false);
-      }
-      return b;
-    }).toList();
-    state = state.copyWith(
-      studyBlocks: updatedBlocks,
-      completedBlocksCount: updatedBlocks.where((b) => b.isCompleted).length,
+    final currentBlock = state.studyBlocks.firstWhere(
+      (b) => b.id == blockId,
+      orElse: () => state.studyBlocks.first,
     );
+    if (currentBlock.isCompleted) {
+      // المهمة مكتملة بالفعل ولا يمكن التراجع عن إتمامها
+      return;
+    }
+    markBlockCompleted(blockId);
   }
 
   /// تسجيل تفويت جلسة
   void markBlockMissed(String blockId) {
+    final currentBlock = state.studyBlocks.firstWhere(
+      (b) => b.id == blockId,
+      orElse: () => state.studyBlocks.first,
+    );
+    if (currentBlock.isCompleted) {
+      // لا يمكن تفويت جلسة تم إتمامها بالفعل
+      return;
+    }
     _missedBlockIds.add(blockId);
     _completedBlockIds.remove(blockId);
     final updatedBlocks = state.studyBlocks.map((b) {
@@ -224,6 +224,14 @@ class PlannerNotifier extends Notifier<PlannerState> {
 
   /// إعادة الجدولة باستخدام الخوارزمية
   void rescheduleBlock(String blockId) {
+    final currentBlock = state.studyBlocks.firstWhere(
+      (b) => b.id == blockId,
+      orElse: () => state.studyBlocks.first,
+    );
+    if (currentBlock.isCompleted) {
+      // لا يمكن إعادة جدولة جلسة تم إتمامها بالفعل
+      return;
+    }
     _completedBlockIds.remove(blockId);
     _missedBlockIds.remove(blockId);
     final updatedBlocks = state.studyBlocks.map((b) {
@@ -289,6 +297,18 @@ class PlannerNotifier extends Notifier<PlannerState> {
 }
 
 final plannerProvider = NotifierProvider<PlannerNotifier, PlannerState>(PlannerNotifier.new);
+
+/// مزود حالة إتمام التهيئة محلياً وفورياً لتفادي أي تأخير في تحديثات شبكة Firestore
+class LocalOnboardingNotifier extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void markCompleted() => state = true;
+  void reset() => state = false;
+}
+
+final localOnboardingCompletedProvider =
+    NotifierProvider<LocalOnboardingNotifier, bool>(LocalOnboardingNotifier.new);
 
 // ==========================================
 // 3. حالة بنك الوقت والمحفظة (Time Bank & Wallet)

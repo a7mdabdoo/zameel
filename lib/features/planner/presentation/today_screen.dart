@@ -67,8 +67,13 @@ class TodayScreen extends ConsumerWidget {
         ? allSessions.firstWhere((s) => s.escrowStatus == 'held', orElse: () => allSessions.first)
         : null;
 
-    final progressPct = plannerState.progressPercentage;
-    final progressInt = (progressPct * 100).round();
+    final todayBlocksCount = todayBlocks.length;
+    final todayCompletedCount = todayBlocks.where((b) => b.isCompleted).length;
+    final todayRemainingCount = (todayBlocksCount - todayCompletedCount).clamp(0, todayBlocksCount);
+    final double dailyProgressPct = todayBlocksCount > 0
+        ? (todayCompletedCount / todayBlocksCount).clamp(0.0, 1.0)
+        : 1.0;
+    final int dailyProgressInt = (dailyProgressPct * 100).round();
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -456,45 +461,84 @@ class TodayScreen extends ConsumerWidget {
                           ribbonColor: block.isCompleted ? AppColors.success : block.ribbonColor,
                           statusText: block.isCompleted ? 'تمت' : 'لم تتم',
                           isDone: block.isCompleted,
-                          canToggle: true,
+                          canToggle: !block.isCompleted,
                           onToggleDone: () {
-                            final wasCompleted = block.isCompleted;
-                            ref.read(plannerProvider.notifier).toggleBlockCompleted(block.id);
+                            if (block.isCompleted) {
+                              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  backgroundColor: AppColors.primary,
+                                  duration: Duration(seconds: 2),
+                                  content: Text(
+                                    'تم إنجاز هذه المهمة بالفعل ولا يمكن التراجع عنها ✓',
+                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              );
+                              return;
+                            }
+
+                            // إتمام المهمة الحالية (إتمام دائم غير قابل للتراجع)
+                            ref.read(plannerProvider.notifier).markBlockCompleted(block.id);
 
                             final uid = ref.read(authServiceProvider).currentUser?.uid;
+                            if (uid != null && uid.isNotEmpty) {
+                              ref.read(timeBankRepositoryProvider).awardStudyPoint(
+                                userId: uid,
+                                title: 'إتمام مذاكرة: ${block.courseName}',
+                                blockId: block.id,
+                                points: 1,
+                              );
+                            }
 
-                            if (!wasCompleted) {
+                            // فحص هل اكتملت جميع مهام اليوم بعد إتمام هذه المهمة
+                            final remainingBeforeThis = todayBlocks.where((b) => !b.isCompleted && b.id != block.id).length;
+                            final isAllTodayCompleted = remainingBeforeThis == 0;
+
+                            if (isAllTodayCompleted) {
+                              // مكافأة إتمام جميع مهام اليوم بنقطة الإنجاز اليومي فوراً
+                              final todayKey = 'daily_done_${now.year}_${now.month}_${now.day}';
                               if (uid != null && uid.isNotEmpty) {
                                 ref.read(timeBankRepositoryProvider).awardStudyPoint(
                                   userId: uid,
-                                  title: 'مكافأة إتمام مذاكرة: ${block.courseName}',
-                                  blockId: block.id,
+                                  title: 'مكافأة إتمام جميع مهام اليوم',
+                                  blockId: todayKey,
                                   points: 1,
                                 );
                               }
-                            } else {
-                              if (uid != null && uid.isNotEmpty) {
-                                ref.read(timeBankRepositoryProvider).revertStudyPoint(
-                                  userId: uid,
-                                  blockId: block.id,
-                                  points: 1,
-                                );
-                              }
-                            }
 
-                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                backgroundColor: !wasCompleted ? AppColors.success : AppColors.primary,
-                                duration: const Duration(seconds: 2),
-                                content: Text(
-                                  !wasCompleted
-                                      ? 'عاش! تم تسجيل مذاكرة "${block.courseName}" وحصلت على +1 نقطة وقت 🪙🎉'
-                                      : 'تم إلغاء تحديد "${block.courseName}"',
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  backgroundColor: AppColors.success,
+                                  duration: Duration(seconds: 4),
+                                  content: Row(
+                                    children: [
+                                      Icon(Icons.stars_rounded, color: Colors.amber, size: 28),
+                                      SizedBox(width: 10),
+                                      Expanded(
+                                        child: Text(
+                                          '🎉 مبروك! أتممت جميع مهام مذاكرة اليوم وحصلت على نقطة الإنجاز اليومي! 🌟',
+                                          style: TextStyle(fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            );
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  backgroundColor: AppColors.success,
+                                  duration: const Duration(seconds: 2),
+                                  content: Text(
+                                    'عاش! تم إتمام "${block.courseName}" بنجاح. متبقي $remainingBeforeThis مهام لإكمال هدف اليوم 🎯',
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              );
+                            }
                           },
                           onTap: () => context.push('/study-block-details', extra: block),
                         );
@@ -506,7 +550,7 @@ class TodayScreen extends ConsumerWidget {
 
               const SizedBox(height: 16),
 
-              // 5. Progress Card: Weekly Goal Ring
+              // 5. Progress Card: Daily Goal Ring
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -523,14 +567,18 @@ class TodayScreen extends ConsumerWidget {
                           width: 54,
                           height: 54,
                           child: CircularProgressIndicator(
-                            value: progressPct,
+                            value: dailyProgressPct,
                             strokeWidth: 6,
                             backgroundColor: AppColors.surfaceAlt,
-                            valueColor: const AlwaysStoppedAnimation<Color>(AppColors.primary),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              dailyProgressPct >= 1.0 && todayBlocksCount > 0
+                                  ? AppColors.success
+                                  : AppColors.primary,
+                            ),
                           ),
                         ),
                         Text(
-                          '$progressInt%',
+                          '$dailyProgressInt%',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
@@ -545,12 +593,14 @@ class TodayScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'معدل إنجاز الأسبوع',
+                            'معدل إنجاز اليوم',
                             style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'أنجزت ${plannerState.completedBlocksCount} من ${plannerState.totalWeeklyTarget} جلسات هذا الأسبوع',
+                            todayBlocksCount == 0
+                                ? 'لا توجد مهام مذاكرة مجدولة اليوم'
+                                : 'أنجزت $todayCompletedCount من $todayBlocksCount مهام اليوم',
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.bold,
@@ -559,8 +609,20 @@ class TodayScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'متبقي ${plannerState.totalWeeklyTarget - plannerState.completedBlocksCount} جلسات لتحقيق الهدف',
-                            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                            todayBlocksCount == 0
+                                ? 'استمتع بيومك أو أضف محاضراتك لتوليد الخطة'
+                                : (todayRemainingCount == 0
+                                    ? 'أحسنت! أتممت جميع مهام اليوم بنجاح 🌟'
+                                    : 'متبقي $todayRemainingCount مهام لتحقيق هدف اليوم'),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: todayRemainingCount == 0 && todayBlocksCount > 0
+                                  ? AppColors.success
+                                  : AppColors.textSecondary,
+                              fontWeight: todayRemainingCount == 0 && todayBlocksCount > 0
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
                           ),
                         ],
                       ),

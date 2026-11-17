@@ -1076,4 +1076,100 @@ void main() {
       expect(offer!.slots.length, equals(7));
     });
   });
+
+  // =========================================================================
+  group('18. إتمام المهام اليومية الدائم وحظر التراجع (Permanent Task Completion & No Revert)', () {
+    test('بمجرد إتمام المهمة، محاولة toggleBlockCompleted لا تتراجع عن حالة الإتمام', () {
+      final container = ProviderContainer(overrides: [
+        userProfileStreamProvider.overrideWith((ref) => Stream.value(null)),
+      ]);
+      addTearDown(container.dispose);
+
+      final notifier = container.read(plannerProvider.notifier);
+      final blocks = container.read(plannerProvider).studyBlocks;
+      expect(blocks, isNotEmpty);
+      final blockId = blocks.first.id;
+
+      // 1. أول نقرة: إتمام المهمة
+      notifier.toggleBlockCompleted(blockId);
+      final completedBlock = container.read(plannerProvider).studyBlocks.firstWhere((b) => b.id == blockId);
+      expect(completedBlock.isCompleted, isTrue);
+      expect(notifier.completedBlockIds.contains(blockId), isTrue);
+
+      // 2. محاولة نقرة ثانية للتراجع: تظل مكتملة ولا يُلغى التحديد
+      notifier.toggleBlockCompleted(blockId);
+      final blockAfterSecondTap = container.read(plannerProvider).studyBlocks.firstWhere((b) => b.id == blockId);
+      expect(blockAfterSecondTap.isCompleted, isTrue);
+      expect(notifier.completedBlockIds.contains(blockId), isTrue);
+    });
+
+    test('المهمة المكتملة لا يمكن تفويتها markBlockMissed ولا إعادة جدولتها rescheduleBlock', () {
+      final container = ProviderContainer(overrides: [
+        userProfileStreamProvider.overrideWith((ref) => Stream.value(null)),
+      ]);
+      addTearDown(container.dispose);
+
+      final notifier = container.read(plannerProvider.notifier);
+      final blockId = container.read(plannerProvider).studyBlocks.first.id;
+
+      notifier.markBlockCompleted(blockId);
+      expect(container.read(plannerProvider).studyBlocks.firstWhere((b) => b.id == blockId).isCompleted, isTrue);
+
+      // محاولة تفويت الجلسة المكتملة بالفعل: يتم رفضها والحفاظ على اكتمالها
+      notifier.markBlockMissed(blockId);
+      final afterMissAttempt = container.read(plannerProvider).studyBlocks.firstWhere((b) => b.id == blockId);
+      expect(afterMissAttempt.isCompleted, isTrue);
+      expect(afterMissAttempt.isMissed, isFalse);
+
+      // محاولة إعادة جدولة الجلسة المكتملة بالفعل: يتم رفضها وتظل مكتملة
+      notifier.rescheduleBlock(blockId);
+      final afterRescheduleAttempt = container.read(plannerProvider).studyBlocks.firstWhere((b) => b.id == blockId);
+      expect(afterRescheduleAttempt.isCompleted, isTrue);
+    });
+  });
+
+  // =========================================================================
+  group('19. حسابات المعدل اليومي وحوافز إتمام جميع مهام اليوم (Daily Completion Rate & Daily Reward)', () {
+    test('حساب النسبة المئوية اليومية بدقة وفق مهام اليوم فقط', () {
+      // محاكاة 4 مهام لليوم
+      const todayTotal = 4;
+      var completedToday = 1;
+
+      var dailyProgressPct = (completedToday / todayTotal).clamp(0.0, 1.0);
+      var dailyProgressInt = (dailyProgressPct * 100).round();
+      expect(dailyProgressInt, 25);
+
+      completedToday = 4;
+      dailyProgressPct = (completedToday / todayTotal).clamp(0.0, 1.0);
+      dailyProgressInt = (dailyProgressPct * 100).round();
+      expect(dailyProgressInt, 100);
+
+      // التحقق من حالة اكتمال جميع مهام اليوم والحصول على نقطة اليوم
+      final isAllCompleted = completedToday == todayTotal;
+      expect(isAllCompleted, isTrue);
+    });
+  });
+
+  // =========================================================================
+  group('20. سرعة تهيئة الحساب الأكاديمي وتجاوز حراسة التوجيه (Instant Academic Setup & Onboarding Guard)', () {
+    test('localOnboardingCompletedProvider يتيح الدخول الفوري دون انتظار شبكة Firestore', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      expect(container.read(localOnboardingCompletedProvider), isFalse);
+
+      // عند إتمام التهيئة بنجاح
+      container.read(localOnboardingCompletedProvider.notifier).markCompleted();
+      expect(container.read(localOnboardingCompletedProvider), isTrue);
+
+      // محاكاة فحص GoRouter: يعتبر المستخدم جاهزاً للدخول فوراً
+      final localOnboarded = container.read(localOnboardingCompletedProvider);
+      final Map<String, dynamic>? emptyUserDoc = null;
+      final bool isOnboarded = localOnboarded || (emptyUserDoc != null && (
+        (emptyUserDoc['isOnboarded'] as bool? ?? false)
+      ));
+
+      expect(isOnboarded, isTrue);
+    });
+  });
 }

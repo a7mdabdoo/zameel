@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/data/auth_service.dart';
 import '../constants/app_constants.dart';
 import '../models/app_models.dart';
+import '../state/app_state.dart';
 
 // شاشات مطور 2
 import '../../features/auth/presentation/welcome_screen.dart';
@@ -41,13 +42,16 @@ import '../../features/home/main_navigation_shell.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
-/// مستمع لتغييرات حالة المصادقة والملف الشخصي لتحديث مسارات GoRouter تلقائياً
+/// مستمع لتغييرات حالة المصادقة والملف الشخصي وحالة التهيئة المحلية لتحديث مسارات GoRouter تلقائياً
 class RouterNotifier extends ChangeNotifier {
   RouterNotifier(Ref ref) {
     ref.listen(authStateProvider, (previous, next) {
       notifyListeners();
     });
     ref.listen(userProfileStreamProvider, (previous, next) {
+      notifyListeners();
+    });
+    ref.listen(localOnboardingCompletedProvider, (previous, next) {
       notifyListeners();
     });
   }
@@ -92,17 +96,18 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // المستخدم مسجل ومؤكد البريد:
       // فحص هل المستخدم جديد أم أكمل التهيئة مسبقاً (academicYear, semester, أو isOnboarded: true)
+      final localOnboarded = ref.read(localOnboardingCompletedProvider);
       final profileAsync = ref.read(userProfileStreamProvider);
-      if (profileAsync.isLoading) {
+      if (profileAsync.isLoading && !localOnboarded) {
         return null;
       }
       final userDoc = profileAsync.value?.data();
 
-      final bool isOnboarded = userDoc != null && (
+      final bool isOnboarded = localOnboarded || (userDoc != null && (
         (userDoc['isOnboarded'] as bool? ?? false) ||
         (userDoc['onboardingCompleted'] as bool? ?? false) ||
         (userDoc['academicYear'] != null && userDoc['semester'] != null)
-      );
+      ));
 
       final isAcademicSetupRoute = location == '/academic-setup';
       final isEditParam = state.uri.queryParameters['edit'] == 'true';
