@@ -312,7 +312,9 @@ final authStateProvider = StreamProvider<User?>((ref) {
 
 final userProfileStreamProvider =
     StreamProvider<DocumentSnapshot<Map<String, dynamic>>?>((ref) {
+  final authUser = ref.watch(authStateProvider).value;
   final auth = ref.watch(authServiceProvider);
-  if (auth.currentUser == null) return Stream.value(null);
+  final user = authUser ?? auth.currentUser;
+  if (user == null) return Stream.value(null);
   return auth.getUserProfileStream();
 });

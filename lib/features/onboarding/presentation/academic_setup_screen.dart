@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/state/app_state.dart';
 import '../../auth/data/auth_service.dart';
 
 class AcademicSetupScreen extends ConsumerStatefulWidget {
@@ -67,6 +68,14 @@ class _AcademicSetupScreenState extends ConsumerState<AcademicSetupScreen> {
             semester: _selectedSemester,
             courses: courses,
           );
+
+      // تأكيد الإكمال محلياً فوراً وإعادة توليد خطة المذاكرة للمواد الجديدة
+      ref.read(localOnboardingCompletedProvider.notifier).markCompleted();
+      ref.read(plannerProvider.notifier).updateCoursesAndRegeneratePlan(
+            courses,
+            {for (final c in courses) c.id: 2},
+          );
+      ref.invalidate(userProfileStreamProvider);
 
       if (mounted) {
         // الانتقال للوحة التحكم الرئيسية فوراً

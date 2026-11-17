@@ -553,28 +553,36 @@ class _StudyBlockDetailsScreenState
   void _markCompleted() {
     final block = _block;
     final wasAlreadyAwarded = _pointAwardedInThisScreen || block.isCompleted;
-    ref.read(plannerProvider.notifier).markBlockCompleted(block.id);
-
-    // حفظ إتمام كتلة المذاكرة دون المساس برصيد العملات
-    if (!wasAlreadyAwarded) {
-      _pointAwardedInThisScreen = true;
-      final uid = ref.read(authServiceProvider).currentUser?.uid;
-      if (uid != null && uid.isNotEmpty) {
-        ref.read(timeBankRepositoryProvider).awardStudyPoint(
-          userId: uid,
-          title: 'مكافأة إتمام مذاكرة: ${block.courseName}',
-          blockId: block.id,
-          points: 1,
+    if (wasAlreadyAwarded) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم إنجاز هذه المهمة بالفعل ولا يمكن التراجع عنها ✓'),
+            backgroundColor: AppColors.primary,
+          ),
         );
+        context.pop();
       }
+      return;
+    }
+
+    ref.read(plannerProvider.notifier).markBlockCompleted(block.id);
+    _pointAwardedInThisScreen = true;
+
+    final uid = ref.read(authServiceProvider).currentUser?.uid;
+    if (uid != null && uid.isNotEmpty) {
+      ref.read(timeBankRepositoryProvider).awardStudyPoint(
+        userId: uid,
+        title: 'إتمام مذاكرة: ${block.courseName}',
+        blockId: block.id,
+        points: 1,
+      );
     }
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(!wasAlreadyAwarded
-              ? 'أحسنت! تم تسجيل إتمام مذاكرة "${block.courseName}" وحصلت على +1 نقطة وقت بنجاح 🪙🎉'
-              : 'تم تسجيل إتمام مذاكرة "${block.courseName}" بنجاح 🎉'),
+          content: Text('أحسنت! تم تسجيل إتمام مذاكرة "${block.courseName}" بنجاح 🎉'),
           backgroundColor: AppColors.success,
         ),
       );
@@ -585,6 +593,7 @@ class _StudyBlockDetailsScreenState
   @override
   Widget build(BuildContext context) {
     final block = _block;
+    final isAlreadyCompleted = _pointAwardedInThisScreen || block.isCompleted;
     final progress = _totalSeconds > 0
         ? (1.0 - (_secondsLeft / _totalSeconds)).clamp(0.0, 1.0)
         : 0.0;
@@ -1064,14 +1073,16 @@ class _StudyBlockDetailsScreenState
 
           // ── زر تمت المذاكرة ──────────────────────────
           FilledButton.icon(
-            onPressed: _markCompleted,
-            icon: const Icon(Icons.check_circle_outline),
-            label: const Text(
-              'تمت المذاكرة',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            onPressed: isAlreadyCompleted ? null : _markCompleted,
+            icon: Icon(isAlreadyCompleted ? Icons.check_circle : Icons.check_circle_outline),
+            label: Text(
+              isAlreadyCompleted ? 'تمت المذاكرة بنجاح ✓' : 'تمت المذاكرة',
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.success,
+              disabledBackgroundColor: AppColors.success.withValues(alpha: 0.6),
+              disabledForegroundColor: Colors.white,
               minimumSize: const Size.fromHeight(50),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(14)),
@@ -1085,33 +1096,24 @@ class _StudyBlockDetailsScreenState
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () {
-                    final wasCompleted = _pointAwardedInThisScreen || block.isCompleted;
-                    if (wasCompleted) {
-                      _pointAwardedInThisScreen = false;
-                      final uid = ref.read(authServiceProvider).currentUser?.uid;
-                      if (uid != null && uid.isNotEmpty) {
-                        ref.read(timeBankRepositoryProvider).revertStudyPoint(
-                          userId: uid,
-                          blockId: block.id,
-                        );
-                      }
-                    }
-                    ref
-                        .read(plannerProvider.notifier)
-                        .rescheduleBlock(block.id);
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                            content: Text(
-                                'تم تأجيل وإعادة جدولة جلسة "${block.courseName}" تلقائياً')),
-                      );
-                      context.pop();
-                    }
-                  },
+                  onPressed: isAlreadyCompleted
+                      ? null
+                      : () {
+                          ref.read(plannerProvider.notifier).rescheduleBlock(block.id);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('تم تأجيل وإعادة جدولة جلسة "${block.courseName}" تلقائياً'),
+                              ),
+                            );
+                            context.pop();
+                          }
+                        },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.warning,
-                    side: const BorderSide(color: AppColors.warning),
+                    side: BorderSide(
+                      color: isAlreadyCompleted ? AppColors.hairline : AppColors.warning,
+                    ),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -1123,24 +1125,17 @@ class _StudyBlockDetailsScreenState
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton(
-                  onPressed: () {
-                    final wasCompleted = _pointAwardedInThisScreen || block.isCompleted;
-                    if (wasCompleted) {
-                      _pointAwardedInThisScreen = false;
-                      final uid = ref.read(authServiceProvider).currentUser?.uid;
-                      if (uid != null && uid.isNotEmpty) {
-                        ref.read(timeBankRepositoryProvider).revertStudyPoint(
-                          userId: uid,
-                          blockId: block.id,
-                        );
-                      }
-                    }
-                    ref.read(plannerProvider.notifier).markBlockMissed(block.id);
-                    if (mounted) context.pop();
-                  },
+                  onPressed: isAlreadyCompleted
+                      ? null
+                      : () {
+                          ref.read(plannerProvider.notifier).markBlockMissed(block.id);
+                          if (mounted) context.pop();
+                        },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.error,
-                    side: const BorderSide(color: AppColors.error),
+                    side: BorderSide(
+                      color: isAlreadyCompleted ? AppColors.hairline : AppColors.error,
+                    ),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
                     padding: const EdgeInsets.symmetric(vertical: 14),
