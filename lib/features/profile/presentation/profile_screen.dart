@@ -186,41 +186,78 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ],
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 18),
 
-              // Courses Section Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      TextButton.icon(
-                        onPressed: () => _showAddCourseModal(context, userCourses, userRatings, isDark),
-                        icon: Icon(Icons.add_circle_outline_rounded, size: 18, color: primaryColor),
-                        label: Text(
-                          'أضف مادة',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: primaryColor),
-                        ),
+              // ==========================================
+              // كارت محفظة الوقت (شبه تابة الوضع الليلي مباشرة قبل موادي الدراسية)
+              // ==========================================
+              Container(
+                decoration: BoxDecoration(
+                  color: surfaceColor,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: hairlineColor),
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: () => context.push('/wallet'),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Row(
+                        children: [
+                          Icon(Icons.account_balance_wallet_outlined, color: AppColors.pointsAmber, size: 24),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'محفظة عملات الوقت 🪙',
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimaryColor),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'رصيدك المتاح: $availableCoins عملة • الإجمالي: $totalCoins عملة',
+                                  style: TextStyle(fontSize: 12, color: textSecondaryColor),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppColors.pointsAmber.withValues(alpha: isDark ? 0.25 : 0.12),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  '$availableCoins عملة',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.pointsAmber,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(Icons.arrow_back_ios_rounded, size: 14, color: textSecondaryColor),
+                            ],
+                          ),
+                        ],
                       ),
-                      TextButton.icon(
-                        onPressed: () => _showManageCoursesModal(context, userCourses, userRatings, isDark),
-                        icon: Icon(Icons.tune_rounded, size: 18, color: textSecondaryColor),
-                        label: Text(
-                          'تعديل',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: textSecondaryColor),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                  Text(
-                    'موادي الدراسية 📚 (${userCourses.length})',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textPrimaryColor),
-                  ),
-                ],
+                ),
               ),
-              const SizedBox(height: 8),
 
-              // Course Cards List in Profile
+              const SizedBox(height: 14),
+
+              // ==========================================
+              // كارت موادي الدراسية (تحت محفظة الوقت مباشرة بنفس الستايل)
+              // ==========================================
               Container(
                 decoration: BoxDecoration(
                   color: surfaceColor,
@@ -229,9 +266,83 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
                 child: Column(
                   children: [
-                    for (int i = 0; i < userCourses.length; i++) ...[
-                      if (i > 0) Divider(height: 1, color: hairlineColor),
-                      _buildCourseRow(userCourses[i], userRatings[userCourses[i].id] ?? 2, isDark, textPrimaryColor, textSecondaryColor, surfaceAltColor),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      child: Row(
+                        children: [
+                          Icon(Icons.menu_book_outlined, color: primaryColor, size: 24),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'موادي الدراسية 📚 (${userCourses.length})',
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimaryColor),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'المقررات المسجلة للفرقة والترم الحالي',
+                                  style: TextStyle(fontSize: 12, color: textSecondaryColor),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              InkWell(
+                                onTap: () => _showAddCourseModal(context, userCourses, userRatings, isDark),
+                                borderRadius: BorderRadius.circular(8),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.add_circle_outline_rounded, size: 15, color: primaryColor),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        'إضافة',
+                                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryColor),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              InkWell(
+                                onTap: () => _showManageCoursesModal(context, userCourses, userRatings, isDark),
+                                borderRadius: BorderRadius.circular(8),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.tune_rounded, size: 15, color: textSecondaryColor),
+                                      const SizedBox(width: 3),
+                                      Text(
+                                        'تعديل',
+                                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: textSecondaryColor),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (userCourses.isNotEmpty) ...[
+                      for (int i = 0; i < userCourses.length; i++) ...[
+                        Divider(height: 1, color: hairlineColor),
+                        _buildCourseRow(
+                          userCourses[i],
+                          userRatings[userCourses[i].id] ?? 2,
+                          isDark,
+                          textPrimaryColor,
+                          textSecondaryColor,
+                          surfaceAltColor,
+                        ),
+                      ],
                     ],
                   ],
                 ),
@@ -361,24 +472,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
               ),
 
-              const SizedBox(height: 20),
-
-              // ==========================================
-              // محفظة الوقت والرصيد (قسم المحفظة في حسابي)
-              // ==========================================
-              _buildWalletSection(
-                context: context,
-                availableCoins: availableCoins,
-                heldCoins: heldCoins,
-                totalCoins: totalCoins,
-                isDark: isDark,
-                primaryColor: primaryColor,
-                hairlineColor: hairlineColor,
-                surfaceColor: surfaceColor,
-                textPrimaryColor: textPrimaryColor,
-                textSecondaryColor: textSecondaryColor,
-              ),
-
               const SizedBox(height: 24),
 
               // Sign Out Button -> /welcome
@@ -407,169 +500,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildWalletSection({
-    required BuildContext context,
-    required int availableCoins,
-    required int heldCoins,
-    required int totalCoins,
-    required bool isDark,
-    required Color primaryColor,
-    required Color hairlineColor,
-    required Color surfaceColor,
-    required Color textPrimaryColor,
-    required Color textSecondaryColor,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'محفظة الوقت والرصيد 🪙',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textPrimaryColor),
-            ),
-            InkWell(
-              onTap: () => context.push('/wallet'),
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                child: Row(
-                  children: [
-                    Text('سجل المعاملات', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: primaryColor)),
-                    const SizedBox(width: 4),
-                    Icon(Icons.arrow_back_ios_rounded, size: 11, color: primaryColor),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF1F6F6B), Color(0xFF134E4B)],
-              begin: Alignment.topRight,
-              end: Alignment.bottomLeft,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF134E4B).withValues(alpha: isDark ? 0.35 : 0.2),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 20),
-                      ),
-                      const SizedBox(width: 10),
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('الرصيد المتاح للاستخدام', style: TextStyle(color: Colors.white70, fontSize: 11)),
-                          Text('عملات وقت للمذاكرة والشرح', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.pointsAmber.withValues(alpha: 0.25),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.pointsAmber.withValues(alpha: 0.6)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.monetization_on_rounded, size: 14, color: AppColors.pointsAmber),
-                        const SizedBox(width: 4),
-                        Text(
-                          '$availableCoins',
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 14),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    Column(
-                      children: [
-                        const Text('إجمالي الرصيد', style: TextStyle(color: Colors.white60, fontSize: 11)),
-                        const SizedBox(height: 2),
-                        Text(
-                          '$totalCoins عملة',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
-                        ),
-                      ],
-                    ),
-                    Container(height: 24, width: 1, color: Colors.white24),
-                    Column(
-                      children: [
-                        const Text('الرصيد المحجوز (ضمان)', style: TextStyle(color: Colors.white60, fontSize: 11)),
-                        const SizedBox(height: 2),
-                        Text(
-                          '$heldCoins عملة',
-                          style: TextStyle(
-                            color: heldCoins > 0 ? AppColors.pointsAmber : Colors.white70,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 14),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () => context.push('/wallet'),
-                  icon: const Icon(Icons.receipt_long_rounded, size: 18),
-                  label: const Text('فتح المحفظة وسجل الحركات', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: const Color(0xFF134E4B),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 

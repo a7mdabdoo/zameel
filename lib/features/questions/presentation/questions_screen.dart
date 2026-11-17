@@ -17,6 +17,7 @@ class QuestionsScreen extends ConsumerStatefulWidget {
 class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
   String? _selectedCourseId;
   String _searchQuery = '';
+  bool _showOnlyMyQuestions = false;
   final TextEditingController _searchController = TextEditingController();
 
   @override
@@ -45,6 +46,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
     final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
     final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
     final onSurface = theme.colorScheme.onSurface;
+    final currentUserId = ref.watch(authServiceProvider).currentUser?.uid ?? '';
 
     final userProfileAsync = ref.watch(userProfileStreamProvider);
     final userDoc = userProfileAsync.value?.data();
@@ -208,7 +210,106 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
               ),
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
+
+            // تابات التبديل بين جميع الأسئلة وأسئلتي الخاصة
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+              child: questionsAsync.maybeWhen(
+                data: (allQuestions) {
+                  final myQuestionsCount = allQuestions.where((q) => q.authorId == currentUserId).length;
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () => setState(() => _showOnlyMyQuestions = false),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: !_showOnlyMyQuestions
+                                  ? primaryColor
+                                  : (isDark ? surfaceAlt : Colors.black.withValues(alpha: 0.04)),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: !_showOnlyMyQuestions ? primaryColor : hairline,
+                              ),
+                            ),
+                            child: Center(
+                              child: Text(
+                                'جميع أسئلة الدفعة 🌐 (${allQuestions.length})',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: !_showOnlyMyQuestions ? Colors.white : textSecondary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () => setState(() => _showOnlyMyQuestions = true),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            decoration: BoxDecoration(
+                              color: _showOnlyMyQuestions
+                                  ? primaryColor
+                                  : (isDark ? surfaceAlt : Colors.black.withValues(alpha: 0.04)),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _showOnlyMyQuestions ? primaryColor : hairline,
+                              ),
+                            ),
+                            child: Center(
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'أسئلتي الخاصة 👤',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: _showOnlyMyQuestions ? Colors.white : textSecondary,
+                                    ),
+                                  ),
+                                  if (myQuestionsCount > 0) ...[
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                      decoration: BoxDecoration(
+                                        color: _showOnlyMyQuestions
+                                            ? Colors.white.withValues(alpha: 0.25)
+                                            : primaryColor.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Text(
+                                        '$myQuestionsCount',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: _showOnlyMyQuestions ? Colors.white : primaryColor,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+                orElse: () => const SizedBox.shrink(),
+              ),
+            ),
+
+            const SizedBox(height: 6),
 
             // قائمة الأسئلة
             Expanded(
@@ -221,8 +322,11 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                   ),
                 ),
                 data: (allQuestions) {
-                  // تصفية محلية بالبحث النصي
+                  // تصفية محلية بالبحث النصي وتبويب أسئلتي الخاصة
                   final filtered = allQuestions.where((q) {
+                    if (_showOnlyMyQuestions && q.authorId != currentUserId) {
+                      return false;
+                    }
                     if (_searchQuery.isEmpty) return true;
                     final query = _searchQuery.toLowerCase();
                     return q.title.toLowerCase().contains(query) ||
@@ -243,18 +347,26 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                                 color: primaryColor.withValues(alpha: 0.1),
                                 shape: BoxShape.circle,
                               ),
-                              child: Icon(Icons.help_outline_rounded, size: 48, color: primaryColor),
+                              child: Icon(
+                                _showOnlyMyQuestions ? Icons.person_search_rounded : Icons.help_outline_rounded,
+                                size: 48,
+                                color: primaryColor,
+                              ),
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              _searchQuery.isNotEmpty
-                                  ? 'لا توجد نتائج تطابق بحثك'
-                                  : 'لا توجد أسئلة مطروحة في هذه المادة بعد',
+                              _showOnlyMyQuestions
+                                  ? 'لم تطرح أي أسئلة بعد في هذا المقرر'
+                                  : (_searchQuery.isNotEmpty
+                                      ? 'لا توجد نتائج تطابق بحثك'
+                                      : 'لا توجد أسئلة مطروحة في هذه المادة بعد'),
                               style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: onSurface),
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              'كن أول من يطرح سؤالاً أو مسألة ليساعدك زملاؤك في دفعتك!',
+                              _showOnlyMyQuestions
+                                  ? 'استخدم زر "اطرح سؤالاً" بالأسفل لطرح استفساراتك وسيقوم زملاؤك بمساعدتك!'
+                                  : 'كن أول من يطرح سؤالاً أو مسألة ليساعدك زملاؤك في دفعتك!',
                               textAlign: TextAlign.center,
                               style: TextStyle(fontSize: 12, color: textSecondary),
                             ),
@@ -269,15 +381,26 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                     itemCount: filtered.length,
                     itemBuilder: (context, index) {
                       final question = filtered[index];
+                      final isMyQuestion = question.authorId == currentUserId;
+
                       return Container(
                         margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
-                          color: cardColor,
+                          color: isMyQuestion
+                              ? (isDark ? const Color(0xFF132A22) : const Color(0xFFF0FDF4))
+                              : cardColor,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: hairline),
+                          border: Border.all(
+                            color: isMyQuestion
+                                ? primaryColor.withValues(alpha: isDark ? 0.7 : 0.4)
+                                : hairline,
+                            width: isMyQuestion ? 1.5 : 1,
+                          ),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
+                              color: isMyQuestion
+                                  ? primaryColor.withValues(alpha: isDark ? 0.2 : 0.06)
+                                  : Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
                               blurRadius: 8,
                               offset: const Offset(0, 2),
                             ),
@@ -299,25 +422,29 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                                       children: [
                                         CircleAvatar(
                                           radius: 14,
-                                          backgroundColor: primaryColor.withValues(alpha: 0.15),
-                                          child: Text(
-                                            question.authorName.isNotEmpty
-                                                ? question.authorName.substring(0, 1)
-                                                : 'ز',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                              color: primaryColor,
-                                            ),
-                                          ),
+                                          backgroundColor: isMyQuestion
+                                              ? primaryColor
+                                              : primaryColor.withValues(alpha: 0.15),
+                                          child: isMyQuestion
+                                              ? const Icon(Icons.person_rounded, size: 14, color: Colors.white)
+                                              : Text(
+                                                  question.authorName.isNotEmpty
+                                                      ? question.authorName.substring(0, 1)
+                                                      : 'ز',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: primaryColor,
+                                                  ),
+                                                ),
                                         ),
                                         const SizedBox(width: 8),
                                         Text(
-                                          question.authorName,
+                                          isMyQuestion ? 'أنت (سؤالك الشخصي)' : question.authorName,
                                           style: TextStyle(
                                             fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                            color: onSurface,
+                                            fontWeight: isMyQuestion ? FontWeight.w800 : FontWeight.bold,
+                                            color: isMyQuestion ? primaryColor : onSurface,
                                           ),
                                         ),
                                         const SizedBox(width: 6),
@@ -327,20 +454,51 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                                         ),
                                       ],
                                     ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                      decoration: BoxDecoration(
-                                        color: surfaceAlt,
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Text(
-                                        question.courseName,
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                          color: primaryColor,
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (isMyQuestion) ...[
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: primaryColor.withValues(alpha: isDark ? 0.3 : 0.15),
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(color: primaryColor.withValues(alpha: 0.3)),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(Icons.push_pin_rounded, size: 11, color: primaryColor),
+                                                const SizedBox(width: 3),
+                                                Text(
+                                                  'سؤالك 📌',
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: primaryColor,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 6),
+                                        ],
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                          decoration: BoxDecoration(
+                                            color: surfaceAlt,
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                          child: Text(
+                                            question.courseName,
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: primaryColor,
+                                            ),
+                                          ),
                                         ),
-                                      ),
+                                      ],
                                     ),
                                   ],
                                 ),
