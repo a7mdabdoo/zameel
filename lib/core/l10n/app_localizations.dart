@@ -1,16 +1,15 @@
 import 'dart:async';
 
-import 'package:cupertino_ui/cupertino_ui.dart' show GlobalCupertinoLocalizations;
+import 'package:cupertino_ui/cupertino_ui.dart' as cui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import 'package:flutter_localizations/flutter_localizations.dart'
-    hide GlobalMaterialLocalizations, GlobalCupertinoLocalizations;
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
-import 'package:material_ui/material_ui.dart' show GlobalMaterialLocalizations;
+import 'package:material_ui/material_ui.dart' as mui;
 
 import 'app_localizations_ar.dart';
 
-// ignore_for_file: type=lint
+// ignore_for_file: type=lint, deprecated_member_use
 
 /// Callers can lookup localized strings with an instance of AppLocalizations
 /// returned by `AppLocalizations.of(context)`.
@@ -92,6 +91,8 @@ abstract class AppLocalizations {
         GlobalMaterialLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
+        mui.GlobalMaterialLocalizations.delegate,
+        cui.GlobalCupertinoLocalizations.delegate,
       ];
 
   /// A list of this localizations delegate's supported locales.
