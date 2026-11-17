@@ -34,7 +34,16 @@ class _SessionChatScreenState extends ConsumerState<SessionChatScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    NotificationService.activeChatSessionId = widget.session.id;
+  }
+
+  @override
   void dispose() {
+    if (NotificationService.activeChatSessionId == widget.session.id) {
+      NotificationService.activeChatSessionId = null;
+    }
     _textController.dispose();
     _scrollController.dispose();
     super.dispose();

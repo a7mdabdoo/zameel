@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../auth/data/auth_service.dart';
 import '../data/question_model.dart';
 import '../data/question_repository.dart';
+import 'widgets/app_question_image.dart';
 
 class QuestionDetailsScreen extends ConsumerStatefulWidget {
   final QuestionModel question;
@@ -47,9 +48,9 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
     try {
       final img = await _picker.pickImage(
         source: source,
-        maxWidth: 1200,
-        maxHeight: 1200,
-        imageQuality: 85,
+        maxWidth: 900,
+        maxHeight: 900,
+        imageQuality: 70,
       );
       if (img != null) {
         setState(() => _answerImage = img);
@@ -143,31 +144,7 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
   }
 
   void _showFullImage(String imageUrl) {
-    showDialog(
-      context: context,
-      builder: (ctx) => Dialog(
-        backgroundColor: Colors.transparent,
-        insetPadding: const EdgeInsets.all(12),
-        child: Stack(
-          alignment: Alignment.topRight,
-          children: [
-            InteractiveViewer(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(14),
-                child: Image.network(imageUrl, fit: BoxFit.contain),
-              ),
-            ),
-            IconButton(
-              icon: const CircleAvatar(
-                backgroundColor: Colors.black54,
-                child: Icon(Icons.close_rounded, color: Colors.white, size: 20),
-              ),
-              onPressed: () => Navigator.pop(ctx),
-            ),
-          ],
-        ),
-      ),
-    );
+    AppQuestionImage.showFullImageDialog(context, imageUrl);
   }
 
   @override
@@ -368,8 +345,8 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                         child: Stack(
                           alignment: Alignment.bottomLeft,
                           children: [
-                            Image.network(
-                              widget.question.imageUrl!,
+                            AppQuestionImage(
+                              imageUrl: widget.question.imageUrl!,
                               fit: BoxFit.cover,
                               width: double.infinity,
                               height: 220,
@@ -568,14 +545,12 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                               const SizedBox(height: 10),
                               GestureDetector(
                                 onTap: () => _showFullImage(answer.imageUrl!),
-                                child: ClipRRect(
+                                child: AppQuestionImage(
+                                  imageUrl: answer.imageUrl!,
+                                  height: 160,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
                                   borderRadius: BorderRadius.circular(10),
-                                  child: Image.network(
-                                    answer.imageUrl!,
-                                    height: 160,
-                                    width: double.infinity,
-                                    fit: BoxFit.cover,
-                                  ),
                                 ),
                               ),
                             ],

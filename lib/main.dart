@@ -8,6 +8,7 @@ import 'core/routing/app_router.dart';
 import 'core/constants/app_constants.dart';
 import 'core/state/app_state.dart';
 import 'core/l10n/app_localizations.dart';
+import 'core/services/global_notification_listener.dart';
 
 // ==========================================
 // نقطة البداية لتطبيق زَميل (Zameel App)
@@ -122,6 +123,7 @@ class _FirebaseInitErrorAppState extends State<FirebaseInitErrorApp> {
                         color: AppColors.textSecondary,
                       ),
                     ),
+                    
                     const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.all(12),
@@ -200,6 +202,11 @@ class ZameelApp extends ConsumerWidget {
       darkTheme: AppTheme.dark(),
       themeMode: themeMode,
       routerConfig: router,
+      builder: (context, child) {
+        return GlobalNotificationListener(
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       locale: const Locale('ar'),
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: const [

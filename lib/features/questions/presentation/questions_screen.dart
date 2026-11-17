@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../auth/data/auth_service.dart';
 import '../data/question_repository.dart';
+import 'widgets/app_question_image.dart';
 
 class QuestionsScreen extends ConsumerStatefulWidget {
   const QuestionsScreen({super.key});
@@ -369,15 +370,12 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                                 // إذا كانت هناك صورة مرفقة تظهر مصغرة
                                 if (question.imageUrl != null && question.imageUrl!.isNotEmpty) ...[
                                   const SizedBox(height: 10),
-                                  ClipRRect(
+                                  AppQuestionImage(
+                                    imageUrl: question.imageUrl!,
+                                    height: 130,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
                                     borderRadius: BorderRadius.circular(10),
-                                    child: Image.network(
-                                      question.imageUrl!,
-                                      height: 130,
-                                      width: double.infinity,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-                                    ),
                                   ),
                                 ],
 
