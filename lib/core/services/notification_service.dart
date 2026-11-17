@@ -16,9 +16,15 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
   bool _isInitialized = false;
 
+  /// معرف جلسة الشات المفتوحة حالياً في الشاشة لتفادي الإشعارات المزعجة أثناء المحادثة الحية
+  static String? activeChatSessionId;
+
+  /// معالج الضغط على الإشعار للانتقال للشاشة المناسبة
+  static void Function(String? payload)? onNotificationClick;
+
   bool get isInitialized => _isInitialized;
 
-  /// تهيئة نظام الإشعارات المحلية
+  /// تهيئة نظام الإشعارات المحلية وطلب الأذونات لنظام Android و iOS
   Future<void> initialize() async {
     if (_isInitialized) return;
 
@@ -44,8 +50,16 @@ class NotificationService {
         settings: initSettings,
         onDidReceiveNotificationResponse: (response) {
           debugPrint('Notification clicked with payload: ${response.payload}');
+          onNotificationClick?.call(response.payload);
         },
       );
+
+      // طلب إذن الإشعارات صراحة في Android 13+ (POST_NOTIFICATIONS)
+      final androidImplementation = _notificationsPlugin
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      if (androidImplementation != null) {
+        await androidImplementation.requestNotificationsPermission();
+      }
 
       _isInitialized = true;
     } catch (e) {
@@ -53,25 +67,30 @@ class NotificationService {
     }
   }
 
-  /// إرسال إشعار محلي
+  /// إرسال إشعار محلي مع تخصيص القناة والأهمية
   Future<void> showLocalNotification({
     required int id,
     required String title,
     required String body,
     String? payload,
+    String channelId = 'zameel_chat_channel',
+    String channelName = 'محادثات جلسات زَميل',
+    String channelDescription = 'إشعارات الرسائل الجديدة في جلسات بنك الوقت',
   }) async {
     if (!_isInitialized) {
       await initialize();
     }
 
     try {
-      const androidDetails = AndroidNotificationDetails(
-        'zameel_chat_channel',
-        'محادثات جلسات زَميل',
-        channelDescription: 'إشعارات الرسائل الجديدة في جلسات بنك الوقت',
-        importance: Importance.high,
+      final androidDetails = AndroidNotificationDetails(
+        channelId,
+        channelName,
+        channelDescription: channelDescription,
+        importance: Importance.max,
         priority: Priority.high,
         showWhen: true,
+        playSound: true,
+        enableVibration: true,
       );
 
       const darwinDetails = DarwinNotificationDetails(
@@ -80,7 +99,7 @@ class NotificationService {
         presentSound: true,
       );
 
-      const details = NotificationDetails(
+      final details = NotificationDetails(
         android: androidDetails,
         iOS: darwinDetails,
       );
@@ -103,17 +122,41 @@ class NotificationService {
     required String messageText,
     required String sessionId,
   }) async {
+    // إذا كان المستخدم فاتح نفس شاشة الشات حالياً، لا داعي لإطلاق إشعار هيدز-أب يغطي الشاشة
+    if (activeChatSessionId == sessionId) return;
+
     final notificationId = sessionId.hashCode ^ DateTime.now().minute;
     await showLocalNotification(
       id: notificationId,
+      channelId: 'zameel_chat_channel',
+      channelName: 'محادثات جلسات زَميل',
+      channelDescription: 'إشعارات الرسائل الجديدة في جلسات بنك الوقت',
       title: '💬 رسالة جديدة من $senderName',
       body: messageText,
-      payload: sessionId,
+      payload: 'session:$sessionId',
+    );
+  }
+
+  /// إشعار فوري عند قيام طالب بالرد على سؤالك الأكاديمي
+  Future<void> showAnswerNotification({
+    required String authorName,
+    required String questionTitle,
+    required String answerText,
+    required String questionId,
+  }) async {
+    final notificationId = questionId.hashCode ^ DateTime.now().minute;
+    await showLocalNotification(
+      id: notificationId,
+      channelId: 'zameel_qa_channel',
+      channelName: 'منتدى الأسئلة والحلول',
+      channelDescription: 'تنبيهات الإجابات والحلول الجديدة على أسئلتك الأكاديمية',
+      title: '💡 إجابة جديدة من $authorName',
+      body: 'على سؤالك "$questionTitle": $answerText',
+      payload: 'question:$questionId',
     );
   }
 
   /// خطاف (Hook) جاهز لربط Firebase Cloud Messaging (FCM)
-  /// يُستدعى مستقبلاً عند ربط رسائل السحاب في الخلفية
   Future<void> setupFcmHook({Function(Map<String, dynamic>)? onRemoteMessageReceived}) async {
     debugPrint('FCM Hook registered. Ready to receive background cloud pushes.');
   }

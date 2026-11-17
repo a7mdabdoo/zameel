@@ -36,9 +36,9 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
     try {
       final image = await _picker.pickImage(
         source: source,
-        maxWidth: 1200,
-        maxHeight: 1200,
-        imageQuality: 85,
+        maxWidth: 900,
+        maxHeight: 900,
+        imageQuality: 70,
       );
       if (image != null) {
         setState(() => _pickedImage = image);

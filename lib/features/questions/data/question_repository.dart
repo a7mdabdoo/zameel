@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'question_model.dart';
@@ -41,6 +43,7 @@ class QuestionRepository {
     required XFile file,
     required String path,
   }) async {
+    // المحاولة الأولى: الرفع إلى Firebase Storage
     try {
       final ref = _storage.ref().child(path);
       final metadata = SettableMetadata(contentType: 'image/jpeg');
@@ -49,11 +52,26 @@ class QuestionRepository {
 
       final snapshot = await uploadTask;
       final downloadUrl = await snapshot.ref.getDownloadURL();
-      return downloadUrl;
+      if (downloadUrl.isNotEmpty) {
+        return downloadUrl;
+      }
     } catch (e) {
-      // إذا حدث خطأ في رفع التخزين السحابي (مثل انقطاع شبكة أو تهيئة سحابية) يتم الإرجاع بنقاء
-      return null;
+      debugPrint('Firebase Storage upload notice (falling back to Base64 safely): $e');
     }
+
+    // خط دفاع قوي وبديل مباشر: إذا لم تكن خدمة Firebase Storage مفعلة بعد في كونسول المشروع،
+    // يتم تحويل بايتس الصورة المضغوطة إلى Base64 Data URL وتخزينها بأمان فوري دون فقدان الصورة
+    try {
+      final bytes = await file.readAsBytes();
+      if (bytes.isNotEmpty) {
+        final base64String = base64Encode(bytes);
+        return 'data:image/jpeg;base64,$base64String';
+      }
+    } catch (fallbackError) {
+      debugPrint('Base64 fallback encoding failed: $fallbackError');
+    }
+
+    return null;
   }
 
   Future<String> createQuestion({
