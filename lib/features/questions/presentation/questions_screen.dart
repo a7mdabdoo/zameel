@@ -418,83 +418,88 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Row(
-                                      children: [
-                                        CircleAvatar(
-                                          radius: 14,
-                                          backgroundColor: isMyQuestion
-                                              ? primaryColor
-                                              : primaryColor.withValues(alpha: 0.15),
-                                          child: isMyQuestion
-                                              ? const Icon(Icons.person_rounded, size: 14, color: Colors.white)
-                                              : Text(
-                                                  question.authorName.isNotEmpty
-                                                      ? question.authorName.substring(0, 1)
-                                                      : 'ز',
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: primaryColor,
+                                    Expanded(
+                                      child: Row(
+                                        children: [
+                                          CircleAvatar(
+                                            radius: 14,
+                                            backgroundColor: isMyQuestion
+                                                ? primaryColor
+                                                : primaryColor.withValues(alpha: 0.15),
+                                            child: isMyQuestion
+                                                ? const Icon(Icons.person_rounded, size: 14, color: Colors.white)
+                                                : Text(
+                                                    question.authorName.isNotEmpty
+                                                        ? question.authorName.substring(0, 1)
+                                                        : 'ز',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: primaryColor,
+                                                    ),
                                                   ),
-                                                ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          isMyQuestion ? 'أنت (سؤالك الشخصي)' : question.authorName,
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: isMyQuestion ? FontWeight.w800 : FontWeight.bold,
-                                            color: isMyQuestion ? primaryColor : onSurface,
                                           ),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          '• ${_formatTimeAgo(question.createdAt)}',
-                                          style: TextStyle(fontSize: 11, color: textSecondary),
-                                        ),
-                                      ],
+                                          const SizedBox(width: 8),
+                                          Flexible(
+                                            child: Text(
+                                              isMyQuestion ? 'أنت (سؤالك)' : question.authorName,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: isMyQuestion ? FontWeight.w800 : FontWeight.bold,
+                                                color: isMyQuestion ? primaryColor : onSurface,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            '• ${_formatTimeAgo(question.createdAt)}',
+                                            style: TextStyle(fontSize: 11, color: textSecondary),
+                                          ),
+                                        ],
+                                      ),
                                     ),
+                                    const SizedBox(width: 8),
                                     Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         if (isMyQuestion) ...[
                                           Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                                             decoration: BoxDecoration(
                                               color: primaryColor.withValues(alpha: isDark ? 0.3 : 0.15),
                                               borderRadius: BorderRadius.circular(8),
                                               border: Border.all(color: primaryColor.withValues(alpha: 0.3)),
                                             ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Icon(Icons.push_pin_rounded, size: 11, color: primaryColor),
-                                                const SizedBox(width: 3),
-                                                Text(
-                                                  'سؤالك 📌',
-                                                  style: TextStyle(
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.bold,
-                                                    color: primaryColor,
-                                                  ),
-                                                ),
-                                              ],
+                                            child: Text(
+                                              'سؤالك 📌',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: primaryColor,
+                                              ),
                                             ),
                                           ),
                                           const SizedBox(width: 6),
                                         ],
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                          decoration: BoxDecoration(
-                                            color: surfaceAlt,
-                                            borderRadius: BorderRadius.circular(10),
-                                          ),
-                                          child: Text(
-                                            question.courseName,
-                                            style: TextStyle(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.bold,
-                                              color: primaryColor,
+                                        ConstrainedBox(
+                                          constraints: const BoxConstraints(maxWidth: 115),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: surfaceAlt,
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                            child: Text(
+                                              question.courseName,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: primaryColor,
+                                              ),
                                             ),
                                           ),
                                         ),
