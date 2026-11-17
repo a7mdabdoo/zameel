@@ -87,6 +87,24 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
 
     if (!mounted) return;
 
+    final isAlreadyEnrolled = offer.isGroupSession && offer.enrolledLearnerIds.contains(user.uid);
+    if (isAlreadyEnrolled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('أنت مسجل بالفعل في هذه الجلسة الجماعية 👍')),
+      );
+      return;
+    }
+
+    final isFull = offer.isGroupSession &&
+        offer.maxLearners != null &&
+        offer.enrolledLearnerIds.length >= offer.maxLearners!;
+    if (isFull) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('عفواً، اكتملت جميع المقاعد في هذه الجلسة الجماعية')),
+      );
+      return;
+    }
+
     if (currentCoins < AppConstants.sessionCostCoins) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('رصيدك لا يكفي لحجز الجلسة (المطلوب: 1 عملة وقت)')),
@@ -131,9 +149,15 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
         rating: null,
         scheduledAt: chosenStart, // حقيقي ومخزن كـ Timestamp
         createdAt: DateTime.now(),
+        isGroupSession: offer.isGroupSession,
+        maxLearners: offer.maxLearners,
+        meetingUrl: offer.meetingUrl,
       );
 
-      await ref.read(timeBankRepositoryProvider).bookSessionWithEscrow(session: session);
+      await ref.read(timeBankRepositoryProvider).bookSessionWithEscrow(
+            session: session,
+            offerId: offer.id,
+          );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -260,6 +284,88 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                   ],
                 ),
               ),
+
+              if (offer != null && offer.isGroupSession) ...[
+                Container(
+                  margin: const EdgeInsets.only(top: 14),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.groups_rounded, color: Colors.white, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'جلسة شرح جماعية 👥',
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'المقاعد المحجوزة: ${offer.enrolledLearnerIds.length} من أصل ${offer.maxLearners ?? 10}',
+                              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              if (offer != null && offer.isFlexibleRange) ...[
+                Container(
+                  margin: const EdgeInsets.only(top: 14),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.pointsAmber.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.pointsAmber.withValues(alpha: 0.4)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.pointsAmber,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.access_time_filled_rounded, color: Colors.white, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'موعد مرن للشرح ⏳',
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'الشارح متاح في النطاق (${offer.timeRangeStart ?? ''} – ${offer.timeRangeEnd ?? ''})، اختر الموعد الأنسب لك أدناه.',
+                              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
 
               const SizedBox(height: 20),
 
@@ -472,31 +578,56 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
               const SizedBox(height: 36),
 
               // Button "أرسل طلب الجلسة" -> /my-sessions
-              SizedBox(
-                height: 52,
-                child: ElevatedButton.icon(
-                  onPressed: (_isBooking || coins < AppConstants.sessionCostCoins)
-                      ? null
-                      : () => _handleBookSession(coins),
-                  icon: _isBooking
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                        )
-                      : const Icon(Icons.send_rounded, color: Colors.white, size: 18),
-                  label: Text(
-                    _isBooking
-                        ? 'جاري تأكيد الحجز وحفظ الضمان...'
-                        : (coins < AppConstants.sessionCostCoins ? 'رصيدك لا يكفي للحجز (تحتاج 1 عملة)' : 'تأكيد الحجز وخصم عملة واحدة للضمان'),
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    disabledBackgroundColor: Colors.grey.shade400,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                ),
+              Builder(
+                builder: (context) {
+                  final currentUserId = ref.watch(authServiceProvider).currentUser?.uid ?? '';
+                  final isAlreadyEnrolled = offer != null &&
+                      offer.isGroupSession &&
+                      offer.enrolledLearnerIds.contains(currentUserId);
+                  final isFull = offer != null &&
+                      offer.isGroupSession &&
+                      offer.maxLearners != null &&
+                      offer.enrolledLearnerIds.length >= offer.maxLearners!;
+
+                  final isButtonDisabled = _isBooking ||
+                      coins < AppConstants.sessionCostCoins ||
+                      isAlreadyEnrolled ||
+                      isFull;
+
+                  String buttonLabel = 'تأكيد الحجز وخصم عملة واحدة للضمان';
+                  if (_isBooking) {
+                    buttonLabel = 'جاري تأكيد الحجز وحفظ الضمان...';
+                  } else if (isAlreadyEnrolled) {
+                    buttonLabel = 'أنت مسجل بالفعل في هذه الجلسة ✅';
+                  } else if (isFull) {
+                    buttonLabel = 'اكتملت جميع مقاعد الجلسة الجماعية ❌';
+                  } else if (coins < AppConstants.sessionCostCoins) {
+                    buttonLabel = 'رصيدك لا يكفي للحجز (تحتاج 1 عملة)';
+                  }
+
+                  return SizedBox(
+                    height: 52,
+                    child: ElevatedButton.icon(
+                      onPressed: isButtonDisabled ? null : () => _handleBookSession(coins),
+                      icon: _isBooking
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
+                          : const Icon(Icons.send_rounded, color: Colors.white, size: 18),
+                      label: Text(
+                        buttonLabel,
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        disabledBackgroundColor: Colors.grey.shade400,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),

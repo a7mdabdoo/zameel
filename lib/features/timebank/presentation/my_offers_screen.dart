@@ -74,6 +74,60 @@ class _MyOffersScreenState extends ConsumerState<MyOffersScreen> {
               ),
             ),
 
+            // Academic Q&A Banner
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 2),
+              child: InkWell(
+                onTap: () => context.push('/questions'),
+                borderRadius: BorderRadius.circular(14),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: isDark
+                          ? [const Color(0xFF1B3B2B), const Color(0xFF142B20)]
+                          : [const Color(0xFFE8F5E9), const Color(0xFFC8E6C9)],
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: primaryColor.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: primaryColor.withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.help_center_outlined, color: primaryColor, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'منتدى الأسئلة والحلول الأكاديمي 💡',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.onSurface,
+                              ),
+                            ),
+                            const Text(
+                              'اسأل دفعتك أو شارك بالحلول المعتمدة',
+                              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.arrow_forward_ios_rounded, size: 14, color: primaryColor),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
             const SizedBox(height: 12),
 
             Expanded(

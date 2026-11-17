@@ -162,6 +162,34 @@ class CandidatesScreen extends ConsumerWidget {
                                     ),
                                   ),
                                 ],
+                                if (offer.isGroupSession) ...[
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Text(
+                                      '👥 جماعية (${offer.enrolledLearnerIds.length}/${offer.maxLearners ?? 10})',
+                                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primary),
+                                    ),
+                                  ),
+                                ],
+                                if (offer.isFlexibleRange) ...[
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.pointsAmber.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: const Text(
+                                      '⏳ موعد مرن',
+                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.pointsAmber),
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                             Row(

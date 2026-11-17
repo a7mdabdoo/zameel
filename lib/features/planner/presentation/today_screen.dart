@@ -28,6 +28,9 @@ class TodayScreen extends ConsumerWidget {
     final plannerState = ref.watch(plannerProvider);
 
     final timeCoins = ref.watch(userTimeCoinsProvider);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
 
     const dayNames = {
       DateTime.saturday: 'السبت',
@@ -242,6 +245,57 @@ class TodayScreen extends ConsumerWidget {
                       ),
                     ),
                   ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Quick Q&A forum banner
+              InkWell(
+                onTap: () => context.push('/questions'),
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E2822) : const Color(0xFFEDF7EE),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: primaryColor.withValues(alpha: 0.25),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: primaryColor.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.help_center_outlined, color: primaryColor, size: 18),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'منتدى الأسئلة والحلول لدفعتك 💡',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                            const Text(
+                              'تصفح أسئلة زملائك أو اطرح استفسارك الأكاديمي',
+                              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.arrow_forward_ios_rounded, size: 13, color: primaryColor),
+                    ],
+                  ),
                 ),
               ),
 

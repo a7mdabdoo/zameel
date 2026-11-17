@@ -24,6 +24,9 @@ dependencies:
 
   material_ui: any
   cupertino_ui: any
+  image_picker: ^1.2.4
+  firebase_storage: ^14.1.0
+  flutter_dnd: ^0.1.4+1
 dev_dependencies:
   flutter_test:
     sdk: flutter
