@@ -289,53 +289,62 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 16,
-                            backgroundColor: isQuestionAuthor ? primaryColor : primaryColor.withValues(alpha: 0.15),
-                            child: isQuestionAuthor
-                                ? const Icon(Icons.person_rounded, size: 16, color: Colors.white)
-                                : Text(
-                                    widget.question.authorName.isNotEmpty ? widget.question.authorName.substring(0, 1) : 'ز',
-                                    style: TextStyle(fontWeight: FontWeight.bold, color: primaryColor),
-                                  ),
-                          ),
-                          const SizedBox(width: 8),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
+                      Expanded(
+                        child: Row(
+                          children: [
+                            CircleAvatar(
+                              radius: 16,
+                              backgroundColor: isQuestionAuthor ? primaryColor : primaryColor.withValues(alpha: 0.15),
+                              child: isQuestionAuthor
+                                  ? const Icon(Icons.person_rounded, size: 16, color: Colors.white)
+                                  : Text(
+                                      widget.question.authorName.isNotEmpty ? widget.question.authorName.substring(0, 1) : 'ز',
+                                      style: TextStyle(fontWeight: FontWeight.bold, color: primaryColor),
+                                    ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    isQuestionAuthor ? 'أنت (صاحب السؤال)' : widget.question.authorName,
-                                    style: TextStyle(
-                                      fontWeight: isQuestionAuthor ? FontWeight.w800 : FontWeight.bold,
-                                      fontSize: 13,
-                                      color: isQuestionAuthor ? primaryColor : onSurface,
-                                    ),
+                                  Row(
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          isQuestionAuthor ? 'أنت (صاحب السؤال)' : widget.question.authorName,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontWeight: isQuestionAuthor ? FontWeight.w800 : FontWeight.bold,
+                                            fontSize: 13,
+                                            color: isQuestionAuthor ? primaryColor : onSurface,
+                                          ),
+                                        ),
+                                      ),
+                                      if (isQuestionAuthor) ...[
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                          decoration: BoxDecoration(
+                                            color: primaryColor.withValues(alpha: isDark ? 0.3 : 0.15),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: Text(
+                                            'سؤالك 📌',
+                                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: primaryColor),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
-                                  if (isQuestionAuthor) ...[
-                                    const SizedBox(width: 6),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                      decoration: BoxDecoration(
-                                        color: primaryColor.withValues(alpha: isDark ? 0.3 : 0.15),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        'سؤالك 📌',
-                                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: primaryColor),
-                                      ),
-                                    ),
-                                  ],
+                                  Text(_formatTime(widget.question.createdAt), style: TextStyle(fontSize: 11, color: textSecondary)),
                                 ],
                               ),
-                              Text(_formatTime(widget.question.createdAt), style: TextStyle(fontSize: 11, color: textSecondary)),
-                            ],
-                          ),
-                        ],
+                            ),
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
@@ -516,59 +525,65 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Row(
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 14,
-                                      backgroundColor: isMyAnswer
-                                          ? primaryColor
-                                          : primaryColor.withValues(alpha: 0.12),
-                                      child: isMyAnswer
-                                          ? const Icon(Icons.person_rounded, size: 14, color: Colors.white)
-                                          : Text(
-                                              answer.authorName.isNotEmpty ? answer.authorName.substring(0, 1) : 'ز',
-                                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: primaryColor),
-                                            ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      isMyAnswer ? 'أنت (إجابتك)' : answer.authorName,
-                                      style: TextStyle(
-                                        fontWeight: isMyAnswer ? FontWeight.w800 : FontWeight.bold,
-                                        fontSize: 12,
-                                        color: isMyAnswer ? primaryColor : onSurface,
+                                Expanded(
+                                  child: Row(
+                                    children: [
+                                      CircleAvatar(
+                                        radius: 14,
+                                        backgroundColor: isMyAnswer
+                                            ? primaryColor
+                                            : primaryColor.withValues(alpha: 0.12),
+                                        child: isMyAnswer
+                                            ? const Icon(Icons.person_rounded, size: 14, color: Colors.white)
+                                            : Text(
+                                                answer.authorName.isNotEmpty ? answer.authorName.substring(0, 1) : 'ز',
+                                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: primaryColor),
+                                              ),
                                       ),
-                                    ),
-                                    if (isMyAnswer) ...[
-                                      const SizedBox(width: 5),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                        decoration: BoxDecoration(
-                                          color: primaryColor.withValues(alpha: isDark ? 0.3 : 0.15),
-                                          borderRadius: BorderRadius.circular(6),
-                                        ),
+                                      const SizedBox(width: 8),
+                                      Flexible(
                                         child: Text(
-                                          'إجابتك ✍️',
-                                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: primaryColor),
+                                          isMyAnswer ? 'أنت (إجابتك)' : answer.authorName,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            fontWeight: isMyAnswer ? FontWeight.w800 : FontWeight.bold,
+                                            fontSize: 12,
+                                            color: isMyAnswer ? primaryColor : onSurface,
+                                          ),
                                         ),
                                       ),
-                                    ] else if (isAuthorAnswer) ...[
-                                      const SizedBox(width: 5),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                                        decoration: BoxDecoration(
-                                          color: Colors.amber.withValues(alpha: isDark ? 0.25 : 0.15),
-                                          borderRadius: BorderRadius.circular(6),
+                                      if (isMyAnswer) ...[
+                                        const SizedBox(width: 5),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                          decoration: BoxDecoration(
+                                            color: primaryColor.withValues(alpha: isDark ? 0.3 : 0.15),
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            'إجابتك ✍️',
+                                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: primaryColor),
+                                          ),
                                         ),
-                                        child: const Text(
-                                          'صاحب السؤال 👤',
-                                          style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.amber),
+                                      ] else if (isAuthorAnswer) ...[
+                                        const SizedBox(width: 5),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                                          decoration: BoxDecoration(
+                                            color: Colors.amber.withValues(alpha: isDark ? 0.25 : 0.15),
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: const Text(
+                                            'صاحب السؤال 👤',
+                                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.amber),
+                                          ),
                                         ),
-                                      ),
+                                      ],
+                                      const SizedBox(width: 6),
+                                      Text('• ', style: TextStyle(fontSize: 10, color: textSecondary)),
                                     ],
-                                    const SizedBox(width: 6),
-                                    Text('• ${_formatTime(answer.createdAt)}', style: TextStyle(fontSize: 10, color: textSecondary)),
-                                  ],
+                                  ),
                                 ),
 
                                 // زر اعتماد الحل (يظهر لصاحب السؤال فقط)
