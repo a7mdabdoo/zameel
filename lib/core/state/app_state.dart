@@ -455,6 +455,38 @@ final userStudyBlocksCountProvider = Provider<int>((ref) {
   return completed.length;
 });
 
+// ==========================================
+// 5. مزود الستريك اليومي للمذاكرة (Daily Study Streak Provider 🔥)
+// ==========================================
+final userStreakProvider = Provider<int>((ref) {
+  final userProfileAsync = ref.watch(userProfileStreamProvider);
+  final userDoc = userProfileAsync.value?.data();
+  final completed = (userDoc?['completedBlockIds'] as List<dynamic>?)?.cast<String>() ?? [];
+
+  final plannerState = ref.watch(plannerProvider);
+  final now = DateTime.now();
+  const dayNames = {
+    DateTime.saturday: 'السبت',
+    DateTime.sunday: 'الأحد',
+    DateTime.monday: 'الاثنين',
+    DateTime.tuesday: 'الثلاثاء',
+    DateTime.wednesday: 'الأربعاء',
+    DateTime.thursday: 'الخميس',
+    DateTime.friday: 'الجمعة',
+  };
+  final todayArabic = dayNames[now.weekday] ?? 'السبت';
+  final todayBlocks = plannerState.studyBlocks.where((b) => b.day == todayArabic).toList();
+  final allTodayDone = todayBlocks.isNotEmpty && todayBlocks.every((b) => b.isCompleted);
+
+  final effectiveCompleted = List<String>.from(completed);
+  final todayKey = 'daily_done_${now.year}_${now.month}_${now.day}';
+  if (allTodayDone && !effectiveCompleted.contains(todayKey)) {
+    effectiveCompleted.add(todayKey);
+  }
+
+  return PlannerAlgorithm.calculateStudyStreak(effectiveCompleted, referenceDate: now);
+});
+
 // مزود المرشحين بناءً على خوارزمية التوافق
 final peerMatchesProvider = Provider<List<MatchResult>>((ref) {
   return MatchingAlgorithm.findMatches(

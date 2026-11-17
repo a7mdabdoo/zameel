@@ -47,6 +47,7 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
 
   late List<ScheduleItemModel> _lectures;
   String _selectedDay = 'السبت';
+  String? _selectedCourseId;
   CourseSeed? _selectedCourse;
   String _startTime = '09:00 ص';
   String _endTime = '10:30 ص';
@@ -65,25 +66,40 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
     final plannerState = ref.read(plannerProvider);
     _lectures = List<ScheduleItemModel>.from(plannerState.lectureSchedule);
     if (availableCourses.isNotEmpty) {
+      _selectedCourseId = availableCourses.first.id;
       _selectedCourse = availableCourses.first;
     }
     _isInitialized = true;
   }
 
   List<CourseSeed> _getAvailableCourses(Map<String, dynamic>? userDoc) {
-    if (userDoc == null) return List<CourseSeed>.from(AppConstants.seedCourses);
-    final coursesData = userDoc['coursesData'] as List<dynamic>?;
-    if (coursesData != null && coursesData.isNotEmpty) {
-      return coursesData
-          .map((m) => CourseSeed.fromMap(Map<String, dynamic>.from(m as Map)))
-          .toList();
+    List<CourseSeed> rawList;
+    if (userDoc == null) {
+      rawList = List<CourseSeed>.from(AppConstants.seedCourses);
+    } else {
+      final coursesData = userDoc['coursesData'] as List<dynamic>?;
+      if (coursesData != null && coursesData.isNotEmpty) {
+        rawList = coursesData
+            .map((m) => CourseSeed.fromMap(Map<String, dynamic>.from(m as Map)))
+            .toList();
+      } else {
+        final selectedIds = List<String>.from(userDoc['selectedCourses'] ?? []);
+        if (selectedIds.isNotEmpty) {
+          final list = CurriculumConstants.findCoursesByIds(selectedIds);
+          rawList = list.isNotEmpty ? list : List<CourseSeed>.from(AppConstants.seedCourses);
+        } else {
+          rawList = List<CourseSeed>.from(AppConstants.seedCourses);
+        }
+      }
     }
-    final selectedIds = List<String>.from(userDoc['selectedCourses'] ?? []);
-    if (selectedIds.isNotEmpty) {
-      final list = CurriculumConstants.findCoursesByIds(selectedIds);
-      if (list.isNotEmpty) return list;
+
+    final uniqueMap = <String, CourseSeed>{};
+    for (final c in rawList) {
+      if (c.id.isNotEmpty) {
+        uniqueMap.putIfAbsent(c.id, () => c);
+      }
     }
-    return List<CourseSeed>.from(AppConstants.seedCourses);
+    return uniqueMap.values.toList();
   }
 
   void _addLectureToList() {
@@ -163,6 +179,14 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
     final userDoc = userProfileAsync.value?.data();
     final availableCourses = _getAvailableCourses(userDoc);
     _initLectures(availableCourses);
+
+    final safeSelectedCourseId = availableCourses.any((c) => c.id == _selectedCourseId)
+        ? _selectedCourseId
+        : (availableCourses.isNotEmpty ? availableCourses.first.id : null);
+    _selectedCourseId = safeSelectedCourseId;
+    _selectedCourse = (safeSelectedCourseId != null && availableCourses.isNotEmpty)
+        ? availableCourses.firstWhere((c) => c.id == safeSelectedCourseId, orElse: () => availableCourses.first)
+        : null;
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -296,13 +320,13 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                         border: Border.all(color: hairline),
                       ),
                       child: DropdownButtonHideUnderline(
-                        child: DropdownButton<CourseSeed>(
-                          value: _selectedCourse ?? (availableCourses.isNotEmpty ? availableCourses.first : null),
+                        child: DropdownButton<String>(
+                          value: safeSelectedCourseId,
                           isExpanded: true,
                           dropdownColor: cardColor,
                           items: availableCourses.map((c) {
-                            return DropdownMenuItem(
-                              value: c,
+                            return DropdownMenuItem<String>(
+                              value: c.id,
                               child: Row(
                                 children: [
                                   Container(
@@ -323,7 +347,15 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                             );
                           }).toList(),
                           onChanged: (val) {
-                            if (val != null) setState(() => _selectedCourse = val);
+                            if (val != null) {
+                              setState(() {
+                                _selectedCourseId = val;
+                                _selectedCourse = availableCourses.firstWhere(
+                                  (c) => c.id == val,
+                                  orElse: () => availableCourses.first,
+                                );
+                              });
+                            }
                           },
                         ),
                       ),

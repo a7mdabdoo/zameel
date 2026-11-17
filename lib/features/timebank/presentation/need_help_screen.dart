@@ -32,6 +32,11 @@ class _NeedHelpScreenState extends State<NeedHelpScreen> {
     final hairline = isDark ? AppColors.darkHairline : AppColors.hairline;
     final onSurface = theme.colorScheme.onSurface;
 
+    final effectiveCourse = AppConstants.seedCourses.firstWhere(
+      (c) => c.id == _selectedCourse.id,
+      orElse: () => AppConstants.seedCourses.first,
+    );
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -88,7 +93,7 @@ class _NeedHelpScreenState extends State<NeedHelpScreen> {
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<CourseSeed>(
-                    value: _selectedCourse,
+                    value: effectiveCourse,
                     isExpanded: true,
                     dropdownColor: cardColor,
                     items: AppConstants.seedCourses.map((c) {
