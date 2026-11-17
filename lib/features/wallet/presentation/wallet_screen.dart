@@ -37,6 +37,16 @@ class WalletScreen extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: theme.cardTheme.color,
         elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_forward_ios_rounded, color: theme.colorScheme.onSurface),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/profile');
+            }
+          },
+        ),
         title: Text(
           'محفظة الوقت 🪙',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),

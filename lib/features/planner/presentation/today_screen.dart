@@ -252,7 +252,7 @@ class TodayScreen extends ConsumerWidget {
 
               // Quick Q&A forum banner
               InkWell(
-                onTap: () => context.push('/questions'),
+                onTap: () => context.go('/questions'),
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),

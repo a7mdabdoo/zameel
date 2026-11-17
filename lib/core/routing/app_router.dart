@@ -219,8 +219,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => SessionChatScreen(session: state.extra as TimeBankSessionModel),
       ),
       GoRoute(
-        path: '/questions',
-        builder: (context, state) => const QuestionsScreen(),
+        path: '/wallet',
+        builder: (context, state) => const WalletScreen(),
       ),
       GoRoute(
         path: '/ask-question',
@@ -254,16 +254,16 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/timebank',
-                builder: (context, state) => const MyOffersScreen(),
+                path: '/questions',
+                builder: (context, state) => const QuestionsScreen(),
               ),
             ],
           ),
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/wallet',
-                builder: (context, state) => const WalletScreen(),
+                path: '/timebank',
+                builder: (context, state) => const MyOffersScreen(),
               ),
             ],
           ),

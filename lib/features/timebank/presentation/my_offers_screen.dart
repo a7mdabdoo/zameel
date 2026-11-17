@@ -78,7 +78,7 @@ class _MyOffersScreenState extends ConsumerState<MyOffersScreen> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 2),
               child: InkWell(
-                onTap: () => context.push('/questions'),
+                onTap: () => context.go('/questions'),
                 borderRadius: BorderRadius.circular(14),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),

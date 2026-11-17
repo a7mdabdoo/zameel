@@ -81,10 +81,13 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_forward_ios_rounded, color: onSurface),
-          onPressed: () => context.pop(),
-        ),
+        automaticallyImplyLeading: false,
+        leading: context.canPop()
+            ? IconButton(
+                icon: Icon(Icons.arrow_forward_ios_rounded, color: onSurface),
+                onPressed: () => context.pop(),
+              )
+            : null,
         title: Column(
           children: [
             Text(
