@@ -157,14 +157,22 @@ service cloud.firestore {
     function isSessionParticipant(sessionId) {
       let session = getSession(sessionId);
       return isAuthenticated()
-        && (session.learnerId == request.auth.uid || session.teacherId == request.auth.uid);
+        && (
+          session.learnerId == request.auth.uid
+          || session.teacherId == request.auth.uid
+          || ('enrolledLearnerIds' in session && session.enrolledLearnerIds is list && request.auth.uid in session.enrolledLearnerIds)
+        );
     }
 
     // 6. التحقق من صحة إنشاء رسالة داخل الجلسة
     function isValidMessageCreate(sessionId) {
       let session = getSession(sessionId);
       return isEmailVerified()
-        && (session.learnerId == request.auth.uid || session.teacherId == request.auth.uid)
+        && (
+          session.learnerId == request.auth.uid
+          || session.teacherId == request.auth.uid
+          || ('enrolledLearnerIds' in session && session.enrolledLearnerIds is list && request.auth.uid in session.enrolledLearnerIds)
+        )
         && request.resource.data.senderId == request.auth.uid
         && request.resource.data.text is string
         && request.resource.data.text.size() > 0
@@ -189,9 +197,17 @@ service cloud.firestore {
         && data.durationMinutes in [30, 60]
         && data.location is string
         && (!('mode' in data) || data.mode in ['online', 'in_person'])
-        && !('meetingUrl' in data)
-        && !('meetingLink' in data)
-        && !('link' in data)
+        && (
+          !('meetingUrl' in data)
+          || data.meetingUrl == null
+          || isValidMeetingUrl(data.meetingUrl)
+        )
+        && (!('isGroupSession' in data) || data.isGroupSession is bool)
+        && (!('maxLearners' in data) || data.maxLearners == null || data.maxLearners is int)
+        && (!('enrolledLearnerIds' in data) || data.enrolledLearnerIds is list)
+        && (!('isFlexibleRange' in data) || data.isFlexibleRange is bool)
+        && (!('timeRangeStart' in data) || data.timeRangeStart == null || data.timeRangeStart is string)
+        && (!('timeRangeEnd' in data) || data.timeRangeEnd == null || data.timeRangeEnd is string)
         && ('slots' in data && data.slots is list && data.slots.size() > 0 && data.slots.size() <= 7)
         && isValidSlot(data.slots[0])
         && (data.slots.size() < 2 || isValidSlot(data.slots[1]))
@@ -584,6 +600,54 @@ service cloud.firestore {
 
       // لا يسمح بحذف أقفال المواعيد إطلاقاً
       allow delete: if false;
+    }
+
+    // ==========================================
+    // 6. منتدى الأسئلة والحلول الأكاديمي (Academic Q&A Forum)
+    // ==========================================
+    match /questions/{questionId} {
+      // القراءة متاحة لجميع الطلاب المسجلين
+      allow read: if isAuthenticated();
+
+      // نشر سؤال جديد
+      allow create: if isEmailVerified()
+        && request.resource.data.authorId == request.auth.uid
+        && request.resource.data.title is string && request.resource.data.title.size() > 0
+        && request.resource.data.body is string && request.resource.data.body.size() > 0
+        && request.resource.data.academicYear is string
+        && request.resource.data.courseId is string
+        && ('createdAt' in request.resource.data);
+
+      // تحديث السؤال (تعديل المحتوى للمؤلف، أو تحديث عداد الإجابات)
+      allow update: if isEmailVerified() && (
+        resource.data.authorId == request.auth.uid
+        || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['answersCount'])
+      );
+
+      // حذف السؤال متاح فقط للناشر
+      allow delete: if isEmailVerified() && resource.data.authorId == request.auth.uid;
+
+      // الردود والحلول الأكاديمية
+      match /answers/{answerId} {
+        allow read: if isAuthenticated();
+
+        allow create: if isEmailVerified()
+          && request.resource.data.authorId == request.auth.uid
+          && request.resource.data.text is string && request.resource.data.text.size() > 0
+          && ('createdAt' in request.resource.data);
+
+        allow update: if isEmailVerified() && (
+          // كاتب الإجابة يعدلها
+          resource.data.authorId == request.auth.uid
+          // أو صاحب السؤال الأصلي يحددها كحل معتمد (isAcceptedSolution)
+          || (
+            get(/databases/$(database)/documents/questions/$(questionId)).data.authorId == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['isAcceptedSolution'])
+          )
+        );
+
+        allow delete: if isEmailVerified() && resource.data.authorId == request.auth.uid;
+      }
     }
   }
 }

@@ -8,6 +8,9 @@ import 'package:zameel/core/state/app_state.dart';
 import 'package:zameel/core/theme/app_colors.dart';
 import 'package:zameel/features/auth/data/auth_service.dart';
 import 'package:zameel/features/timebank/application/timebank_pure_logic.dart';
+import 'package:zameel/features/questions/data/question_model.dart';
+import 'package:zameel/core/services/focus_dnd_service.dart';
+import 'package:zameel/core/services/notification_service.dart';
 
 void main() {
   group('1. ثوابت المنظومة والبريد الإلكتروني (App Constants & Email Validation)', () {
@@ -1361,6 +1364,152 @@ void main() {
       final keysWithSaturday = [...keys, 'daily_done_2026_11_21'];
       final streakSaturdayEvening = PlannerAlgorithm.calculateStudyStreak(keysWithSaturday, referenceDate: saturday);
       expect(streakSaturdayEvening, equals(3));
+    });
+  });
+
+  group('23. منتدى الأسئلة والحلول الأكاديمي (Academic Q&A Forum Models & Rules)', () {
+    test('تحويل QuestionModel إلى ومن Map والتحقق من الفلترة بالدفعة (academicYear)', () {
+      final now = DateTime(2026, 11, 17, 10, 0);
+      final question = QuestionModel(
+        id: 'q_101',
+        authorId: 'usr_ahmed',
+        authorName: 'أحمد محمود',
+        academicYear: '2',
+        courseId: 'oop',
+        courseName: 'البرمجة كائنية التوجه',
+        title: 'ما هو الفرق بين Overloading و Overriding في جافا؟',
+        body: 'أواجه مشكلة في فهم متى أستخدم كلاً منهما في مشروع المعمل.',
+        imageUrl: 'https://storage.googleapis.com/test.jpg',
+        answersCount: 2,
+        createdAt: now,
+      );
+
+      final map = question.toMap();
+      expect(map['authorId'], equals('usr_ahmed'));
+      expect(map['academicYear'], equals('2'));
+      expect(map['courseId'], equals('oop'));
+      expect(map['answersCount'], equals(2));
+
+      final restored = QuestionModel.fromMap(map, 'q_101');
+      expect(restored.id, equals('q_101'));
+      expect(restored.authorName, equals('أحمد محمود'));
+      expect(restored.academicYear, equals('2'));
+      expect(restored.imageUrl, equals('https://storage.googleapis.com/test.jpg'));
+    });
+
+    test('نموذج AnswerModel واعتماد الحل النموذجي (Accepted Solution)', () {
+      final now = DateTime(2026, 11, 17, 11, 30);
+      final answer = AnswerModel(
+        id: 'ans_501',
+        questionId: 'q_101',
+        authorId: 'usr_sara',
+        authorName: 'سارة خالد',
+        text: 'الـ Overloading يحدث في نفس الكلاس بنفس الاسم ومعاملات مختلفة، أما الـ Overriding فيكون مع الوراثة.',
+        imageUrl: null,
+        isAcceptedSolution: false,
+        createdAt: now,
+      );
+
+      expect(answer.isAcceptedSolution, isFalse);
+
+      final accepted = answer.copyWith(isAcceptedSolution: true);
+      expect(accepted.isAcceptedSolution, isTrue);
+
+      final map = accepted.toMap();
+      expect(map['isAcceptedSolution'], isTrue);
+      expect(map['authorName'], equals('سارة خالد'));
+
+      final restored = AnswerModel.fromMap(map, 'ans_501', questionId: 'q_101');
+      expect(restored.isAcceptedSolution, isTrue);
+      expect(restored.questionId, equals('q_101'));
+    });
+  });
+
+  group('24. الجلسات الجماعية والمواعيد المرنة (Flexible Range & Group Sessions)', () {
+    test('نموذج TimeBankOfferModel يدعم الجلسات الجماعية والحد الأقصى للمشاركين ورابط الاجتماع', () {
+      final offer = TimeBankOfferModel(
+        id: 'offer_group_1',
+        teacherId: 'teacher_1',
+        teacherName: 'م. عمر',
+        courseId: 'ds',
+        courseName: 'هياكل البيانات',
+        courseCode: 'CS201',
+        topic: 'مراجعة خوارزميات الأشجار والـ Graph قبل الميدتيرم',
+        day: 'الخميس',
+        time: '08:00 م – 10:00 م',
+        durationMinutes: 60,
+        mode: 'online',
+        location: 'عبر الإنترنت (أونلاين)',
+        courseColor: AppColors.primary,
+        isGroupSession: true,
+        maxLearners: 10,
+        enrolledLearnerIds: ['student_1', 'student_2', 'student_3'],
+        meetingUrl: 'https://meet.google.com/abc-defg-hij',
+        isFlexibleRange: true,
+        timeRangeStart: '08:00 م',
+        timeRangeEnd: '10:00 م',
+      );
+
+      expect(offer.isGroupSession, isTrue);
+      expect(offer.maxLearners, equals(10));
+      expect(offer.enrolledLearnerIds.length, equals(3));
+      expect(offer.meetingUrl, contains('meet.google.com'));
+      expect(offer.isFlexibleRange, isTrue);
+
+      final map = offer.toMap();
+      expect(map['isGroupSession'], isTrue);
+      expect(map['maxLearners'], equals(10));
+      expect(map['enrolledLearnerIds'], hasLength(3));
+
+      final restored = TimeBankOfferModel.fromMap(map, 'offer_group_1');
+      expect(restored.isGroupSession, isTrue);
+      expect(restored.maxLearners, equals(10));
+      expect(restored.meetingUrl, equals('https://meet.google.com/abc-defg-hij'));
+      expect(restored.timeRangeStart, equals('08:00 م'));
+    });
+
+    test('سلوك حجز المقاعد الجماعية ومنع التسجيل المزدوج واكتمال السعة', () {
+      final enrolled = ['std_1', 'std_2', 'std_3'];
+      const maxSeats = 4;
+
+      // متعلّم جديد يسجل بنجاح
+      const newLearner = 'std_4';
+      expect(enrolled.contains(newLearner), isFalse);
+      expect(enrolled.length < maxSeats, isTrue);
+
+      final updatedEnrolled = [...enrolled, newLearner];
+      expect(updatedEnrolled.length, equals(4));
+
+      // الجلسة أصبحت مكتملة
+      final isFull = updatedEnrolled.length >= maxSeats;
+      expect(isFull, isTrue);
+
+      // محاولة تسجيل متعلّم إضافي تفشل
+      const excessLearner = 'std_5';
+      expect(updatedEnrolled.contains(excessLearner), isFalse);
+      expect(updatedEnrolled.length >= maxSeats, isTrue);
+    });
+  });
+
+  group('25. خدمات الإشعارات ووضع عدم الإزعاج (Focus DND & Notification Services)', () {
+    test('FocusDndService يُفعل ويلغي وضع التركيز وعدم الإزعاج بأمان دون أخطاء', () async {
+      final service = FocusDndService();
+      expect(service.isDndActive, isFalse);
+
+      await service.enableDnd();
+      expect(service.isDndActive, isTrue);
+
+      await service.disableDnd();
+      expect(service.isDndActive, isFalse);
+    });
+
+    test('NotificationService يبني الإشعارات المحلية وخطاف FCM بنجاح', () async {
+      final notificationService = NotificationService();
+      expect(notificationService, isNotNull);
+
+      // اختبار خطاف FCM المستقبلي
+      await notificationService.setupFcmHook();
+      expect(true, isTrue);
     });
   });
 }

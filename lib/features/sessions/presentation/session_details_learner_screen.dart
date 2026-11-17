@@ -10,7 +10,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../auth/data/auth_service.dart';
 import '../../timebank/application/timebank_pure_logic.dart';
 import '../../timebank/data/timebank_repository.dart';
-import 'widgets/session_chat_sheet.dart';
 
 class SessionDetailsLearnerScreen extends ConsumerStatefulWidget {
   final TimeBankSessionModel? session;
@@ -392,7 +391,7 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                 SizedBox(
                   height: 48,
                   child: OutlinedButton.icon(
-                    onPressed: () => SessionChatSheet.show(context, session, teacherName),
+                    onPressed: () => context.push('/session-chat', extra: session),
                     icon: const Icon(Icons.forum_outlined, color: AppColors.primary),
                     label: Text(
                       'محادثة لتنسيق اللقاء مع $teacherName 💬',

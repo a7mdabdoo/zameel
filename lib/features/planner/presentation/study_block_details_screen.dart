@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/models/app_models.dart';
 import '../../../core/state/app_state.dart';
+import '../../../core/services/focus_dnd_service.dart';
 import '../../auth/data/auth_service.dart';
 import '../../timebank/data/timebank_repository.dart';
 
@@ -74,6 +75,7 @@ class _StudyBlockDetailsScreenState
   @override
   void dispose() {
     _timer?.cancel();
+    ref.read(focusDndServiceProvider).disableDnd();
     super.dispose();
   }
 
@@ -87,12 +89,16 @@ class _StudyBlockDetailsScreenState
 
   void _startTimer() {
     setState(() => _isRunning = true);
+    if (_currentMode == 0) {
+      ref.read(focusDndServiceProvider).enableDnd();
+    }
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) return;
       if (_secondsLeft > 0) {
         setState(() => _secondsLeft--);
       } else {
         _timer?.cancel();
+        ref.read(focusDndServiceProvider).disableDnd();
         setState(() => _isRunning = false);
         _onSessionComplete();
       }
@@ -101,12 +107,14 @@ class _StudyBlockDetailsScreenState
 
   void _pauseTimer() {
     _timer?.cancel();
+    ref.read(focusDndServiceProvider).disableDnd();
     setState(() => _isRunning = false);
   }
 
   void _switchMode(int mode) {
     if (_currentMode == mode) return;
     _timer?.cancel();
+    ref.read(focusDndServiceProvider).disableDnd();
     setState(() {
       _currentMode = mode;
       _isRunning = false;
@@ -128,6 +136,7 @@ class _StudyBlockDetailsScreenState
 
   void _resetTimer() {
     _timer?.cancel();
+    ref.read(focusDndServiceProvider).disableDnd();
     setState(() {
       _isRunning = false;
       _secondsLeft = _totalSeconds;
@@ -871,6 +880,61 @@ class _StudyBlockDetailsScreenState
                                   fontSize: 12,
                                   color: AppColors.textSecondary),
                             ),
+                            if (_isRunning && _currentMode == 0) ...[
+                              const SizedBox(height: 8),
+                              GestureDetector(
+                                onTap: () async {
+                                  final hasPerm = await ref.read(focusDndServiceProvider).hasPermission();
+                                  if (!context.mounted) return;
+                                  if (!hasPerm) {
+                                    showDialog(
+                                      context: context,
+                                      builder: (ctx) => AlertDialog(
+                                        title: const Text('وضع عدم الإزعاج (DND)'),
+                                        content: const Text(
+                                          'لتفعيل الصامت التلقائي وكتم الإشعارات الخارجية على هاتفك أثناء جلسات التركيز، يرجى منح إذن الوصول للإشعارات، أو تفعيل نمط عدم الإزعاج يدوياً من مركز التحكم.',
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(ctx),
+                                            child: const Text('لاحقاً'),
+                                          ),
+                                          FilledButton(
+                                            onPressed: () {
+                                              Navigator.pop(ctx);
+                                              ref.read(focusDndServiceProvider).openDndSettings();
+                                            },
+                                            child: const Text('فتح الإعدادات'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.do_not_disturb_on_rounded, size: 14, color: AppColors.primary),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'وضع التركيز وعدم الإزعاج نشط 🔕',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ],

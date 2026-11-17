@@ -310,6 +310,9 @@ class TimeBankSessionModel {
   final String? disputeReason;
   final String? teacherContact;
   final String? learnerContact;
+  final bool isGroupSession;
+  final List<String> enrolledLearnerIds;
+  final int? maxLearners;
 
   const TimeBankSessionModel({
     required this.id,
@@ -345,6 +348,9 @@ class TimeBankSessionModel {
     this.disputeReason,
     this.teacherContact,
     this.learnerContact,
+    this.isGroupSession = false,
+    this.enrolledLearnerIds = const [],
+    this.maxLearners,
   });
 
   Map<String, dynamic> toMap() {
@@ -382,6 +388,9 @@ class TimeBankSessionModel {
       'disputeReason': disputeReason,
       'teacherContact': teacherContact,
       'learnerContact': learnerContact,
+      'isGroupSession': isGroupSession,
+      'enrolledLearnerIds': enrolledLearnerIds,
+      'maxLearners': maxLearners,
     };
   }
 
@@ -429,6 +438,9 @@ class TimeBankSessionModel {
       disputeReason: map['disputeReason'] as String?,
       teacherContact: map['teacherContact'] as String?,
       learnerContact: map['learnerContact'] as String?,
+      isGroupSession: map['isGroupSession'] as bool? ?? false,
+      enrolledLearnerIds: (map['enrolledLearnerIds'] as List<dynamic>?)?.cast<String>() ?? const [],
+      maxLearners: (map['maxLearners'] as num?)?.toInt(),
     );
   }
 
@@ -451,6 +463,9 @@ class TimeBankSessionModel {
     String? disputeReason,
     String? teacherContact,
     String? learnerContact,
+    bool? isGroupSession,
+    List<String>? enrolledLearnerIds,
+    int? maxLearners,
   }) {
     return TimeBankSessionModel(
       id: id,
@@ -486,6 +501,9 @@ class TimeBankSessionModel {
       disputeReason: disputeReason ?? this.disputeReason,
       teacherContact: teacherContact ?? this.teacherContact,
       learnerContact: learnerContact ?? this.learnerContact,
+      isGroupSession: isGroupSession ?? this.isGroupSession,
+      enrolledLearnerIds: enrolledLearnerIds ?? this.enrolledLearnerIds,
+      maxLearners: maxLearners ?? this.maxLearners,
     );
   }
 }
@@ -618,6 +636,13 @@ class TimeBankOfferModel {
   final bool isAvailable;
   final List<OfferTimeSlot> slots;
   final DateTime? createdAt;
+  final bool isGroupSession;
+  final int? maxLearners;
+  final List<String> enrolledLearnerIds;
+  final String? meetingUrl;
+  final bool isFlexibleRange;
+  final String? timeRangeStart;
+  final String? timeRangeEnd;
 
   const TimeBankOfferModel({
     required this.id,
@@ -636,6 +661,13 @@ class TimeBankOfferModel {
     this.isAvailable = true,
     this.slots = const [],
     this.createdAt,
+    this.isGroupSession = false,
+    this.maxLearners,
+    this.enrolledLearnerIds = const [],
+    this.meetingUrl,
+    this.isFlexibleRange = false,
+    this.timeRangeStart,
+    this.timeRangeEnd,
   });
 
   Map<String, dynamic> toMap() {
@@ -656,6 +688,13 @@ class TimeBankOfferModel {
       'isAvailable': isAvailable,
       'slots': slots.map((s) => s.toMap()).toList(),
       'createdAt': createdAt?.toIso8601String(),
+      'isGroupSession': isGroupSession,
+      'maxLearners': maxLearners,
+      'enrolledLearnerIds': enrolledLearnerIds,
+      'meetingUrl': meetingUrl,
+      'isFlexibleRange': isFlexibleRange,
+      'timeRangeStart': timeRangeStart,
+      'timeRangeEnd': timeRangeEnd,
     };
   }
 
@@ -729,6 +768,13 @@ class TimeBankOfferModel {
         createdAt: map['createdAt'] != null
             ? DateTime.tryParse(map['createdAt'].toString())
             : null,
+        isGroupSession: map['isGroupSession'] as bool? ?? false,
+        maxLearners: (map['maxLearners'] as num?)?.toInt(),
+        enrolledLearnerIds: (map['enrolledLearnerIds'] as List<dynamic>?)?.cast<String>() ?? const [],
+        meetingUrl: map['meetingUrl'] as String?,
+        isFlexibleRange: map['isFlexibleRange'] as bool? ?? false,
+        timeRangeStart: map['timeRangeStart'] as String?,
+        timeRangeEnd: map['timeRangeEnd'] as String?,
       );
     } catch (_) {
       return null;
@@ -756,6 +802,65 @@ class TimeBankOfferModel {
       isAvailable: map['isAvailable'] as bool? ?? true,
       slots: const [],
       createdAt: null,
+      isGroupSession: map['isGroupSession'] as bool? ?? false,
+      maxLearners: (map['maxLearners'] as num?)?.toInt(),
+      enrolledLearnerIds: (map['enrolledLearnerIds'] as List<dynamic>?)?.cast<String>() ?? const [],
+      meetingUrl: map['meetingUrl'] as String?,
+      isFlexibleRange: map['isFlexibleRange'] as bool? ?? false,
+      timeRangeStart: map['timeRangeStart'] as String?,
+      timeRangeEnd: map['timeRangeEnd'] as String?,
+    );
+  }
+
+  TimeBankOfferModel copyWith({
+    String? id,
+    String? teacherId,
+    String? teacherName,
+    String? courseId,
+    String? courseName,
+    String? courseCode,
+    String? topic,
+    String? day,
+    String? time,
+    int? durationMinutes,
+    String? location,
+    String? mode,
+    Color? courseColor,
+    bool? isAvailable,
+    List<OfferTimeSlot>? slots,
+    DateTime? createdAt,
+    bool? isGroupSession,
+    int? maxLearners,
+    List<String>? enrolledLearnerIds,
+    String? meetingUrl,
+    bool? isFlexibleRange,
+    String? timeRangeStart,
+    String? timeRangeEnd,
+  }) {
+    return TimeBankOfferModel(
+      id: id ?? this.id,
+      teacherId: teacherId ?? this.teacherId,
+      teacherName: teacherName ?? this.teacherName,
+      courseId: courseId ?? this.courseId,
+      courseName: courseName ?? this.courseName,
+      courseCode: courseCode ?? this.courseCode,
+      topic: topic ?? this.topic,
+      day: day ?? this.day,
+      time: time ?? this.time,
+      durationMinutes: durationMinutes ?? this.durationMinutes,
+      location: location ?? this.location,
+      mode: mode ?? this.mode,
+      courseColor: courseColor ?? this.courseColor,
+      isAvailable: isAvailable ?? this.isAvailable,
+      slots: slots ?? this.slots,
+      createdAt: createdAt ?? this.createdAt,
+      isGroupSession: isGroupSession ?? this.isGroupSession,
+      maxLearners: maxLearners ?? this.maxLearners,
+      enrolledLearnerIds: enrolledLearnerIds ?? this.enrolledLearnerIds,
+      meetingUrl: meetingUrl ?? this.meetingUrl,
+      isFlexibleRange: isFlexibleRange ?? this.isFlexibleRange,
+      timeRangeStart: timeRangeStart ?? this.timeRangeStart,
+      timeRangeEnd: timeRangeEnd ?? this.timeRangeEnd,
     );
   }
 }

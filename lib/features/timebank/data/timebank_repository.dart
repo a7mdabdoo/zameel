@@ -27,6 +27,7 @@ class TimeBankRepository {
   // =========================================================================
   Future<TimeBankSessionModel> bookSessionWithEscrow({
     required TimeBankSessionModel session,
+    String? offerId,
   }) async {
     final firestore = _firestore;
     if (firestore == null) {
@@ -40,6 +41,9 @@ class TimeBankRepository {
     final sessionDocRef = firestore.collection('sessions').doc(session.id);
     final txId = '${session.id}_booking';
     final txDocRef = firestore.collection('transactions').doc(txId);
+    final offerDocRef = (offerId != null && offerId.isNotEmpty)
+        ? firestore.collection('offers').doc(offerId)
+        : null;
 
     await firestore.runTransaction((transaction) async {
       // 1. قراءة بيانات المتعلّم للتحقق من الرصيد
@@ -55,14 +59,47 @@ class TimeBankRepository {
         currentEscrowStatus: null,
       );
 
+      // 1-أ. التحقق من العرض في حالة الجلسات الجماعية
+      if (offerDocRef != null) {
+        final offerSnap = await transaction.get(offerDocRef);
+        if (offerSnap.exists) {
+          final offerData = offerSnap.data() as Map<String, dynamic>;
+          final enrolled = (offerData['enrolledLearnerIds'] as List<dynamic>?)?.cast<String>() ?? [];
+          final maxL = (offerData['maxLearners'] as num?)?.toInt() ?? 10;
+          final isGroup = offerData['isGroupSession'] as bool? ?? session.isGroupSession;
+
+          if (isGroup) {
+            if (enrolled.contains(session.learnerId)) {
+              throw Exception('أنت مسجل بالفعل في هذه الجلسة الجماعية');
+            }
+            if (enrolled.length >= maxL) {
+              throw Exception('عفواً، اكتمل العدد الأقصى للمشاركين في هذه الجلسة');
+            }
+            final updatedEnrolled = [...enrolled, session.learnerId];
+            transaction.update(offerDocRef, {
+              'enrolledLearnerIds': FieldValue.arrayUnion([session.learnerId]),
+              if (updatedEnrolled.length >= maxL) 'isAvailable': false,
+            });
+          }
+        }
+      }
+
       // 2. قراءة أقفال المواعيد المزدوجة (Slot Locks) للتحقق من خلوها
       final lockIds = session.scheduledAt != null
-          ? TimeBankPureLogic.getLockDocIds(
-              learnerId: session.learnerId,
-              teacherId: session.teacherId,
-              scheduledAt: session.scheduledAt!,
-              durationMinutes: session.durationMinutes,
-            )
+          ? (session.isGroupSession
+              ? [
+                  for (final epoch in TimeBankPureLogic.getSessionSlotEpochs(
+                    scheduledAt: session.scheduledAt!,
+                    durationMinutes: session.durationMinutes,
+                  ))
+                    '${session.learnerId}_$epoch'
+                ]
+              : TimeBankPureLogic.getLockDocIds(
+                  learnerId: session.learnerId,
+                  teacherId: session.teacherId,
+                  scheduledAt: session.scheduledAt!,
+                  durationMinutes: session.durationMinutes,
+                ))
           : <String>[];
 
       final lockSnaps = <DocumentSnapshot>[];
@@ -85,11 +122,11 @@ class TimeBankRepository {
         'lastSessionId': session.id,
       });
 
-      // 4. إنشاء مستند الجلسة مع حالة ضمان معلّق (Escrow Held) وبانتظار موافقة الشارح (pending)
+      // 4. إنشاء مستند الجلسة مع حالة ضمان معلّق (Escrow Held)
       final sessionData = session.toMap();
       sessionData['costCoins'] = AppConstants.sessionCostCoins;
       sessionData['escrowStatus'] = 'held';
-      sessionData['status'] = 'pending';
+      sessionData['status'] = session.isGroupSession ? 'confirmed' : 'pending';
       sessionData['createdAt'] = FieldValue.serverTimestamp();
       if (session.scheduledAt != null) {
         sessionData['scheduledAt'] = Timestamp.fromDate(session.scheduledAt!);
@@ -101,7 +138,9 @@ class TimeBankRepository {
         id: txId,
         userId: session.learnerId,
         sessionId: session.id,
-        title: 'حجز جلسة ${session.courseName} (في الضمان)',
+        title: session.isGroupSession
+            ? 'حجز مقعد بجلسة ${session.courseName} الجماعية (في الضمان)'
+            : 'حجز جلسة ${session.courseName} (في الضمان)',
         date: 'الآن',
         amount: AppConstants.sessionCostCoins,
         isNegative: true,
@@ -120,8 +159,6 @@ class TimeBankRepository {
         );
         for (final epoch in slotEpochs) {
           final learnerLockRef = firestore.collection('slotLocks').doc('${session.learnerId}_$epoch');
-          final teacherLockRef = firestore.collection('slotLocks').doc('${session.teacherId}_$epoch');
-
           transaction.set(learnerLockRef, {
             'uid': session.learnerId,
             'slotEpochMs': epoch,
@@ -130,19 +167,22 @@ class TimeBankRepository {
             'createdAt': FieldValue.serverTimestamp(),
           });
 
-          transaction.set(teacherLockRef, {
-            'uid': session.teacherId,
-            'slotEpochMs': epoch,
-            'sessionId': session.id,
-            'status': 'active',
-            'createdAt': FieldValue.serverTimestamp(),
-          });
+          if (!session.isGroupSession) {
+            final teacherLockRef = firestore.collection('slotLocks').doc('${session.teacherId}_$epoch');
+            transaction.set(teacherLockRef, {
+              'uid': session.teacherId,
+              'slotEpochMs': epoch,
+              'sessionId': session.id,
+              'status': 'active',
+              'createdAt': FieldValue.serverTimestamp(),
+            });
+          }
         }
       }
     });
 
     return session.copyWith(
-      status: 'pending',
+      status: session.isGroupSession ? 'confirmed' : 'pending',
       escrowStatus: 'held',
     );
   }

@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/models/app_models.dart';
 import '../../../auth/data/auth_service.dart';
@@ -186,7 +187,14 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
                     ),
                   ],
                 ),
-                const SizedBox(width: 40),
+                IconButton(
+                  icon: const Icon(Icons.fullscreen_rounded),
+                  tooltip: 'فتح في شاشة كاملة',
+                  onPressed: () {
+                    Navigator.pop(context);
+                    context.push('/session-chat', extra: widget.session);
+                  },
+                ),
               ],
             ),
           ),

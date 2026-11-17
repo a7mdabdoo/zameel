@@ -25,6 +25,10 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
   final _offlineLocationController = TextEditingController(text: 'مكتبة الكلية • قاعة الاستذكار 2');
   bool _isOnline = false;
   bool _isPublishing = false;
+  bool _isGroupSession = false;
+  int _maxLearners = 5;
+  final _meetingUrlController = TextEditingController();
+  bool _isFlexibleRange = false;
 
   // فترات الإتاحة الأسبوعية (Africa/Cairo)
   final List<OfferTimeSlot> _slots = [
@@ -43,6 +47,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
   void dispose() {
     _topicController.dispose();
     _offlineLocationController.dispose();
+    _meetingUrlController.dispose();
     super.dispose();
   }
 
@@ -185,6 +190,19 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
         isAvailable: true,
         slots: _slots,
         createdAt: DateTime.now(),
+        isGroupSession: _isGroupSession,
+        maxLearners: _isGroupSession ? _maxLearners : null,
+        enrolledLearnerIds: const [],
+        meetingUrl: (_isOnline && _meetingUrlController.text.trim().isNotEmpty)
+            ? _meetingUrlController.text.trim()
+            : null,
+        isFlexibleRange: _isFlexibleRange,
+        timeRangeStart: _isFlexibleRange && _slots.isNotEmpty
+            ? OfferTimeSlot.formatMinutes(_slots.first.startMin)
+            : null,
+        timeRangeEnd: _isFlexibleRange && _slots.isNotEmpty
+            ? OfferTimeSlot.formatMinutes(_slots.first.endMin)
+            : null,
       );
 
       await ref.read(timeBankRepositoryProvider).createOffer(newOffer);
@@ -491,6 +509,47 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                 ),
               ),
 
+              // مرونة المواعيد (Flexible Range)
+              Container(
+                margin: const EdgeInsets.only(top: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: _isFlexibleRange
+                      ? AppColors.primary.withValues(alpha: 0.08)
+                      : Theme.of(context).cardTheme.color,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _isFlexibleRange ? AppColors.primary : AppColors.hairline,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.tune_rounded, size: 20, color: AppColors.primary),
+                    const SizedBox(width: 10),
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'إتاحة نافذة زمنية مرنة ⏳',
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                            'تسمح للطالب باختيار أي 60 دقيقة تناسبه داخل النطاق',
+                            style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Switch.adaptive(
+                      value: _isFlexibleRange,
+                      activeTrackColor: AppColors.primary,
+                      onChanged: (val) => setState(() => _isFlexibleRange = val),
+                    ),
+                  ],
+                ),
+              ),
+
               const SizedBox(height: 20),
 
               // Meeting Mode: Offline vs Online
@@ -566,6 +625,144 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                 ],
               ),
 
+              const SizedBox(height: 20),
+
+              // نوع الجلسة (فردية vs جماعية)
+              Text('نوع الجلسة وعدد المشاركين', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => setState(() => _isGroupSession = false),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: !_isGroupSession ? AppColors.primary.withValues(alpha: 0.12) : Theme.of(context).cardTheme.color,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: !_isGroupSession ? AppColors.primary : AppColors.hairline,
+                            width: !_isGroupSession ? 1.5 : 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.person_outline_rounded, size: 18, color: !_isGroupSession ? AppColors.primary : AppColors.textSecondary),
+                            const SizedBox(width: 8),
+                            Text(
+                              'فردية (1-on-1) 👤',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: !_isGroupSession ? AppColors.primary : Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => setState(() => _isGroupSession = true),
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: _isGroupSession ? AppColors.primary.withValues(alpha: 0.12) : Theme.of(context).cardTheme.color,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _isGroupSession ? AppColors.primary : AppColors.hairline,
+                            width: _isGroupSession ? 1.5 : 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.groups_outlined, size: 18, color: _isGroupSession ? AppColors.primary : AppColors.textSecondary),
+                            const SizedBox(width: 8),
+                            Text(
+                              'جماعية (Group) 👥',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: _isGroupSession ? AppColors.primary : Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              if (_isGroupSession) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardTheme.color,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.hairline),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'الحد الأقصى للطلاب المشاركين',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '$_maxLearners طلاب',
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [3, 5, 8, 10, 15, 20].map((count) {
+                          final isSel = _maxLearners == count;
+                          return InkWell(
+                            onTap: () => setState(() => _maxLearners = count),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: isSel ? AppColors.primary : AppColors.surfaceAlt,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '$count',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: isSel ? Colors.white : AppColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
               const SizedBox(height: 16),
 
               if (!_isOnline) ...[
@@ -583,6 +780,20 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                   ),
                 ),
               ] else ...[
+                Text('رابط اللقاء عبر الإنترنت (Google Meet / Zoom)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _meetingUrlController,
+                  decoration: InputDecoration(
+                    hintText: 'https://meet.google.com/... أو Zoom (اختياري الآن)',
+                    prefixIcon: const Icon(Icons.link_rounded, size: 20, color: AppColors.primary),
+                    filled: true,
+                    fillColor: Theme.of(context).cardTheme.color,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -592,12 +803,12 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                   ),
                   child: const Row(
                     children: [
-                      Icon(Icons.lock_outline_rounded, color: AppColors.primary, size: 22),
+                      Icon(Icons.security_rounded, color: AppColors.primary, size: 20),
                       SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'حفاظاً على خصوصيتك، ستتمكن من إضافة رابط اللقاء (Zoom / Google Meet) داخل تفاصيل الجلسة بعد تأكيد الحجز من زميلك.',
-                          style: TextStyle(fontSize: 12, height: 1.4, color: AppColors.textSecondary),
+                          'يظهر الرابط للطلاب الحاجزين داخل تفاصيل الجلسة وغرفة المحادثة الخاصة.',
+                          style: TextStyle(fontSize: 11, height: 1.4, color: AppColors.textSecondary),
                         ),
                       ),
                     ],

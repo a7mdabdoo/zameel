@@ -36,9 +36,14 @@ import '../../features/timebank/presentation/my_sessions_screen.dart';
 // شاشات مطور 1
 import '../../features/sessions/presentation/session_details_teacher_screen.dart';
 import '../../features/sessions/presentation/session_details_learner_screen.dart';
+import '../../features/sessions/presentation/session_chat_screen.dart';
 import '../../features/sessions/presentation/rating_screen.dart';
 import '../../features/wallet/presentation/wallet_screen.dart';
 import '../../features/home/main_navigation_shell.dart';
+import '../../features/questions/data/question_model.dart';
+import '../../features/questions/presentation/questions_screen.dart';
+import '../../features/questions/presentation/ask_question_screen.dart';
+import '../../features/questions/presentation/question_details_screen.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -208,6 +213,22 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/session-rating',
         builder: (context, state) => RatingScreen(session: state.extra as TimeBankSessionModel?),
+      ),
+      GoRoute(
+        path: '/session-chat',
+        builder: (context, state) => SessionChatScreen(session: state.extra as TimeBankSessionModel),
+      ),
+      GoRoute(
+        path: '/questions',
+        builder: (context, state) => const QuestionsScreen(),
+      ),
+      GoRoute(
+        path: '/ask-question',
+        builder: (context, state) => const AskQuestionScreen(),
+      ),
+      GoRoute(
+        path: '/question-details',
+        builder: (context, state) => QuestionDetailsScreen(question: state.extra as QuestionModel),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
