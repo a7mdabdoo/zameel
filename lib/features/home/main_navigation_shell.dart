@@ -55,14 +55,14 @@ class MainNavigationShell extends StatelessWidget {
                 label: 'الخطة',
               ),
               NavigationDestination(
+                icon: const Icon(Icons.forum_outlined),
+                selectedIcon: Icon(Icons.forum_rounded, color: primaryColor),
+                label: 'المنتدى',
+              ),
+              NavigationDestination(
                 icon: const Icon(Icons.handshake_outlined),
                 selectedIcon: Icon(Icons.handshake, color: primaryColor),
                 label: 'بنك الوقت',
-              ),
-              NavigationDestination(
-                icon: const Icon(Icons.account_balance_wallet_outlined),
-                selectedIcon: Icon(Icons.account_balance_wallet, color: primaryColor),
-                label: 'المحفظة',
               ),
               NavigationDestination(
                 icon: const Icon(Icons.person_outline),

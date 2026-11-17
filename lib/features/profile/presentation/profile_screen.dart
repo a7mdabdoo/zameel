@@ -8,6 +8,8 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/data/auth_service.dart';
 import '../../../core/state/app_state.dart';
+import '../../timebank/application/timebank_pure_logic.dart';
+import '../../timebank/data/timebank_repository.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -62,6 +64,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final studyHours = completedBlocks.isNotEmpty 
         ? completedBlocks.length 
         : ((userDoc?['studyHours'] as num?)?.toInt() ?? 0);
+
+    // بيانات المحفظة ورصيد عملات الوقت الحي من Firestore
+    final availableCoins = ref.watch(userTimeCoinsProvider);
+    final learnerSessionsAsync = ref.watch(learnerSessionsStreamProvider(user?.uid ?? ''));
+    final learnerSessions = learnerSessionsAsync.value ?? [];
+    final heldCoins = TimeBankPureLogic.calculateHeldCoins(learnerSessions);
+    final totalCoins = availableCoins + heldCoins;
 
     // استخراج المواد الدراسية وتقييمات الطالب من فايربيس
     final userCourses = _getUserCourses(userDoc);
@@ -352,6 +361,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
               ),
 
+              const SizedBox(height: 20),
+
+              // ==========================================
+              // محفظة الوقت والرصيد (قسم المحفظة في حسابي)
+              // ==========================================
+              _buildWalletSection(
+                context: context,
+                availableCoins: availableCoins,
+                heldCoins: heldCoins,
+                totalCoins: totalCoins,
+                isDark: isDark,
+                primaryColor: primaryColor,
+                hairlineColor: hairlineColor,
+                surfaceColor: surfaceColor,
+                textPrimaryColor: textPrimaryColor,
+                textSecondaryColor: textSecondaryColor,
+              ),
+
               const SizedBox(height: 24),
 
               // Sign Out Button -> /welcome
@@ -380,6 +407,169 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildWalletSection({
+    required BuildContext context,
+    required int availableCoins,
+    required int heldCoins,
+    required int totalCoins,
+    required bool isDark,
+    required Color primaryColor,
+    required Color hairlineColor,
+    required Color surfaceColor,
+    required Color textPrimaryColor,
+    required Color textSecondaryColor,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'محفظة الوقت والرصيد 🪙',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textPrimaryColor),
+            ),
+            InkWell(
+              onTap: () => context.push('/wallet'),
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                child: Row(
+                  children: [
+                    Text('سجل المعاملات', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: primaryColor)),
+                    const SizedBox(width: 4),
+                    Icon(Icons.arrow_back_ios_rounded, size: 11, color: primaryColor),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF1F6F6B), Color(0xFF134E4B)],
+              begin: Alignment.topRight,
+              end: Alignment.bottomLeft,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF134E4B).withValues(alpha: isDark ? 0.35 : 0.2),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 20),
+                      ),
+                      const SizedBox(width: 10),
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('الرصيد المتاح للاستخدام', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                          Text('عملات وقت للمذاكرة والشرح', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.pointsAmber.withValues(alpha: 0.25),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.pointsAmber.withValues(alpha: 0.6)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.monetization_on_rounded, size: 14, color: AppColors.pointsAmber),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$availableCoins',
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    Column(
+                      children: [
+                        const Text('إجمالي الرصيد', style: TextStyle(color: Colors.white60, fontSize: 11)),
+                        const SizedBox(height: 2),
+                        Text(
+                          '$totalCoins عملة',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                      ],
+                    ),
+                    Container(height: 24, width: 1, color: Colors.white24),
+                    Column(
+                      children: [
+                        const Text('الرصيد المحجوز (ضمان)', style: TextStyle(color: Colors.white60, fontSize: 11)),
+                        const SizedBox(height: 2),
+                        Text(
+                          '$heldCoins عملة',
+                          style: TextStyle(
+                            color: heldCoins > 0 ? AppColors.pointsAmber : Colors.white70,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => context.push('/wallet'),
+                  icon: const Icon(Icons.receipt_long_rounded, size: 18),
+                  label: const Text('فتح المحفظة وسجل الحركات', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: const Color(0xFF134E4B),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

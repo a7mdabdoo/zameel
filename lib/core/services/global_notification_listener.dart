@@ -41,7 +41,7 @@ class _GlobalNotificationListenerState extends ConsumerState<GlobalNotificationL
       if (!mounted || payload == null) return;
       try {
         if (payload.startsWith('question:')) {
-          context.push('/questions');
+          context.go('/questions');
         } else if (payload.startsWith('session:')) {
           // التوجيه إلى شاشة بنك الوقت أو الجلسات
           context.push('/my-sessions');
