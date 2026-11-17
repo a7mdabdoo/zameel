@@ -1,6 +1,6 @@
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dnd/flutter_dnd.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final focusDndServiceProvider = Provider<FocusDndService>((ref) {
@@ -8,6 +8,8 @@ final focusDndServiceProvider = Provider<FocusDndService>((ref) {
 });
 
 class FocusDndService {
+  static const MethodChannel _channel = MethodChannel('zameel/dnd');
+
   bool _isDndActive = false;
   bool get isDndActive => _isDndActive;
 
@@ -15,7 +17,7 @@ class FocusDndService {
   Future<bool> hasPermission() async {
     if (kIsWeb || !Platform.isAndroid) return false;
     try {
-      final isGranted = await FlutterDnd.isNotificationPolicyAccessGranted;
+      final isGranted = await _channel.invokeMethod<bool>('isNotificationPolicyAccessGranted');
       return isGranted ?? false;
     } catch (e) {
       debugPrint('Error checking DND permission: $e');
@@ -27,7 +29,7 @@ class FocusDndService {
   Future<void> openDndSettings() async {
     if (kIsWeb || !Platform.isAndroid) return;
     try {
-      FlutterDnd.gotoPolicySettings();
+      await _channel.invokeMethod('gotoPolicySettings');
     } catch (e) {
       debugPrint('Error opening DND settings: $e');
     }
@@ -44,8 +46,9 @@ class FocusDndService {
     try {
       final hasPerm = await hasPermission();
       if (hasPerm) {
-        await FlutterDnd.setInterruptionFilter(FlutterDnd.INTERRUPTION_FILTER_PRIORITY);
-        return true;
+        // filter: 2 = Priority
+        final success = await _channel.invokeMethod<bool>('setInterruptionFilter', {'filter': 2});
+        return success ?? false;
       }
     } catch (e) {
       debugPrint('Error enabling DND: $e');
@@ -61,7 +64,8 @@ class FocusDndService {
     try {
       final hasPerm = await hasPermission();
       if (hasPerm) {
-        await FlutterDnd.setInterruptionFilter(FlutterDnd.INTERRUPTION_FILTER_ALL);
+        // filter: 1 = All (Normal)
+        await _channel.invokeMethod('setInterruptionFilter', {'filter': 1});
       }
     } catch (e) {
       debugPrint('Error disabling DND: $e');
