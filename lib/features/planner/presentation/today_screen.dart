@@ -124,7 +124,7 @@ class TodayScreen extends ConsumerWidget {
                         // Streak Chip 🔥
                         Tooltip(
                           message: streak > 0
-                              ? 'سلسلة الستريك اليومي: $streak ${streak == 1 ? "يوم متواصل" : "أيام متواصلة"}'
+                              ? 'الستريك اليومي: $streak'
                               : 'أتمم مهام اليوم لبدء الستريك اليومي 🔥',
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -159,17 +159,6 @@ class TodayScreen extends ConsumerWidget {
                                         : AppColors.textSecondary,
                                   ),
                                 ),
-                                const SizedBox(width: 3),
-                                Text(
-                                  streak == 1 ? 'يوم' : 'أيام',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: streak > 0
-                                        ? Colors.deepOrange
-                                        : AppColors.textSecondary,
-                                  ),
-                                ),
                               ],
                             ),
                           ),
@@ -195,23 +184,12 @@ class TodayScreen extends ConsumerWidget {
                                   size: 18,
                                   color: AppColors.pointsAmber,
                                 ),
-                                const SizedBox(width: 5),
+                                const SizedBox(width: 4),
                                 Text(
                                   '$timeCoins',
                                   style: TextStyle(
-                                    fontSize: 16,
+                                    fontSize: 15,
                                     fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).brightness == Brightness.dark
-                                        ? const Color(0xFFFFD54F)
-                                        : const Color(0xFF664700),
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'عملات وقت',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
                                     color: Theme.of(context).brightness == Brightness.dark
                                         ? const Color(0xFFFFD54F)
                                         : const Color(0xFF664700),
@@ -224,7 +202,7 @@ class TodayScreen extends ConsumerWidget {
                       ],
                     ),
 
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     // Greeting & Date
                     Expanded(
                       child: Column(
@@ -236,7 +214,7 @@ class TodayScreen extends ConsumerWidget {
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1,
                             style: TextStyle(
-                              fontSize: 17,
+                              fontSize: 16,
                               fontWeight: FontWeight.bold,
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
@@ -245,15 +223,19 @@ class TodayScreen extends ConsumerWidget {
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text(
-                                formattedTodayDate,
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppColors.textSecondary,
+                              Flexible(
+                                child: Text(
+                                  formattedTodayDate,
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: AppColors.textSecondary,
+                                  ),
                                 ),
                               ),
                               const SizedBox(width: 4),
-                              const Icon(Icons.calendar_today_outlined, size: 13, color: AppColors.textTertiary),
+                              const Icon(Icons.calendar_today_outlined, size: 12, color: AppColors.textTertiary),
                             ],
                           ),
                         ],
@@ -586,7 +568,6 @@ class TodayScreen extends ConsumerWidget {
                               }
 
                               final currentStreak = ref.read(userStreakProvider);
-                              final streakText = currentStreak <= 1 ? 'يوم واحد' : '$currentStreak أيام';
 
                               ScaffoldMessenger.of(context).hideCurrentSnackBar();
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -599,7 +580,7 @@ class TodayScreen extends ConsumerWidget {
                                       const SizedBox(width: 10),
                                       Expanded(
                                         child: Text(
-                                          '🎉 مبروك! أتممت جميع مهام مذاكرة اليوم وحصلت على نقطة الإنجاز ورفعت الستريك (🔥 $streakText)! 🌟',
+                                          '🎉 مبروك! أتممت جميع مهام مذاكرة اليوم وحصلت على نقطة الإنجاز ورفعت الستريك (🔥 $currentStreak)! 🌟',
                                           style: const TextStyle(fontWeight: FontWeight.bold),
                                         ),
                                       ),
@@ -693,8 +674,8 @@ class TodayScreen extends ConsumerWidget {
                             todayBlocksCount == 0
                                 ? 'استمتع بيومك أو أضف محاضراتك لتوليد الخطة'
                                 : (todayRemainingCount == 0
-                                    ? 'أحسنت! أتممت جميع مهام اليوم وحافظت على الستريك (🔥 $streak ${streak == 1 ? "يوم" : "أيام"}) 🌟'
-                                    : 'متبقي $todayRemainingCount مهام لتحقيق هدف اليوم وحماية الستريك 🔥'),
+                                    ? 'أحسنت! أتممت جميع مهام اليوم وحافظت على الستريك (🔥 $streak) 🌟'
+                                    : 'متبقي $todayRemainingCount مهام لتحقيق هدف اليوم وحماية الستريك (🔥 $streak)'),
                             style: TextStyle(
                               fontSize: 11,
                               color: todayRemainingCount == 0 && todayBlocksCount > 0

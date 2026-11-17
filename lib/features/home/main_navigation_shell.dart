@@ -45,9 +45,9 @@ class MainNavigationShell extends StatelessWidget {
             onDestinationSelected: _onTap,
             destinations: [
               NavigationDestination(
-                icon: const Icon(Icons.today_outlined),
-                selectedIcon: Icon(Icons.today, color: primaryColor),
-                label: 'اليوم',
+                icon: const Icon(Icons.home_outlined),
+                selectedIcon: Icon(Icons.home_rounded, color: primaryColor),
+                label: 'الرئيسية',
               ),
               NavigationDestination(
                 icon: const Icon(Icons.calendar_view_week_outlined),
