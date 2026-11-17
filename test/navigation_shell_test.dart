@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:zameel/core/l10n/app_localizations.dart';
 import 'package:zameel/features/home/main_navigation_shell.dart';
+import 'package:zameel/features/planner/presentation/today_screen.dart';
 import 'package:zameel/features/auth/presentation/welcome_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:zameel/main.dart';
@@ -19,9 +19,9 @@ void main() {
     expect(find.byType(WelcomeScreen), findsOneWidget);
   });
 
-  testWidgets('Renders MainNavigationShell and NavigationBar with Arabic locale', (WidgetTester tester) async {
+  testWidgets('Renders MainNavigationShell and NavigationBar with Arabic locale via ZameelApp delegates', (WidgetTester tester) async {
     final router = GoRouter(
-      initialLocation: '/',
+      initialLocation: '/today',
       routes: [
         StatefulShellRoute.indexedStack(
           builder: (context, state, navigationShell) {
@@ -30,27 +30,7 @@ void main() {
           branches: [
             StatefulShellBranch(
               routes: [
-                GoRoute(path: '/', builder: (context, state) => const Text('Branch 0')),
-              ],
-            ),
-            StatefulShellBranch(
-              routes: [
-                GoRoute(path: '/1', builder: (context, state) => const Text('Branch 1')),
-              ],
-            ),
-            StatefulShellBranch(
-              routes: [
-                GoRoute(path: '/2', builder: (context, state) => const Text('Branch 2')),
-              ],
-            ),
-            StatefulShellBranch(
-              routes: [
-                GoRoute(path: '/3', builder: (context, state) => const Text('Branch 3')),
-              ],
-            ),
-            StatefulShellBranch(
-              routes: [
-                GoRoute(path: '/4', builder: (context, state) => const Text('Branch 4')),
+                GoRoute(path: '/today', builder: (context, state) => const TodayScreen()),
               ],
             ),
           ],
@@ -59,11 +39,19 @@ void main() {
     );
 
     await tester.pumpWidget(
-      MaterialApp.router(
-        routerConfig: router,
-        locale: const Locale('ar'),
-        supportedLocales: AppLocalizations.supportedLocales,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+      ProviderScope(
+        child: Consumer(
+          builder: (context, ref, _) {
+            final app = const ZameelApp();
+            final materialApp = app.build(context, ref) as MaterialApp;
+            return MaterialApp.router(
+              routerConfig: router,
+              locale: const Locale('ar'),
+              supportedLocales: materialApp.supportedLocales,
+              localizationsDelegates: materialApp.localizationsDelegates,
+            );
+          },
+        ),
       ),
     );
     await tester.pumpAndSettle();
