@@ -66,6 +66,21 @@ class TimeBankPureLogic {
   /// دالة الساعة الافتراضية
   static DateTime defaultClock() => DateTime.now();
 
+  /// حساب مكافأة المعلم بشكل غير خطي بناءً على عدد الحضور لمنع تضخم العملة (Tiered Economy)
+  /// - 1-on-1 أو طالب واحد: 1 عملة
+  /// - حتى 5 طلاب: 2 عملة (مكافأة مجموعة صغيرة)
+  /// - حتى 15 طالب: 3 عملات (مكافأة ورشة عمل متوسطة)
+  /// - أكثر من 15 طالب: 5 عملات (الحد الأقصى لمنع تضخم الاقتصاد)
+  static int calculateTeacherReward({
+    required SessionType type,
+    required int attendeeCount,
+  }) {
+    if (type == SessionType.individual || attendeeCount <= 1) return 1;
+    if (attendeeCount <= 5) return 2;   // Small group bonus
+    if (attendeeCount <= 15) return 3;  // Medium workshop bonus
+    return 5;                           // Hard cap for mega webinars (prevents economy collapse)
+  }
+
   /// 1. قرار إلغاء الجلسة مع إمكانية حقن الساعة (Injectable Clock)
   /// - إلغاء المعلم: استرداد كامل للعملة للمتعلم في أي وقت.
   /// - إلغاء المتعلم قبل قبول المعلم (حالة pending): استرداد كامل للمتعلم في أي وقت.

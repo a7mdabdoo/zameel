@@ -18,7 +18,6 @@ void main() {
       expect(AppConstants.welcomeCoins, equals(2));
       expect(AppConstants.sessionCostCoins, equals(1));
     });
-
     test('التحقق من صحة البريد الإلكتروني العادي (Gmail وأي إيميل شخصي)', () {
       // مقبولة: Gmail وأي بريد شخصي
       expect(AppConstants.isValidEmail('student@gmail.com'), isTrue);

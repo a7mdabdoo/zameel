@@ -1,15 +1,14 @@
 // مطور 3
-// فيجما: إضافة عرض جديد - ذاكر وعلّم
+// بنك الوقت: إنشاء ونشر عرض شرح أونلاين جديد (Create Online Live Session Offer)
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/models/app_models.dart';
-import '../../../core/state/app_state.dart';
-
+import '../../../core/theme/app_colors.dart';
 import '../../../features/auth/data/auth_service.dart';
+import '../../../features/timebank/application/timebank_pure_logic.dart';
 import '../../../features/timebank/data/timebank_repository.dart';
 
 class CreateOfferScreen extends ConsumerStatefulWidget {
@@ -20,112 +19,77 @@ class CreateOfferScreen extends ConsumerStatefulWidget {
 }
 
 class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
-  CourseSeed _selectedCourse = AppConstants.seedCourses[0]; // OOP
+  final _formKey = GlobalKey<FormState>();
+
+  // 1. المادة والموضوع
+  CourseSeed _selectedCourse = AppConstants.seedCourses[0];
   final _topicController = TextEditingController();
-  final _offlineLocationController = TextEditingController(text: 'مكتبة الكلية • قاعة الاستذكار 2');
-  bool _isOnline = false;
-  bool _isPublishing = false;
-  bool _isGroupSession = false;
-  int _maxLearners = 5;
+
+  // 2. نوع الجلسة والسعة
+  SessionType _sessionType = SessionType.individual;
+  int _maxAttendees = 1; // 1 للفردي، 10/25/50/100 للجماعي
+
+  // 3. الموعد الدقيق والمدة
+  DateTime _selectedDate = DateTime.now().add(const Duration(days: 1));
+  TimeOfDay _selectedTime = const TimeOfDay(hour: 20, minute: 0); // 08:00 م
+  int _durationMinutes = 60; // 45 أو 60 دقيقة
+
+  // 4. رابط الاجتماع الأونلاين
   final _meetingUrlController = TextEditingController();
-  bool _isFlexibleRange = false;
 
-  // فترات الإتاحة الأسبوعية (Africa/Cairo)
-  final List<OfferTimeSlot> _slots = [
-    const OfferTimeSlot(weekday: 1, startMin: 600, endMin: 720), // الأحد 10:00 ص - 12:00 م
-  ];
-
-  int _pickerWeekday = 1; // الأحد
-  int _pickerStartMin = 600; // 10:00 ص
-  int _pickerEndMin = 720;   // 12:00 م
-
-  static final List<int> _availableMinutes = [
-    for (int m = 480; m <= 1260; m += 30) m, // من 08:00 إلى 21:00
-  ];
+  bool _isPublishing = false;
 
   @override
   void dispose() {
     _topicController.dispose();
-    _offlineLocationController.dispose();
     _meetingUrlController.dispose();
     super.dispose();
   }
 
-  void _addSlot() {
-    if (_pickerEndMin <= _pickerStartMin) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('وقت نهاية الفترة يجب أن يكون بعد وقت البداية')),
-      );
-      return;
+  Future<void> _selectDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate.isBefore(now) ? now : _selectedDate,
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 60)),
+      helpText: 'اختر يوم الجلسة 📅',
+      cancelText: 'إلغاء',
+      confirmText: 'تأكيد',
+    );
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
     }
-    if (_pickerEndMin - _pickerStartMin < 30) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('أقل مدة لفترة الإتاحة هي 30 دقيقة')),
-      );
-      return;
-    }
-
-    final exists = _slots.any((s) =>
-        s.weekday == _pickerWeekday &&
-        s.startMin == _pickerStartMin &&
-        s.endMin == _pickerEndMin);
-
-    if (exists) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('هذه الفترة مضافة بالفعل')),
-      );
-      return;
-    }
-
-    setState(() {
-      _slots.add(OfferTimeSlot(
-        weekday: _pickerWeekday,
-        startMin: _pickerStartMin,
-        endMin: _pickerEndMin,
-      ));
-    });
   }
 
-  void _removeSlot(int index) {
-    if (_slots.length <= 1) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يجب الإبقاء على فترة إتاحة واحدة على الأقل')),
-      );
-      return;
+  Future<void> _selectTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _selectedTime,
+      helpText: 'اختر وقت بدء الجلسة ⏱️',
+      cancelText: 'إلغاء',
+      confirmText: 'تأكيد',
+    );
+    if (picked != null) {
+      setState(() => _selectedTime = picked);
     }
-    setState(() {
-      _slots.removeAt(index);
-    });
   }
 
   Future<void> _publishOffer() async {
+    if (!_formKey.currentState!.validate()) return;
+
     final topic = _topicController.text.trim();
-    if (topic.isEmpty) {
+    final meetingUrl = _meetingUrlController.text.trim();
+
+    // التحقق من الرابط في حالة الجلسة الجماعية
+    if (_sessionType == SessionType.group && meetingUrl.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى كتابة الموضوع الذي ستشرحه لزملائك')),
+        const SnackBar(
+          content: Text('يرجى إرفاق رابط الاجتماع (Google Meet / Zoom) للجلسة الجماعية'),
+          backgroundColor: AppColors.error,
+        ),
       );
       return;
-    }
-
-    if (_slots.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('يرجى تحديد فترة إتاحة أسبوعية واحدة على الأقل للشرح')),
-      );
-      return;
-    }
-
-    String finalLocation = '';
-    if (_isOnline) {
-      finalLocation = 'عبر الإنترنت (أونلاين)';
-    } else {
-      final place = _offlineLocationController.text.trim();
-      if (place.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('يرجى كتابة مكان المقابلة في الكلية')),
-        );
-        return;
-      }
-      finalLocation = place;
     }
 
     final user = ref.read(authServiceProvider).currentUser;
@@ -136,88 +100,85 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
       return;
     }
 
-    if (!user.emailVerified) {
-      final nowVerified = await ref.read(authServiceProvider).reloadUserAndCheckVerified();
-      if (!nowVerified) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('يجب تأكيد بريدك الإلكتروني أولاً لنشر عروض الشرح'),
-              action: SnackBarAction(
-                label: 'أنا أكدت بريدي',
-                textColor: Colors.amber,
-                onPressed: () async {
-                  final v = await ref.read(authServiceProvider).reloadUserAndCheckVerified();
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(v ? 'تم التحقق من بريدك بنجاح! يمكنك الآن النشر 🎉' : 'لم يتم التأكيد بعد، يرجى مراجعة بريدك 📩')),
-                    );
-                  }
-                },
-              ),
-              duration: const Duration(seconds: 6),
-            ),
-          );
-        }
-        return;
-      }
+    // التحقق من أن الموعد في المستقبل
+    final scheduledAt = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+      _selectedTime.hour,
+      _selectedTime.minute,
+    );
+
+    if (scheduledAt.isBefore(DateTime.now().add(const Duration(minutes: 10)))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('يرجى اختيار موعد في المستقبل (بعد 15 دقيقة على الأقل)'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
     }
 
     setState(() => _isPublishing = true);
 
     try {
-      final profileAsync = ref.read(userProfileStreamProvider);
-      final profileName = profileAsync.value?.data()?['name'] as String? ?? user.displayName ?? 'زميل';
+      final userProfileAsync = ref.read(userProfileStreamProvider);
+      final userDoc = userProfileAsync.value?.data();
+      final teacherName = (userDoc?['name'] as String?)?.isNotEmpty == true
+          ? (userDoc!['name'] as String)
+          : (user.displayName ?? 'زميل');
 
-      final offerId = 'offer_${DateTime.now().millisecondsSinceEpoch}_${user.uid.substring(0, 5)}';
-      final daySummary = _slots.map((s) => s.weekdayName).toSet().join('، ');
-      final timeSummary = _slots.map((s) => '${OfferTimeSlot.formatMinutes(s.startMin)} – ${OfferTimeSlot.formatMinutes(s.endMin)}').join(' | ');
+      final rawYear = userDoc?['academicYear'];
+      String? academicYear;
+      if (rawYear is int) {
+        academicYear = CurriculumConstants.academicYearLabels[rawYear];
+      } else if (rawYear is String) {
+        academicYear = rawYear;
+      }
 
-      final newOffer = TimeBankOfferModel(
+      final offerId = 'offer_${DateTime.now().millisecondsSinceEpoch}';
+
+      final offer = TimeBankOfferModel(
         id: offerId,
         teacherId: user.uid,
-        teacherName: profileName,
+        teacherName: teacherName,
+        teacherRating: (userDoc?['rating'] as num?)?.toDouble() ?? 5.0,
         courseId: _selectedCourse.id,
         courseName: _selectedCourse.name,
-        courseCode: _selectedCourse.code,
+        courseCode: _selectedCourse.id.toUpperCase(),
         topic: topic,
-        day: daySummary,
-        time: timeSummary,
-        durationMinutes: 60,
-        mode: _isOnline ? 'online' : 'in_person',
-        location: finalLocation,
-        courseColor: _selectedCourse.color,
-        isAvailable: true,
-        slots: _slots,
+        academicYear: academicYear,
+        sessionType: _sessionType,
+        scheduledAt: scheduledAt,
+        durationMinutes: _durationMinutes,
+        meetingUrl: meetingUrl.isNotEmpty ? meetingUrl : null,
+        maxAttendees: _sessionType == SessionType.individual ? 1 : _maxAttendees,
+        attendeeIds: const [],
+        isCompleted: false,
         createdAt: DateTime.now(),
-        isGroupSession: _isGroupSession,
-        maxLearners: _isGroupSession ? _maxLearners : null,
-        enrolledLearnerIds: const [],
-        meetingUrl: (_isOnline && _meetingUrlController.text.trim().isNotEmpty)
-            ? _meetingUrlController.text.trim()
-            : null,
-        isFlexibleRange: _isFlexibleRange,
-        timeRangeStart: _isFlexibleRange && _slots.isNotEmpty
-            ? OfferTimeSlot.formatMinutes(_slots.first.startMin)
-            : null,
-        timeRangeEnd: _isFlexibleRange && _slots.isNotEmpty
-            ? OfferTimeSlot.formatMinutes(_slots.first.endMin)
-            : null,
+        mode: 'online',
+        location: 'أونلاين (Google Meet / Zoom)',
+        courseColor: _selectedCourse.color,
       );
 
-      await ref.read(timeBankRepositoryProvider).createOffer(newOffer);
-      ref.read(timeBankProvider.notifier).addOffer(newOffer);
+      await ref.read(timeBankRepositoryProvider).createOffer(offer);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم نشر عرض الشرح بنجاح! سيظهر لزملائك فوراً 🎉')),
+          const SnackBar(
+            content: Text('تم نشر عرض الشرح بنجاح في سوق بنك الوقت! 🚀🎉'),
+            backgroundColor: AppColors.success,
+          ),
         );
         context.pop();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('حدث خطأ أثناء نشر العرض: $e')),
+          SnackBar(
+            content: Text('تعذر نشر العرض: $e'),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     } finally {
@@ -229,77 +190,112 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
+    final surfaceColor = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E293B) : Colors.white);
+    final hairlineColor = isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.08);
+
+    // قائمة المواد
     final userProfileAsync = ref.watch(userProfileStreamProvider);
     final userDoc = userProfileAsync.value?.data();
-    final customCoursesData = (userDoc?['coursesData'] as List<dynamic>?)
-        ?.map((m) => CourseSeed.fromMap(Map<String, dynamic>.from(m)))
-        .toList() ?? [];
+    final rawCourses = userDoc?['selectedCourses'] as List<dynamic>? ?? [];
 
-    final rawCourses = customCoursesData.isNotEmpty ? customCoursesData : AppConstants.seedCourses;
-    final uniqueMap = <String, CourseSeed>{};
-    for (final c in rawCourses) {
-      if (c.id.isNotEmpty) uniqueMap.putIfAbsent(c.id, () => c);
+    List<CourseSeed> availableCourses = AppConstants.seedCourses;
+    if (rawCourses.isNotEmpty) {
+      final userMapped = <CourseSeed>[];
+      for (final rc in rawCourses) {
+        if (rc is Map) {
+          userMapped.add(CourseSeed(
+            id: rc['id'] as String? ?? 'c_${DateTime.now().millisecondsSinceEpoch}',
+            name: rc['name'] as String? ?? 'مقرر دراسي',
+            code: rc['code'] as String? ?? 'CS',
+            color: rc['color'] != null ? Color((rc['color'] as num).toInt()) : primaryColor,
+          ));
+        }
+      }
+      if (userMapped.isNotEmpty) availableCourses = userMapped;
     }
-    final availableCourses = uniqueMap.values.toList();
-    final effectiveCourse = availableCourses.firstWhere(
-      (c) => c.id == _selectedCourse.id,
-      orElse: () => availableCourses.first,
-    );
-    _selectedCourse = effectiveCourse;
+
+    final scheduledDateFormatted =
+        '${TimeBankOfferModel.formatDayArabic(_selectedDate)} ${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}';
+    final scheduledTimeFormatted =
+        '${_selectedTime.hourOfPeriod == 0 ? 12 : _selectedTime.hourOfPeriod}:${_selectedTime.minute.toString().padLeft(2, '0')} ${_selectedTime.period == DayPeriod.am ? 'صباحاً' : 'مساءً'}';
+
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: surfaceColor,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_forward_ios_rounded, color: Theme.of(context).colorScheme.onSurface),
-          onPressed: () => context.pop(),
+        title: const Text(
+          'طرح جلسة شرح جديدة 🚀',
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
         ),
-        title: Text(
-          'أضف عرض شرح جديد 💡',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
-        ),
-        centerTitle: true,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+        child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
             children: [
-              Text(
-                'علّم زميلك واكسب عملات وقت',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'كل جلسة شرح مدتها 60 دقيقة تمنحك 1 عملة وقت في محفظتك لاستخدامها في تعلّم مواد أخرى.',
-                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 24),
-
-              // Course
-              Text('المادة التي ستقوم بشرحها', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
-              const SizedBox(height: 8),
+              // لافتة تعريفية
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).cardTheme.color,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.hairline),
+                  color: primaryColor.withValues(alpha: isDark ? 0.2 : 0.08),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: primaryColor.withValues(alpha: 0.3)),
                 ),
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<CourseSeed>(
-                    value: effectiveCourse,
+                child: Row(
+                  children: [
+                    Icon(Icons.workspace_premium_rounded, color: primaryColor, size: 24),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        'جلسات بنك الوقت أونلاين 100%. حدد الموعد ورابط الاجتماع لتمكين زملائك من الانضمام والاستفادة من خبرتك.',
+                        style: TextStyle(fontSize: 12, height: 1.4),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 18),
+
+              // ==========================================
+              // الخطوة 1: المادة والموضوع
+              // ==========================================
+              _buildSectionCard(
+                title: '1. المادة والموضوع الدراسي 📚',
+                surfaceColor: surfaceColor,
+                hairlineColor: hairlineColor,
+                children: [
+                  const Text('المادة المراد شرحها:', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<CourseSeed>(
+                    initialValue: availableCourses.contains(_selectedCourse) ? _selectedCourse : availableCourses.first,
                     isExpanded: true,
+                    decoration: InputDecoration(
+                      filled: true,
+                      fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: hairlineColor),
+                      ),
+                    ),
                     items: availableCourses.map((c) {
-                      return DropdownMenuItem(
+                      return DropdownMenuItem<CourseSeed>(
                         value: c,
                         child: Row(
                           children: [
-                            Container(width: 8, height: 8, decoration: BoxDecoration(color: c.color, shape: BoxShape.circle)),
+                            Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(color: c.color, shape: BoxShape.circle),
+                            ),
                             const SizedBox(width: 8),
-                            Text(c.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                            Expanded(child: Text(c.name, overflow: TextOverflow.ellipsis)),
                           ],
                         ),
                       );
@@ -308,541 +304,348 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                       if (val != null) setState(() => _selectedCourse = val);
                     },
                   ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Topic
-              Text('ما الموضوع أو الشابتر الذي ستشرحه؟', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
-              const SizedBox(height: 8),
-              TextFormField(
-                controller: _topicController,
-                maxLines: 2,
-                decoration: InputDecoration(
-                  hintText: 'مثال: شرح الـ Polymorphism وحل شيت المعمل',
-                  filled: true,
-                  fillColor: Theme.of(context).cardTheme.color,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // فترات الإتاحة الأسبوعية للشرح (Africa/Cairo)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'فترات الإتاحة الأسبوعية (Africa/Cairo) ⏰',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Theme.of(context).colorScheme.onSurface,
+                  const SizedBox(height: 14),
+                  const Text('عنوان الموضوع والنقاط الرئيسية:', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _topicController,
+                    maxLines: 2,
+                    decoration: InputDecoration(
+                      hintText: 'مثال: مراجعة شاملة للـ Polymorphism والـ Interfaces وحل شيت المحاضرة',
+                      hintStyle: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : AppColors.textTertiary),
+                      filled: true,
+                      fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: hairlineColor),
+                      ),
                     ),
-                  ),
-                  Text(
-                    '${_slots.length} فترات محددة',
-                    style: const TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.bold),
+                    validator: (val) {
+                      if (val == null || val.trim().length < 5) {
+                        return 'يرجى كتابة عنوان واضح ومفصل لموضوع الشرح (5 أحرف على الأقل)';
+                      }
+                      return null;
+                    },
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-
-              // قائمة الفترات الحالية
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardTheme.color,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.hairline),
-                ),
-                child: Column(
-                  children: [
-                    ..._slots.asMap().entries.map((entry) {
-                      final idx = entry.key;
-                      final slot = entry.value;
-                      return Container(
-                        margin: EdgeInsets.only(bottom: idx == _slots.length - 1 ? 0 : 8),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).scaffoldBackgroundColor,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppColors.hairline),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.access_time_rounded, size: 16, color: AppColors.primary),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                slot.formattedRange,
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                            if (_slots.length > 1)
-                              IconButton(
-                                icon: const Icon(Icons.close_rounded, size: 16, color: AppColors.error),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                onPressed: () => _removeSlot(idx),
-                              ),
-                          ],
-                        ),
-                      );
-                    }),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // صندوق إضافة فترة جديدة
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardTheme.color,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.hairline),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('إضافة فترة إتاحة أخرى:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        // اليوم
-                        Expanded(
-                          flex: 3,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: AppColors.hairline),
-                            ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<int>(
-                                value: _pickerWeekday,
-                                isExpanded: true,
-                                items: OfferTimeSlot.appWeekdayNames.entries.map((e) {
-                                  return DropdownMenuItem<int>(
-                                    value: e.key,
-                                    child: Text(e.value, style: const TextStyle(fontSize: 12)),
-                                  );
-                                }).toList(),
-                                onChanged: (val) {
-                                  if (val != null) setState(() => _pickerWeekday = val);
-                                },
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        // من
-                        Expanded(
-                          flex: 3,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: AppColors.hairline),
-                            ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<int>(
-                                value: _pickerStartMin,
-                                isExpanded: true,
-                                items: _availableMinutes.where((m) => m < 1260).map((m) {
-                                  return DropdownMenuItem<int>(
-                                    value: m,
-                                    child: Text('من ${OfferTimeSlot.formatMinutes(m)}', style: const TextStyle(fontSize: 10)),
-                                  );
-                                }).toList(),
-                                onChanged: (val) {
-                                  if (val != null) setState(() => _pickerStartMin = val);
-                                },
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        // إلى
-                        Expanded(
-                          flex: 3,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: AppColors.hairline),
-                            ),
-                            child: DropdownButtonHideUnderline(
-                              child: DropdownButton<int>(
-                                value: _pickerEndMin,
-                                isExpanded: true,
-                                items: _availableMinutes.where((m) => m > _pickerStartMin).map((m) {
-                                  return DropdownMenuItem<int>(
-                                    value: m,
-                                    child: Text('إلى ${OfferTimeSlot.formatMinutes(m)}', style: const TextStyle(fontSize: 10)),
-                                  );
-                                }).toList(),
-                                onChanged: (val) {
-                                  if (val != null) setState(() => _pickerEndMin = val);
-                                },
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        // زر الإضافة
-                        IconButton(
-                          style: IconButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          icon: const Icon(Icons.add, color: Colors.white, size: 20),
-                          onPressed: _addSlot,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-              // مرونة المواعيد (Flexible Range)
-              Container(
-                margin: const EdgeInsets.only(top: 12),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: _isFlexibleRange
-                      ? AppColors.primary.withValues(alpha: 0.08)
-                      : Theme.of(context).cardTheme.color,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: _isFlexibleRange ? AppColors.primary : AppColors.hairline,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.tune_rounded, size: 20, color: AppColors.primary),
-                    const SizedBox(width: 10),
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'إتاحة نافذة زمنية مرنة ⏳',
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                          ),
-                          Text(
-                            'تسمح للطالب باختيار أي 60 دقيقة تناسبه داخل النطاق',
-                            style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Switch.adaptive(
-                      value: _isFlexibleRange,
-                      activeTrackColor: AppColors.primary,
-                      onChanged: (val) => setState(() => _isFlexibleRange = val),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // Meeting Mode: Offline vs Online
-              Text('طريقة اللقاء والشرح', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: InkWell(
-                      onTap: () => setState(() => _isOnline = false),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: !_isOnline ? AppColors.primary.withValues(alpha: 0.12) : Theme.of(context).cardTheme.color,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: !_isOnline ? AppColors.primary : AppColors.hairline,
-                            width: !_isOnline ? 1.5 : 1,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.account_balance_outlined, size: 18, color: !_isOnline ? AppColors.primary : AppColors.textSecondary),
-                            const SizedBox(width: 8),
-                            Text(
-                              'حضوري بالكلية 🏛️',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: !_isOnline ? AppColors.primary : Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: InkWell(
-                      onTap: () => setState(() => _isOnline = true),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: _isOnline ? AppColors.primary.withValues(alpha: 0.12) : Theme.of(context).cardTheme.color,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: _isOnline ? AppColors.primary : AppColors.hairline,
-                            width: _isOnline ? 1.5 : 1,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.videocam_outlined, size: 18, color: _isOnline ? AppColors.primary : AppColors.textSecondary),
-                            const SizedBox(width: 8),
-                            Text(
-                              'أونلاين عن بُعد 💻',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: _isOnline ? AppColors.primary : Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
-              // نوع الجلسة (فردية vs جماعية)
-              Text('نوع الجلسة وعدد المشاركين', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: InkWell(
-                      onTap: () => setState(() => _isGroupSession = false),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: !_isGroupSession ? AppColors.primary.withValues(alpha: 0.12) : Theme.of(context).cardTheme.color,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: !_isGroupSession ? AppColors.primary : AppColors.hairline,
-                            width: !_isGroupSession ? 1.5 : 1,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.person_outline_rounded, size: 18, color: !_isGroupSession ? AppColors.primary : AppColors.textSecondary),
-                            const SizedBox(width: 8),
-                            Text(
-                              'فردية (1-on-1) 👤',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: !_isGroupSession ? AppColors.primary : Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: InkWell(
-                      onTap: () => setState(() => _isGroupSession = true),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: _isGroupSession ? AppColors.primary.withValues(alpha: 0.12) : Theme.of(context).cardTheme.color,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: _isGroupSession ? AppColors.primary : AppColors.hairline,
-                            width: _isGroupSession ? 1.5 : 1,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.groups_outlined, size: 18, color: _isGroupSession ? AppColors.primary : AppColors.textSecondary),
-                            const SizedBox(width: 8),
-                            Text(
-                              'جماعية (Group) 👥',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: _isGroupSession ? AppColors.primary : Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              if (_isGroupSession) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardTheme.color,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.hairline),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'الحد الأقصى للطلاب المشاركين',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '$_maxLearners طلاب',
-                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [3, 5, 8, 10, 15, 20].map((count) {
-                          final isSel = _maxLearners == count;
-                          return InkWell(
-                            onTap: () => setState(() => _maxLearners = count),
-                            borderRadius: BorderRadius.circular(8),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: isSel ? AppColors.primary : AppColors.surfaceAlt,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                '$count',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: isSel ? Colors.white : AppColors.textSecondary,
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
 
               const SizedBox(height: 16),
 
-              if (!_isOnline) ...[
-                Text('مكان المقابلة المقترح في الكلية', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _offlineLocationController,
-                  decoration: InputDecoration(
-                    hintText: 'مثال: مكتبة الكلية • قاعة الاستذكار 2',
-                    prefixIcon: const Icon(Icons.place_outlined, size: 20, color: AppColors.primary),
-                    filled: true,
-                    fillColor: Theme.of(context).cardTheme.color,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
-                  ),
-                ),
-              ] else ...[
-                Text('رابط اللقاء عبر الإنترنت (Google Meet / Zoom)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface)),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _meetingUrlController,
-                  decoration: InputDecoration(
-                    hintText: 'https://meet.google.com/... أو Zoom (اختياري الآن)',
-                    prefixIcon: const Icon(Icons.link_rounded, size: 20, color: AppColors.primary),
-                    filled: true,
-                    fillColor: Theme.of(context).cardTheme.color,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
-                  ),
-                  child: const Row(
+              // ==========================================
+              // الخطوة 2: نوع الجلسة (فردية vs جماعية)
+              // ==========================================
+              _buildSectionCard(
+                title: '2. نوع الجلسة وسعة الحضور 👥',
+                surfaceColor: surfaceColor,
+                hairlineColor: hairlineColor,
+                children: [
+                  Row(
                     children: [
-                      Icon(Icons.security_rounded, color: AppColors.primary, size: 20),
-                      SizedBox(width: 10),
                       Expanded(
-                        child: Text(
-                          'يظهر الرابط للطلاب الحاجزين داخل تفاصيل الجلسة وغرفة المحادثة الخاصة.',
-                          style: TextStyle(fontSize: 11, height: 1.4, color: AppColors.textSecondary),
+                        child: _buildSessionTypeRadio(
+                          type: SessionType.individual,
+                          title: 'جلسة خاصة (1-on-1)',
+                          subtitle: 'شرح مركز لزميل واحد فقط',
+                          icon: Icons.person_rounded,
+                          primaryColor: primaryColor,
+                          isDark: isDark,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _buildSessionTypeRadio(
+                          type: SessionType.group,
+                          title: 'جلسة جماعية (Webinar)',
+                          subtitle: 'ورشة مفتوحة لعدة طلاب',
+                          icon: Icons.groups_rounded,
+                          primaryColor: primaryColor,
+                          isDark: isDark,
                         ),
                       ),
                     ],
                   ),
-                ),
-              ],
+                  if (_sessionType == SessionType.group) ...[
+                    const SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('الحد الأقصى لعدد المشاركين:', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
+                        Text('$_maxAttendees زميل', style: TextStyle(fontWeight: FontWeight.bold, color: primaryColor)),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Slider(
+                      value: _maxAttendees.toDouble(),
+                      min: 2,
+                      max: 100,
+                      divisions: 98,
+                      label: '$_maxAttendees',
+                      activeColor: primaryColor,
+                      onChanged: (v) => setState(() => _maxAttendees = v.toInt()),
+                    ),
+                    Center(
+                      child: Text(
+                        'المكافأة المتوقعة: ${TimeBankPureLogic.calculateTeacherReward(type: _sessionType, attendeeCount: _maxAttendees)} عملات وقت 🪙',
+                        style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppColors.pointsAmber),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
 
-              const SizedBox(height: 36),
+              const SizedBox(height: 16),
 
-              // Submit CTA -> /my-offers
+              // ==========================================
+              // الخطوة 3: الموعد الدقيق والمدة
+              // ==========================================
+              _buildSectionCard(
+                title: '3. الموعد المحدد والمدة ⏱️',
+                surfaceColor: surfaceColor,
+                hairlineColor: hairlineColor,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: _selectDate,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: hairlineColor),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.calendar_today_rounded, size: 16, color: primaryColor),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    scheduledDateFormatted,
+                                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: InkWell(
+                          onTap: _selectTime,
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: hairlineColor),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.access_time_rounded, size: 16, color: primaryColor),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    scheduledTimeFormatted,
+                                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  const Text('مدة الجلسة:', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      _buildDurationChoice(45, primaryColor, isDark),
+                      const SizedBox(width: 10),
+                      _buildDurationChoice(60, primaryColor, isDark),
+                    ],
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              // ==========================================
+              // الخطوة 4: رابط الاجتماع الأونلاين
+              // ==========================================
+              _buildSectionCard(
+                title: '4. رابط الاجتماع (Google Meet / Zoom) 📹',
+                surfaceColor: surfaceColor,
+                hairlineColor: hairlineColor,
+                children: [
+                  TextFormField(
+                    controller: _meetingUrlController,
+                    keyboardType: TextInputType.url,
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.link_rounded),
+                      hintText: 'https://meet.google.com/xxx-yyyy-zzz',
+                      hintStyle: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : AppColors.textTertiary),
+                      helperText: _sessionType == SessionType.group
+                          ? 'إلزامي للجلسات الجماعية ليتمكن الطلاب من الانضمام المباشر'
+                          : 'اختياري - يمكنك أيضاً مشاركته في الشات الخاص قبل بدء الجلسة',
+                      filled: true,
+                      fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: hairlineColor),
+                      ),
+                    ),
+                    validator: (val) {
+                      if (_sessionType == SessionType.group && (val == null || val.trim().isEmpty)) {
+                        return 'يرجى إرفاق رابط الاجتماع للجلسة الجماعية';
+                      }
+                      if (val != null && val.trim().isNotEmpty) {
+                        final v = val.trim();
+                        if (!v.contains('.') || v.length < 5) {
+                          return 'يرجى إدخال رابط اجتماع صالح';
+                        }
+                      }
+                      return null;
+                    },
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 24),
+
+              // زر النشر في بنك الوقت
               SizedBox(
                 height: 52,
-                child: ElevatedButton.icon(
+                child: FilledButton.icon(
                   onPressed: _isPublishing ? null : _publishOffer,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: primaryColor,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
                   icon: _isPublishing
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                         )
-                      : const Icon(Icons.check, color: Colors.white),
+                      : const Icon(Icons.rocket_launch_rounded),
                   label: Text(
-                    _isPublishing ? 'جاري نشر العرض...' : 'نشر العرض في بنك الوقت',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    _isPublishing ? 'جاري نشر العرض...' : 'نشر العرض في بنك الوقت 🚀',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
+
+              const SizedBox(height: 32),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSectionCard({
+    required String title,
+    required Color surfaceColor,
+    required Color hairlineColor,
+    required List<Widget> children,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: surfaceColor,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: hairlineColor),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 14),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSessionTypeRadio({
+    required SessionType type,
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required Color primaryColor,
+    required bool isDark,
+  }) {
+    final isSelected = _sessionType == type;
+    return InkWell(
+      onTap: () => setState(() {
+        _sessionType = type;
+        if (type == SessionType.individual) _maxAttendees = 1;
+        if (type == SessionType.group && _maxAttendees == 1) _maxAttendees = 10;
+      }),
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isSelected ? primaryColor.withValues(alpha: isDark ? 0.25 : 0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected ? primaryColor : (isDark ? Colors.white12 : Colors.black12),
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: isSelected ? primaryColor : (isDark ? Colors.white54 : AppColors.textSecondary), size: 24),
+            const SizedBox(height: 6),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: isSelected ? primaryColor : null,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 10, color: isDark ? Colors.white54 : AppColors.textSecondary),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDurationChoice(int minutes, Color primaryColor, bool isDark) {
+    final isSelected = _durationMinutes == minutes;
+    return Expanded(
+      child: ChoiceChip(
+        label: Center(
+          child: Text(
+            '$minutes دقيقة',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              color: isSelected
+                  ? (isDark ? AppColors.darkOnPrimary : Colors.white)
+                  : (isDark ? Colors.white70 : AppColors.textPrimary),
+            ),
+          ),
+        ),
+        selected: isSelected,
+        selectedColor: primaryColor,
+        backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        onSelected: (_) => setState(() => _durationMinutes = minutes),
       ),
     );
   }

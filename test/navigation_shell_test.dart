@@ -32,6 +32,7 @@ void main() {
               routes: [
                 GoRoute(path: '/today', builder: (context, state) => const TodayScreen()),
               ],
+              
             ),
           ],
         ),

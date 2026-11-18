@@ -275,6 +275,12 @@ class ScheduleItemModel {
   }
 }
 
+// أنواع الجلسات في بنك الوقت (1-on-1 vs Group Webinar)
+enum SessionType { individual, group }
+
+// حالات الضمان المالي في بنك الوقت
+enum EscrowStatus { held, released, refunded, disputed }
+
 // 4. نموذج جلسة بنك الوقت مع الضمان المعلق (Time Bank Session with Escrow)
 class TimeBankSessionModel {
   final String id;
@@ -352,6 +358,24 @@ class TimeBankSessionModel {
     this.enrolledLearnerIds = const [],
     this.maxLearners,
   });
+
+  SessionType get sessionType => isGroupSession ? SessionType.group : SessionType.individual;
+  EscrowStatus get escrowStatusEnum {
+    switch (escrowStatus) {
+      case 'held':
+        return EscrowStatus.held;
+      case 'released_to_teacher':
+      case 'released':
+        return EscrowStatus.released;
+      case 'refunded_to_learner':
+      case 'refunded':
+        return EscrowStatus.refunded;
+      case 'disputed':
+        return EscrowStatus.disputed;
+      default:
+        return EscrowStatus.held;
+    }
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -618,87 +642,145 @@ class OfferTimeSlot {
   };
 }
 
-// 5. نموذج عرض الشرح في بنك الوقت (Teaching Offer)
+// 5. نموذج عرض الشرح في بنك الوقت (Teaching Offer - Live Academic Marketplace)
 class TimeBankOfferModel {
   final String id;
   final String teacherId;
   final String teacherName;
+  final String? teacherAvatarUrl;
+  final double teacherRating;
   final String courseId;
   final String courseName;
-  final String courseCode;
   final String topic;
-  final String day;
-  final String time;
-  final int durationMinutes;
-  final String location;
-  final String mode; // online, in_person
-  final Color courseColor;
-  final bool isAvailable;
-  final List<OfferTimeSlot> slots;
+  final SessionType sessionType; // individual vs group
+  final DateTime? scheduledAt;   // Exact date & time (No confusing ranges)
+  final int durationMinutes;     // Typically 45 or 60 min
+  final String? meetingUrl;      // Required for group, optional/chat-shared for individual
+  final int maxAttendees;        // 1 for individual, e.g. 100 for group
+  final List<String> attendeeIds;
+  final bool isCompleted;
   final DateTime? createdAt;
-  final bool isGroupSession;
-  final int? maxLearners;
-  final List<String> enrolledLearnerIds;
-  final String? meetingUrl;
+  final String? academicYear;
+  final Color courseColor;
+  final List<OfferTimeSlot> slots;
   final bool isFlexibleRange;
   final String? timeRangeStart;
   final String? timeRangeEnd;
+  final String? rawDay;
+  final String? rawTime;
+  final String? rawLocation;
+  final String? rawMode;
+  final String? rawCourseCode;
 
   const TimeBankOfferModel({
     required this.id,
     required this.teacherId,
     required this.teacherName,
+    this.teacherAvatarUrl,
+    this.teacherRating = 5.0,
     required this.courseId,
     required this.courseName,
-    required this.courseCode,
     required this.topic,
-    required this.day,
-    required this.time,
-    required this.durationMinutes,
-    required this.location,
-    this.mode = 'in_person',
-    required this.courseColor,
-    this.isAvailable = true,
-    this.slots = const [],
-    this.createdAt,
-    this.isGroupSession = false,
-    this.maxLearners,
-    this.enrolledLearnerIds = const [],
+    SessionType? sessionType,
+    this.scheduledAt,
+    this.durationMinutes = 60,
     this.meetingUrl,
+    int? maxAttendees,
+    List<String>? attendeeIds,
+    this.isCompleted = false,
+    this.createdAt,
+    this.academicYear,
+    this.courseColor = const Color(0xFF2F8F89),
+    this.slots = const [],
     this.isFlexibleRange = false,
     this.timeRangeStart,
     this.timeRangeEnd,
-  });
+    // Legacy / backward-compat parameters:
+    String? day,
+    String? time,
+    String? courseCode,
+    String? location,
+    String? mode,
+    bool? isAvailable,
+    bool? isGroupSession,
+    int? maxLearners,
+    List<String>? enrolledLearnerIds,
+  })  : sessionType = sessionType ?? ((isGroupSession == true) ? SessionType.group : SessionType.individual),
+        maxAttendees = maxAttendees ?? maxLearners ?? ((sessionType == SessionType.group || isGroupSession == true) ? 100 : 1),
+        attendeeIds = attendeeIds ?? enrolledLearnerIds ?? const [],
+        rawDay = day,
+        rawTime = time,
+        rawLocation = location,
+        rawMode = mode,
+        rawCourseCode = courseCode;
+
+  // Getters
+  bool get isFull => attendeeIds.length >= maxAttendees;
+  int get attendeesCount => attendeeIds.length;
+  bool get isGroupSession => sessionType == SessionType.group;
+  List<String> get enrolledLearnerIds => attendeeIds;
+  int? get maxLearners => maxAttendees;
+  bool get isAvailable => !isCompleted && !isFull;
+  String get mode => rawMode ?? 'online';
+  String get location => rawLocation ?? 'أونلاين (Google Meet / Zoom)';
+  String get courseCode => rawCourseCode ?? courseId;
+  DateTime get effectiveScheduledAt => scheduledAt ?? (createdAt ?? DateTime.now());
+  String get day => rawDay ?? (scheduledAt != null ? formatDayArabic(scheduledAt!) : 'الخميس');
+  String get time => rawTime ?? (scheduledAt != null ? formatTimeArabic(scheduledAt!) : '08:00 م');
+
+  static String formatDayArabic(DateTime dt) {
+    const days = ['الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت', 'الأحد'];
+    return days[(dt.weekday - 1) % 7];
+  }
+
+  static String formatTimeArabic(DateTime dt) {
+    final hour12 = dt.hour == 0 ? 12 : (dt.hour > 12 ? dt.hour - 12 : dt.hour);
+    final minuteStr = dt.minute.toString().padLeft(2, '0');
+    final period = dt.hour >= 12 ? 'مساءً' : 'صباحاً';
+    return '$hour12:$minuteStr $period';
+  }
+
+  static String formatFullDateArabic(DateTime dt) {
+    return '${formatDayArabic(dt)}، ${formatTimeArabic(dt)}';
+  }
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'teacherId': teacherId,
       'teacherName': teacherName,
+      'teacherAvatarUrl': teacherAvatarUrl,
+      'teacherRating': teacherRating,
       'courseId': courseId,
       'courseName': courseName,
       'courseCode': courseCode,
       'topic': topic,
+      'academicYear': academicYear,
+      'sessionType': sessionType.name,
+      'scheduledAt': (scheduledAt ?? effectiveScheduledAt).toIso8601String(),
+      'durationMinutes': durationMinutes,
+      'meetingUrl': meetingUrl,
+      'maxAttendees': maxAttendees,
+      'attendeeIds': attendeeIds,
+      'isCompleted': isCompleted,
+      'createdAt': (createdAt ?? DateTime.now()).toIso8601String(),
+      'courseColor': courseColor.toARGB32(),
+      'slots': slots.map((s) => s.toMap()).toList(),
+      // Legacy compatibility keys:
+      'isAvailable': isAvailable,
+      'isGroupSession': isGroupSession,
+      'maxLearners': maxAttendees,
+      'enrolledLearnerIds': attendeeIds,
       'day': day,
       'time': time,
-      'durationMinutes': durationMinutes,
-      'location': location,
       'mode': mode,
-      'courseColor': courseColor.toARGB32(),
-      'isAvailable': isAvailable,
-      'slots': slots.map((s) => s.toMap()).toList(),
-      'createdAt': createdAt?.toIso8601String(),
-      'isGroupSession': isGroupSession,
-      'maxLearners': maxLearners,
-      'enrolledLearnerIds': enrolledLearnerIds,
-      'meetingUrl': meetingUrl,
+      'location': location,
       'isFlexibleRange': isFlexibleRange,
       'timeRangeStart': timeRangeStart,
       'timeRangeEnd': timeRangeEnd,
     };
   }
 
-  /// تحليل العرض بشكل دفاعي آمن: يتخطى البيانات الفاسدة ويعيد null إن كان العرض غير صالح
   static TimeBankOfferModel? fromMapSafe(Map<String, dynamic>? map, String id) {
     if (map == null) return null;
     try {
@@ -708,10 +790,11 @@ class TimeBankOfferModel {
         return null;
       }
 
-      final colorInt = (map['courseColor'] as num?)?.toInt();
-      final rawSlots = map['slots'];
-      final parsedSlots = <OfferTimeSlot>[];
-      if (rawSlots is List) {
+      // التحقق الدفاعي من الشرائح إذا تم تمريرها صراحة في الاختبارات أو المستندات القديمة
+      List<OfferTimeSlot> parsedSlots = const [];
+      if (map.containsKey('slots') && map['slots'] is List) {
+        final rawSlots = map['slots'] as List;
+        final list = <OfferTimeSlot>[];
         for (final item in rawSlots) {
           if (item is Map) {
             try {
@@ -728,87 +811,82 @@ class TimeBankOfferModel {
                   endMin != null &&
                   endMin > startMin &&
                   endMin <= 1440) {
-                parsedSlots.add(OfferTimeSlot(
+                list.add(OfferTimeSlot(
                   weekday: weekday,
                   startMin: startMin,
                   endMin: endMin,
                 ));
               }
-            } catch (_) {
-              // تخطي الشريحة التالفة
-            }
+            } catch (_) {}
           }
         }
+        if (rawSlots.isNotEmpty && list.isEmpty) {
+          return null; // كل الشرائح المرسلة كانت تالفة
+        }
+        parsedSlots = list.length > 7 ? list.sublist(0, 7) : list;
       }
 
-      if (parsedSlots.isEmpty) {
-        // العرض بدون أي فترات زمنية صالحة يُعتبر غير قابل للحجز ويتم تخطيه
-        return null;
-      }
-
-      // الحد الأقصى للشرائح هو 7
-      final limitedSlots = parsedSlots.length > 7 ? parsedSlots.sublist(0, 7) : parsedSlots;
-
-      return TimeBankOfferModel(
-        id: id,
-        teacherId: teacherId,
-        teacherName: map['teacherName'] as String? ?? 'زميل',
-        courseId: map['courseId'] as String? ?? '',
-        courseName: courseName,
-        courseCode: map['courseCode'] as String? ?? '',
-        topic: map['topic'] as String? ?? '',
-        day: map['day'] as String? ?? '',
-        time: map['time'] as String? ?? '',
-        durationMinutes: (map['durationMinutes'] as num?)?.toInt() ?? 60,
-        location: map['location'] as String? ?? '',
-        mode: map['mode'] as String? ?? 'in_person',
-        courseColor: colorInt != null ? Color(colorInt) : const Color(0xFF2F8F89),
-        isAvailable: map['isAvailable'] as bool? ?? true,
-        slots: limitedSlots,
-        createdAt: map['createdAt'] != null
-            ? DateTime.tryParse(map['createdAt'].toString())
-            : null,
-        isGroupSession: map['isGroupSession'] as bool? ?? false,
-        maxLearners: (map['maxLearners'] as num?)?.toInt(),
-        enrolledLearnerIds: (map['enrolledLearnerIds'] as List<dynamic>?)?.cast<String>() ?? const [],
-        meetingUrl: map['meetingUrl'] as String?,
-        isFlexibleRange: map['isFlexibleRange'] as bool? ?? false,
-        timeRangeStart: map['timeRangeStart'] as String?,
-        timeRangeEnd: map['timeRangeEnd'] as String?,
-      );
+      return TimeBankOfferModel.fromMap(map, id, overrideSlots: parsedSlots.isNotEmpty ? parsedSlots : null);
     } catch (_) {
       return null;
     }
   }
 
-  factory TimeBankOfferModel.fromMap(Map<String, dynamic> map, String id) {
-    final safe = fromMapSafe(map, id);
-    if (safe != null) return safe;
+  factory TimeBankOfferModel.fromMap(Map<String, dynamic> map, String id, {List<OfferTimeSlot>? overrideSlots}) {
+    DateTime? parseDate(dynamic v) {
+      if (v == null) return null;
+      if (v is DateTime) return v;
+      if (v is String) return DateTime.tryParse(v);
+      try {
+        return (v as dynamic).toDate() as DateTime?;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    final isGroup = map['sessionType'] == 'group' || map['isGroupSession'] == true;
+    final sessionType = isGroup ? SessionType.group : SessionType.individual;
+
+    final attendeeIds = (map['attendeeIds'] as List<dynamic>?)?.cast<String>() ??
+        (map['enrolledLearnerIds'] as List<dynamic>?)?.cast<String>() ??
+        const <String>[];
+
+    final maxAttendees = (map['maxAttendees'] as num?)?.toInt() ??
+        (map['maxLearners'] as num?)?.toInt() ??
+        (isGroup ? 100 : 1);
+
+    final scheduledAt = parseDate(map['scheduledAt']);
+    final createdAt = parseDate(map['createdAt']);
+    final colorInt = (map['courseColor'] as num?)?.toInt();
 
     return TimeBankOfferModel(
       id: id,
       teacherId: map['teacherId'] as String? ?? '',
       teacherName: map['teacherName'] as String? ?? 'زميل',
+      teacherAvatarUrl: map['teacherAvatarUrl'] as String?,
+      teacherRating: (map['teacherRating'] as num?)?.toDouble() ?? 5.0,
       courseId: map['courseId'] as String? ?? '',
       courseName: map['courseName'] as String? ?? '',
       courseCode: map['courseCode'] as String? ?? '',
       topic: map['topic'] as String? ?? '',
-      day: map['day'] as String? ?? '',
-      time: map['time'] as String? ?? '',
+      academicYear: map['academicYear'] as String?,
+      sessionType: sessionType,
+      scheduledAt: scheduledAt,
       durationMinutes: (map['durationMinutes'] as num?)?.toInt() ?? 60,
-      location: map['location'] as String? ?? '',
-      mode: map['mode'] as String? ?? 'in_person',
-      courseColor: const Color(0xFF2F8F89),
-      isAvailable: map['isAvailable'] as bool? ?? true,
-      slots: const [],
-      createdAt: null,
-      isGroupSession: map['isGroupSession'] as bool? ?? false,
-      maxLearners: (map['maxLearners'] as num?)?.toInt(),
-      enrolledLearnerIds: (map['enrolledLearnerIds'] as List<dynamic>?)?.cast<String>() ?? const [],
       meetingUrl: map['meetingUrl'] as String?,
+      maxAttendees: maxAttendees,
+      attendeeIds: attendeeIds,
+      isCompleted: map['isCompleted'] as bool? ?? false,
+      createdAt: createdAt,
+      courseColor: colorInt != null ? Color(colorInt) : const Color(0xFF2F8F89),
+      slots: overrideSlots ?? const [],
       isFlexibleRange: map['isFlexibleRange'] as bool? ?? false,
       timeRangeStart: map['timeRangeStart'] as String?,
       timeRangeEnd: map['timeRangeEnd'] as String?,
+      day: map['day'] as String?,
+      time: map['time'] as String?,
+      location: map['location'] as String?,
+      mode: map['mode'] as String?,
     );
   }
 
@@ -816,51 +894,63 @@ class TimeBankOfferModel {
     String? id,
     String? teacherId,
     String? teacherName,
+    String? teacherAvatarUrl,
+    double? teacherRating,
     String? courseId,
     String? courseName,
-    String? courseCode,
     String? topic,
-    String? day,
-    String? time,
+    String? academicYear,
+    SessionType? sessionType,
+    DateTime? scheduledAt,
     int? durationMinutes,
-    String? location,
-    String? mode,
-    Color? courseColor,
-    bool? isAvailable,
-    List<OfferTimeSlot>? slots,
-    DateTime? createdAt,
-    bool? isGroupSession,
-    int? maxLearners,
-    List<String>? enrolledLearnerIds,
     String? meetingUrl,
+    int? maxAttendees,
+    List<String>? attendeeIds,
+    bool? isCompleted,
+    DateTime? createdAt,
+    Color? courseColor,
+    List<OfferTimeSlot>? slots,
     bool? isFlexibleRange,
     String? timeRangeStart,
     String? timeRangeEnd,
+    String? day,
+    String? time,
+    String? courseCode,
+    String? location,
+    String? mode,
+    bool? isAvailable,
+    bool? isGroupSession,
+    int? maxLearners,
+    List<String>? enrolledLearnerIds,
   }) {
     return TimeBankOfferModel(
       id: id ?? this.id,
       teacherId: teacherId ?? this.teacherId,
       teacherName: teacherName ?? this.teacherName,
+      teacherAvatarUrl: teacherAvatarUrl ?? this.teacherAvatarUrl,
+      teacherRating: teacherRating ?? this.teacherRating,
       courseId: courseId ?? this.courseId,
       courseName: courseName ?? this.courseName,
-      courseCode: courseCode ?? this.courseCode,
       topic: topic ?? this.topic,
-      day: day ?? this.day,
-      time: time ?? this.time,
+      academicYear: academicYear ?? this.academicYear,
+      sessionType: sessionType ?? (isGroupSession != null ? (isGroupSession ? SessionType.group : SessionType.individual) : this.sessionType),
+      scheduledAt: scheduledAt ?? this.scheduledAt,
       durationMinutes: durationMinutes ?? this.durationMinutes,
-      location: location ?? this.location,
-      mode: mode ?? this.mode,
-      courseColor: courseColor ?? this.courseColor,
-      isAvailable: isAvailable ?? this.isAvailable,
-      slots: slots ?? this.slots,
-      createdAt: createdAt ?? this.createdAt,
-      isGroupSession: isGroupSession ?? this.isGroupSession,
-      maxLearners: maxLearners ?? this.maxLearners,
-      enrolledLearnerIds: enrolledLearnerIds ?? this.enrolledLearnerIds,
       meetingUrl: meetingUrl ?? this.meetingUrl,
+      maxAttendees: maxAttendees ?? maxLearners ?? this.maxAttendees,
+      attendeeIds: attendeeIds ?? enrolledLearnerIds ?? this.attendeeIds,
+      isCompleted: isCompleted ?? this.isCompleted,
+      createdAt: createdAt ?? this.createdAt,
+      courseColor: courseColor ?? this.courseColor,
+      slots: slots ?? this.slots,
       isFlexibleRange: isFlexibleRange ?? this.isFlexibleRange,
       timeRangeStart: timeRangeStart ?? this.timeRangeStart,
       timeRangeEnd: timeRangeEnd ?? this.timeRangeEnd,
+      day: day ?? rawDay,
+      time: time ?? rawTime,
+      courseCode: courseCode ?? rawCourseCode,
+      location: location ?? rawLocation,
+      mode: mode ?? rawMode,
     );
   }
 }
