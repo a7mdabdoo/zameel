@@ -31,6 +31,16 @@ class TodayScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
+    final primaryContainerColor = isDark ? AppColors.darkPrimaryContainer : AppColors.primaryContainer;
+    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.surface;
+    final surfaceAltColor = isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt;
+    final hairlineColor = isDark ? const Color(0xFF1E2D3D) : AppColors.hairline;
+    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final textTertiaryColor = isDark ? AppColors.darkTextTertiary : AppColors.textTertiary;
+
+    final nameParts = userName.trim().split(' ').where((s) => s.isNotEmpty).toList();
+    final displayName = nameParts.length > 2 ? '${nameParts[0]} ${nameParts[1]}' : userName;
 
     const dayNames = {
       DateTime.saturday: 'السبت',
@@ -104,14 +114,14 @@ class TodayScreen extends ConsumerWidget {
             children: [
               // 1. Header Greeting & Time Coin Chip
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).cardTheme.color,
+                  color: surfaceColor,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: AppColors.hairline),
+                  border: Border.all(color: hairlineColor),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.03),
+                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
                       blurRadius: 10,
                       offset: const Offset(0, 3),
                     ),
@@ -120,7 +130,44 @@ class TodayScreen extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Time Coin & Streak Chips Row
+                    // Right side (RTL): Greeting & Date
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '$greeting، $displayName 👋',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: textPrimaryColor,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 3),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.calendar_today_rounded, size: 12, color: primaryColor),
+                              const SizedBox(width: 5),
+                              Text(
+                                formattedTodayDate,
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w500,
+                                  color: textSecondaryColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    // Left side (RTL): Chips (Streak & Coins)
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -130,36 +177,29 @@ class TodayScreen extends ConsumerWidget {
                               ? 'الستريك اليومي: $streak'
                               : 'أتمم مهام اليوم لبدء الستريك اليومي 🔥',
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
                               color: streak > 0
-                                  ? Colors.deepOrange.withValues(alpha: 0.15)
-                                  : (Theme.of(context).brightness == Brightness.dark
-                                      ? AppColors.darkSurfaceAlt
-                                      : AppColors.surfaceAlt),
-                              borderRadius: BorderRadius.circular(20),
+                                  ? Colors.deepOrange.withValues(alpha: isDark ? 0.2 : 0.12)
+                                  : surfaceAltColor,
+                              borderRadius: BorderRadius.circular(16),
                               border: Border.all(
                                 color: streak > 0
-                                    ? Colors.deepOrange.withValues(alpha: 0.4)
-                                    : AppColors.hairline,
+                                    ? Colors.deepOrange.withValues(alpha: isDark ? 0.4 : 0.25)
+                                    : hairlineColor,
                               ),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Text(
-                                  '🔥',
-                                  style: TextStyle(fontSize: 14),
-                                ),
+                                const Text('🔥', style: TextStyle(fontSize: 13)),
                                 const SizedBox(width: 4),
                                 Text(
                                   '$streak',
                                   style: TextStyle(
-                                    fontSize: 15,
+                                    fontSize: 13,
                                     fontWeight: FontWeight.bold,
-                                    color: streak > 0
-                                        ? Colors.deepOrange
-                                        : AppColors.textSecondary,
+                                    color: streak > 0 ? Colors.deepOrange : textSecondaryColor,
                                   ),
                                 ),
                               ],
@@ -169,33 +209,29 @@ class TodayScreen extends ConsumerWidget {
 
                         const SizedBox(width: 8),
 
-                        // Time Coin Chip
+                        // Time Coin Chip 🪙
                         GestureDetector(
                           onTap: () => context.push('/wallet'),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
-                              color: AppColors.pointsAmber.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: AppColors.pointsAmber.withValues(alpha: 0.3)),
+                              color: AppColors.pointsAmber.withValues(alpha: isDark ? 0.2 : 0.12),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: AppColors.pointsAmber.withValues(alpha: isDark ? 0.4 : 0.25),
+                              ),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(
-                                  Icons.monetization_on_rounded,
-                                  size: 18,
-                                  color: AppColors.pointsAmber,
-                                ),
+                                const Icon(Icons.toll_rounded, size: 15, color: AppColors.pointsAmber),
                                 const SizedBox(width: 4),
                                 Text(
                                   '$timeCoins',
-                                  style: TextStyle(
-                                    fontSize: 15,
+                                  style: const TextStyle(
+                                    fontSize: 13,
                                     fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).brightness == Brightness.dark
-                                        ? const Color(0xFFFFD54F)
-                                        : const Color(0xFF664700),
+                                    color: AppColors.pointsAmber,
                                   ),
                                 ),
                               ],
@@ -204,74 +240,36 @@ class TodayScreen extends ConsumerWidget {
                         ),
                       ],
                     ),
-
-                    const SizedBox(width: 10),
-                    // Greeting & Date
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            '$greeting يا $userName 👋',
-                            textAlign: TextAlign.end,
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                formattedTodayDate,
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              const Icon(Icons.calendar_today_outlined, size: 12, color: AppColors.textTertiary),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
 
               // Quick Q&A forum banner
               InkWell(
                 onTap: () => context.go('/questions'),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(18),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E2822) : const Color(0xFFEDF7EE),
-                    borderRadius: BorderRadius.circular(16),
+                    color: isDark ? const Color(0xFF102826) : const Color(0xFFEDF7EE),
+                    borderRadius: BorderRadius.circular(18),
                     border: Border.all(
-                      color: primaryColor.withValues(alpha: 0.25),
+                      color: primaryColor.withValues(alpha: isDark ? 0.3 : 0.2),
                     ),
                   ),
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(7),
+                        padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: primaryColor.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(Icons.help_center_outlined, color: primaryColor, size: 18),
+                        child: Icon(Icons.forum_outlined, color: primaryColor, size: 18),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -279,19 +277,23 @@ class TodayScreen extends ConsumerWidget {
                             Text(
                               'منتدى الأسئلة والحلول لدفعتك 💡',
                               style: TextStyle(
-                                fontSize: 13,
+                                fontSize: 13.5,
                                 fontWeight: FontWeight.bold,
-                                color: Theme.of(context).colorScheme.onSurface,
+                                color: textPrimaryColor,
                               ),
                             ),
-                            const Text(
+                            const SizedBox(height: 2),
+                            Text(
                               'تصفح أسئلة زملائك أو اطرح استفسارك الأكاديمي',
-                              style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: textSecondaryColor,
+                              ),
                             ),
                           ],
                         ),
                       ),
-                      Icon(Icons.arrow_forward_ios_rounded, size: 13, color: primaryColor),
+                      Icon(Icons.arrow_back_ios_rounded, size: 13, color: textSecondaryColor),
                     ],
                   ),
                 ),
@@ -306,9 +308,9 @@ class TodayScreen extends ConsumerWidget {
                   children: [
                     TextButton(
                       onPressed: () => context.push('/my-sessions'),
-                      child: const Text(
+                      child: Text(
                         'عرض كل الجلسات',
-                        style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 12, color: primaryColor, fontWeight: FontWeight.bold),
                       ),
                     ),
                     Text(
@@ -316,7 +318,7 @@ class TodayScreen extends ConsumerWidget {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onSurface,
+                        color: textPrimaryColor,
                       ),
                     ),
                   ],
@@ -335,12 +337,12 @@ class TodayScreen extends ConsumerWidget {
                   child: Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).cardTheme.color,
+                      color: surfaceColor,
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: AppColors.hairline),
+                      border: Border.all(color: hairlineColor),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.03),
+                          color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
                           blurRadius: 10,
                           offset: const Offset(0, 3),
                         ),
@@ -378,14 +380,14 @@ class TodayScreen extends ConsumerWidget {
                                           style: TextStyle(
                                             fontSize: 13,
                                             fontWeight: FontWeight.bold,
-                                            color: Theme.of(context).colorScheme.onSurface,
+                                            color: textPrimaryColor,
                                           ),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                         Text(
                                           confirmedSession.topic,
-                                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                          style: TextStyle(fontSize: 12, color: textSecondaryColor),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                         ),
@@ -394,7 +396,7 @@ class TodayScreen extends ConsumerWidget {
                                   ),
                                   const SizedBox(width: 10),
                                   CircleAvatar(
-                                    backgroundColor: AppColors.primaryContainer,
+                                    backgroundColor: primaryContainerColor,
                                     radius: 18,
                                     child: Text(
                                       confirmedSession.teacherId == userId
@@ -402,7 +404,7 @@ class TodayScreen extends ConsumerWidget {
                                               ? confirmedSession.learnerName.trim().split(' ').map((p) => p.isNotEmpty ? p[0] : '').take(2).join('.')
                                               : 'ز.م')
                                           : confirmedSession.teacherInitials,
-                                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary, fontSize: 11),
+                                      style: TextStyle(fontWeight: FontWeight.bold, color: primaryColor, fontSize: 11),
                                     ),
                                   ),
                                 ],
@@ -411,7 +413,7 @@ class TodayScreen extends ConsumerWidget {
                           ],
                         ),
                         const SizedBox(height: 12),
-                        const Divider(height: 1, color: AppColors.hairline),
+                        Divider(height: 1, color: hairlineColor),
                         const SizedBox(height: 10),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -431,7 +433,7 @@ class TodayScreen extends ConsumerWidget {
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: confirmedSession.teacherId == userId ? const Color(0xFF664700) : AppColors.error,
+                                  color: confirmedSession.teacherId == userId ? const Color(0xFFB45309) : AppColors.error,
                                 ),
                               ),
                             ),
@@ -439,10 +441,10 @@ class TodayScreen extends ConsumerWidget {
                               children: [
                                 Text(
                                   '${confirmedSession.day} • ${confirmedSession.time} (${confirmedSession.durationMinutes} دقيقة)',
-                                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                  style: TextStyle(fontSize: 12, color: textSecondaryColor),
                                 ),
                                 const SizedBox(width: 4),
-                                const Icon(Icons.access_time_rounded, size: 14, color: AppColors.textTertiary),
+                                Icon(Icons.access_time_rounded, size: 14, color: textTertiaryColor),
                               ],
                             ),
                           ],
@@ -469,9 +471,9 @@ class TodayScreen extends ConsumerWidget {
                         children: [
                           TextButton(
                             onPressed: () => context.push('/schedule-setup'),
-                            child: const Text(
+                            child: Text(
                               '+ إضافة / تعديل المحاضرات',
-                              style: TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold),
+                              style: TextStyle(fontSize: 12, color: primaryColor, fontWeight: FontWeight.bold),
                             ),
                           ),
                           Text(
@@ -479,7 +481,7 @@ class TodayScreen extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.onSurface,
+                              color: textPrimaryColor,
                             ),
                           ),
                         ],
@@ -490,24 +492,24 @@ class TodayScreen extends ConsumerWidget {
                         Container(
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).cardTheme.color,
+                            color: surfaceColor,
                             borderRadius: BorderRadius.circular(18),
-                            border: Border.all(color: AppColors.hairline),
+                            border: Border.all(color: hairlineColor),
                           ),
                           child: todayArabic == 'الجمعة'
                               ? Column(
                                   children: [
                                     const Text('🌴', style: TextStyle(fontSize: 44)),
                                     const SizedBox(height: 12),
-                                    const Text(
+                                    Text(
                                       'عطلة نهاية الأسبوع • يوم الجمعة المبارك',
-                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimaryColor),
                                       textAlign: TextAlign.center,
                                     ),
                                     const SizedBox(height: 8),
-                                    const Text(
+                                    Text(
                                       'لا توجد جلسات مذاكرة أو محاضرات مجدولة اليوم. استمتع بيومك وجدد طاقتك قبل بداية الأسبوع الجديد!',
-                                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.4),
+                                      style: TextStyle(fontSize: 13, color: textSecondaryColor, height: 1.4),
                                       textAlign: TextAlign.center,
                                     ),
                                     const SizedBox(height: 16),
@@ -520,17 +522,17 @@ class TodayScreen extends ConsumerWidget {
                                 )
                               : Column(
                                   children: [
-                                    const Icon(Icons.calendar_today_outlined, size: 40, color: AppColors.textSecondary),
+                                    Icon(Icons.calendar_today_outlined, size: 40, color: textTertiaryColor),
                                     const SizedBox(height: 12),
-                                    const Text(
+                                    Text(
                                       'لا توجد محاضرات أو مذاكرة مجدولة اليوم',
-                                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textPrimaryColor),
                                       textAlign: TextAlign.center,
                                     ),
                                     const SizedBox(height: 6),
-                                    const Text(
+                                    Text(
                                       'أضف مواعيد محاضراتك وموادك وسيقوم التطبيق بحساب أوقات فراغك وتوليد خطة مذاكرة ذكية لك تلقائياً.',
-                                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                      style: TextStyle(fontSize: 12, color: textSecondaryColor),
                                       textAlign: TextAlign.center,
                                     ),
                                     const SizedBox(height: 14),
@@ -539,7 +541,7 @@ class TodayScreen extends ConsumerWidget {
                                       icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
                                       label: const Text('إعداد جدول المحاضرات الآن', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.primary,
+                                        backgroundColor: primaryColor,
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                       ),
                                     ),
@@ -668,9 +670,16 @@ class TodayScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).cardTheme.color,
+                  color: surfaceColor,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: AppColors.hairline),
+                  border: Border.all(color: hairlineColor),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: [
@@ -678,17 +687,16 @@ class TodayScreen extends ConsumerWidget {
                       alignment: Alignment.center,
                       children: [
                         SizedBox(
-                          width: 54,
-                          height: 54,
+                          width: 56,
+                          height: 56,
                           child: CircularProgressIndicator(
                             value: dailyProgressPct,
                             strokeWidth: 6,
-                            backgroundColor: AppColors.surfaceAlt,
+                            backgroundColor: surfaceAltColor,
                             valueColor: AlwaysStoppedAnimation<Color>(
-                             
                               dailyProgressPct >= 1.0 && todayBlocksCount > 0
                                   ? AppColors.success
-                                  : AppColors.primary,
+                                  : primaryColor,
                             ),
                           ),
                         ),
@@ -697,7 +705,7 @@ class TodayScreen extends ConsumerWidget {
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onSurface,
+                            color: textPrimaryColor,
                           ),
                         ),
                       ],
@@ -707,22 +715,22 @@ class TodayScreen extends ConsumerWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'معدل إنجاز اليوم',
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                          Text(
+                            'معدل إنجاز اليوم 🎯',
+                            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: primaryColor),
                           ),
-                          const SizedBox(height: 2),
+                          const SizedBox(height: 3),
                           Text(
                             todayBlocksCount == 0
                                 ? 'لا توجد مهام مذاكرة مجدولة اليوم'
                                 : 'أنجزت $todayCompletedCount من $todayBlocksCount مهام اليوم',
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.onSurface,
+                              color: textPrimaryColor,
                             ),
                           ),
-                          const SizedBox(height: 2),
+                          const SizedBox(height: 3),
                           Text(
                             todayBlocksCount == 0
                                 ? 'استمتع بيومك أو أضف محاضراتك لتوليد الخطة'
@@ -730,10 +738,10 @@ class TodayScreen extends ConsumerWidget {
                                     ? 'أحسنت! أتممت جميع مهام اليوم وحافظت على الستريك (🔥 $streak) 🌟'
                                     : 'متبقي $todayRemainingCount مهام لتحقيق هدف اليوم وحماية الستريك (🔥 $streak)'),
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 11.5,
                               color: todayRemainingCount == 0 && todayBlocksCount > 0
                                   ? AppColors.success
-                                  : AppColors.textSecondary,
+                                  : textSecondaryColor,
                               fontWeight: todayRemainingCount == 0 && todayBlocksCount > 0
                                   ? FontWeight.bold
                                   : FontWeight.normal,
@@ -767,131 +775,200 @@ class TodayScreen extends ConsumerWidget {
     VoidCallback? onToggleDone,
     bool canToggle = false,
   }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.surface;
+    final surfaceAltColor = isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt;
+    final hairlineColor = isDark ? const Color(0xFF1E2D3D) : AppColors.hairline;
+    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final textTertiaryColor = isDark ? AppColors.darkTextTertiary : AppColors.textTertiary;
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.hairline),
+        color: surfaceColor,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: hairlineColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 6,
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
+            blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: IntrinsicHeight(
-          child: Row(
-            children: [
-              Container(
-                width: 5,
-                color: ribbonColor,
-              ),
-              Expanded(
-                child: ListTile(
-                  onTap: onTap,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-                  title: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      if (canToggle)
-                        InkWell(
-                          onTap: onToggleDone,
-                          borderRadius: BorderRadius.circular(10),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: isDone
-                                  ? AppColors.success.withValues(alpha: 0.15)
-                                  : AppColors.error.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(
-                                color: isDone
-                                    ? AppColors.success.withValues(alpha: 0.5)
-                                    : AppColors.error.withValues(alpha: 0.3),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                                  size: 13,
-                                  color: isDone ? AppColors.success : AppColors.error,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  isDone ? 'تم' : 'لم تتم',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: isDone ? AppColors.success : AppColors.error,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        )
-                      else
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(14.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Row 1: Course Color Indicator + Course Title + Status Action
+                Row(
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: ribbonColor,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: textPrimaryColor,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    if (canToggle)
+                      InkWell(
+                        onTap: onToggleDone,
+                        borderRadius: BorderRadius.circular(20),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: isDone ? AppColors.sage.withValues(alpha: 0.2) : AppColors.primaryContainer.withValues(alpha: 0.5),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            statusText,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              color: isDone ? AppColors.deepSage : AppColors.primary,
+                            color: isDone
+                                ? AppColors.success.withValues(alpha: 0.15)
+                                : surfaceAltColor,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isDone
+                                  ? AppColors.success.withValues(alpha: 0.4)
+                                  : hairlineColor,
                             ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isDone ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+                                size: 14,
+                                color: isDone ? AppColors.success : textTertiaryColor,
+                              ),
+                              const SizedBox(width: 5),
+                              Text(
+                                isDone ? 'تمت ✓' : 'لم تتم',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDone ? AppColors.success : textSecondaryColor,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      const SizedBox(width: 8),
-                      Expanded(
+                      )
+                    else
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: ribbonColor.withValues(alpha: isDark ? 0.2 : 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         child: Text(
-                          title,
-                          textAlign: TextAlign.end,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
+                          statusText,
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onSurface,
+                            color: ribbonColor,
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 4.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          time,
-                          style: const TextStyle(fontSize: 11, color: AppColors.textTertiary),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            '$category • $room',
-                            textAlign: TextAlign.end,
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  ],
                 ),
-              ),
-            ],
+
+                // Row 2: Topic Description (if available)
+                if (category.trim().isNotEmpty && category != 'محاضرة رسمية') ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    category,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: textSecondaryColor,
+                      height: 1.3,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+
+                const SizedBox(height: 10),
+
+                // Row 3: Metadata Badges (Time & Location)
+                Row(
+                  children: [
+                    // Time Chip
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: surfaceAltColor,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.access_time_rounded, size: 13, color: textTertiaryColor),
+                          const SizedBox(width: 4),
+                          Text(
+                            time,
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w500,
+                              color: textSecondaryColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    if (room.trim().isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      // Location Chip
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: surfaceAltColor,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.location_on_outlined, size: 13, color: textTertiaryColor),
+                            const SizedBox(width: 4),
+                            Text(
+                              room,
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w500,
+                                color: textSecondaryColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    const Spacer(),
+
+                    Icon(Icons.arrow_back_ios_rounded, size: 12, color: textTertiaryColor),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),

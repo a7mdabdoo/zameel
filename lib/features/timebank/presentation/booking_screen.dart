@@ -226,6 +226,9 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       selectedSlotText = '$dayName ${_selectedSlotDateTime!.day}/${_selectedSlotDateTime!.month} • ${OfferTimeSlot.formatMinutes(startMin)} – ${OfferTimeSlot.formatMinutes(endMin)} ($_selectedDuration دقيقة)';
     }
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hairline = isDark ? AppColors.darkHairline : AppColors.hairline;
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
@@ -253,7 +256,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardTheme.color,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: AppColors.hairline),
+                  border: Border.all(color: hairline),
                 ),
                 child: Row(
                   children: [
@@ -375,7 +378,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardTheme.color,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: AppColors.hairline),
+                  border: Border.all(color: hairline),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -430,7 +433,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardTheme.color,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: AppColors.hairline),
+                  border: Border.all(color: hairline),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -481,7 +484,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                         decoration: BoxDecoration(
                           color: Theme.of(context).scaffoldBackgroundColor,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.hairline),
+                          border: Border.all(color: hairline),
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<DateTime>(
@@ -515,16 +518,16 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardTheme.color,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: AppColors.hairline),
+                  border: Border.all(color: hairline),
                 ),
                 child: Column(
                   children: [
                     _buildDetailRow(context, Icons.menu_book_rounded, 'المادة', courseName),
-                    const Divider(height: 20, color: AppColors.hairline),
+                    Divider(height: 20, color: hairline),
                     _buildDetailRow(context, Icons.topic_outlined, 'الموضوع', topic),
-                    const Divider(height: 20, color: AppColors.hairline),
+                    Divider(height: 20, color: hairline),
                     _buildDetailRow(context, Icons.calendar_today_outlined, 'الموعد المختار', selectedSlotText),
-                    const Divider(height: 20, color: AppColors.hairline),
+                    Divider(height: 20, color: hairline),
                     _buildDetailRow(
                       context,
                       offer?.mode == 'online'
