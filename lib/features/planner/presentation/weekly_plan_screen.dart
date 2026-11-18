@@ -217,16 +217,21 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
   }
 
   Widget _buildMiniStatCard(String label, String value, Color color) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.surface;
+    final hairlineColor = isDark ? const Color(0xFF1E2D3D) : AppColors.hairline;
+    final textTertiaryColor = isDark ? AppColors.darkTextTertiary : AppColors.textTertiary;
+
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
+        color: surfaceColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.hairline),
+        border: Border.all(color: hairlineColor),
       ),
       child: Column(
         children: [
-          Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textTertiary)),
+          Text(label, style: TextStyle(fontSize: 11, color: textTertiaryColor)),
           const SizedBox(height: 2),
           Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color)),
         ],
@@ -243,15 +248,22 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
     bool isInteractive = false,
     VoidCallback? onTap,
   }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.surface;
+    final hairlineColor = isDark ? const Color(0xFF1E2D3D) : AppColors.hairline;
+    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final textTertiaryColor = isDark ? AppColors.darkTextTertiary : AppColors.textTertiary;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardTheme.color,
+        color: surfaceColor,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.hairline),
+        border: Border.all(color: hairlineColor),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
@@ -280,7 +292,7 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: ribbonColor.withValues(alpha: 0.15),
+                                color: ribbonColor.withValues(alpha: isDark ? 0.2 : 0.15),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
@@ -288,7 +300,7 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
                                 style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: ribbonColor),
                               ),
                             ),
-                            Text(time, style: const TextStyle(fontSize: 11, color: AppColors.textTertiary)),
+                            Text(time, style: TextStyle(fontSize: 11, color: textTertiaryColor)),
                           ],
                         ),
                         const SizedBox(height: 6),
@@ -297,23 +309,23 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onSurface,
+                            color: textPrimaryColor,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            const Icon(Icons.location_on_outlined, size: 13, color: AppColors.textTertiary),
+                            Icon(Icons.location_on_outlined, size: 13, color: textTertiaryColor),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
                                 location,
-                                style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                                style: TextStyle(fontSize: 11, color: textSecondaryColor),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            const Icon(Icons.arrow_back_ios_rounded, size: 12, color: AppColors.textTertiary),
+                            Icon(Icons.arrow_back_ios_rounded, size: 12, color: textTertiaryColor),
                           ],
                         ),
                       ],

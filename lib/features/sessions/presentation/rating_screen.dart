@@ -82,6 +82,8 @@ class _RatingScreenState extends ConsumerState<RatingScreen> {
   Widget build(BuildContext context) {
     final session = widget.session;
     final teacherName = session?.teacherName ?? 'الزميل الشارح';
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hairline = isDark ? AppColors.darkHairline : AppColors.hairline;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -141,7 +143,7 @@ class _RatingScreenState extends ConsumerState<RatingScreen> {
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardTheme.color,
                   borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: AppColors.hairline),
+                  border: Border.all(color: hairline),
                 ),
                 child: Column(
                   children: [
@@ -192,8 +194,8 @@ class _RatingScreenState extends ConsumerState<RatingScreen> {
                   hintText: 'اكتب كلمة شكر أو ملاحظات ساعدتك أثناء الشرح...',
                   filled: true,
                   fillColor: Theme.of(context).cardTheme.color,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppColors.hairline)),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: AppColors.hairline)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: hairline)),
+                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: hairline)),
                 ),
               ),
 

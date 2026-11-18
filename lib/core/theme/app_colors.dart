@@ -26,7 +26,7 @@ class AppColors {
   static const Color darkBackground = Color(0xFF0B131E);
   static const Color darkSurface = Color(0xFF15202B);
   static const Color darkSurfaceAlt = Color(0xFF1E2D3D);
-  static const Color darkHairline = Color(0xFF27384A);
+  static const Color darkHairline = Color(0xFF1E2D3D);
   static const Color darkPrimary = Color(0xFF2DD4BF);
   static const Color darkPrimaryContainer = Color(0xFF133938);
   static const Color darkOnPrimary = Color(0xFF0B131E);

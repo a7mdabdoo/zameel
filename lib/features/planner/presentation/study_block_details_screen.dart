@@ -268,7 +268,11 @@ class _StudyBlockDetailsScreenState
                       border: Border.all(
                         color: isDone
                             ? AppColors.success
-                            : (isCurrent ? AppColors.primary : AppColors.hairline),
+                            : (isCurrent
+                                ? AppColors.primary
+                                : (Theme.of(ctx).brightness == Brightness.dark
+                                    ? AppColors.darkHairline
+                                    : AppColors.hairline)),
                         width: 2,
                       ),
                     ),
@@ -295,7 +299,11 @@ class _StudyBlockDetailsScreenState
                 decoration: BoxDecoration(
                   color: Theme.of(ctx).cardTheme.color,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.hairline),
+                  border: Border.all(
+                    color: Theme.of(ctx).brightness == Brightness.dark
+                        ? AppColors.darkHairline
+                        : AppColors.hairline,
+                  ),
                 ),
                 child: Column(
                   children: [
@@ -642,6 +650,8 @@ class _StudyBlockDetailsScreenState
 
     final cycleIndex = _completedSessions % _sessionsBeforeLongBreak;
     final remainingForLongBreak = _sessionsBeforeLongBreak - cycleIndex;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final hairline = isDark ? AppColors.darkHairline : AppColors.hairline;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -729,7 +739,7 @@ class _StudyBlockDetailsScreenState
               border: Border.all(
                 color: _isRunning
                     ? activeColor.withValues(alpha: 0.5)
-                    : AppColors.hairline,
+                    : hairline,
                 width: _isRunning ? 1.5 : 1,
               ),
               boxShadow: [
@@ -1204,7 +1214,7 @@ class _StudyBlockDetailsScreenState
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.warning,
                     side: BorderSide(
-                      color: isAlreadyCompleted ? AppColors.hairline : AppColors.warning,
+                      color: isAlreadyCompleted ? hairline : AppColors.warning,
                     ),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
@@ -1226,7 +1236,7 @@ class _StudyBlockDetailsScreenState
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.error,
                     side: BorderSide(
-                      color: isAlreadyCompleted ? AppColors.hairline : AppColors.error,
+                      color: isAlreadyCompleted ? hairline : AppColors.error,
                     ),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14)),
