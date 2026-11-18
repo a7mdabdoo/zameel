@@ -47,6 +47,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             : (user?.email?.split('@').first ?? 'طالب زميل'));
 
     final userEmail = user?.email ?? '';
+    final rawUsername = userDoc?['username'] as String?;
+    final userHandle = (rawUsername != null && rawUsername.trim().isNotEmpty)
+        ? '@${rawUsername.trim().replaceAll('@', '')}'
+        : (userEmail.contains('@')
+            ? '@${userEmail.split('@').first.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_').toLowerCase()}'
+            : '@zameel');
+    final userBio = (userDoc?['bio'] as String?)?.trim() ?? '';
 
     final faculty = userDoc?['faculty'] as String? ?? AppConstants.faculty;
     final year = userDoc?['year'] as String? ??
@@ -59,7 +66,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final completedSessions = (userDoc?['completedSessions'] as num?)?.toInt() ?? 0;
     final ratingSum = (userDoc?['ratingSum'] as num?)?.toInt() ?? 0;
     final ratingCount = (userDoc?['ratingCount'] as num?)?.toInt() ?? 0;
-    final teacherRating = ratingCount > 0 ? (ratingSum / ratingCount) : 5.0;
+    final teacherRating = ratingCount > 0 ? (ratingSum / ratingCount) : 0.0;
+    final hasRating = ratingCount > 0;
     final completedBlocks = (userDoc?['completedBlockIds'] as List<dynamic>?) ?? [];
     final studyHours = completedBlocks.isNotEmpty 
         ? completedBlocks.length 
@@ -109,13 +117,35 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
                 child: Column(
                   children: [
-                    CircleAvatar(
-                      radius: 36,
-                      backgroundColor: primaryContainerColor,
-                      child: Text(
-                        userName.isNotEmpty ? userName.substring(0, 1) : 'أ',
-                        style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: primaryColor),
-                      ),
+                    // Avatar with Edit Button
+                    Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 38,
+                          backgroundColor: primaryContainerColor,
+                          child: Text(
+                            userName.isNotEmpty ? userName.substring(0, 1) : 'أ',
+                            style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: primaryColor),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: InkWell(
+                            onTap: () => _showEditProfileModal(context, userDoc),
+                            borderRadius: BorderRadius.circular(14),
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: primaryColor,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: surfaceColor, width: 2),
+                              ),
+                              child: const Icon(Icons.edit_rounded, size: 13, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 12),
                     Text(
@@ -124,8 +154,64 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      userEmail,
-                      style: TextStyle(fontSize: 13, color: textSecondaryColor),
+                      userHandle,
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: primaryColor),
+                    ),
+                    const SizedBox(height: 6),
+                    // Teacher Rating Badge (0.0 / جديد if unrated)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: hasRating
+                            ? Colors.amber.withValues(alpha: isDark ? 0.25 : 0.15)
+                            : (isDark ? surfaceAltColor : Colors.black.withValues(alpha: 0.05)),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: hasRating
+                              ? Colors.amber.withValues(alpha: 0.4)
+                              : hairlineColor,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.star_rounded,
+                            size: 14,
+                            color: hasRating ? Colors.amber : (isDark ? Colors.white60 : Colors.black45),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            hasRating
+                                ? 'تقييم كمعلم: ${teacherRating.toStringAsFixed(1)} ($ratingCount تقييم)'
+                                : '⭐ جديد (بدون تقييم كمعلم)',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                              color: hasRating ? (isDark ? const Color(0xFFFFD54F) : const Color(0xFFB45309)) : textSecondaryColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Bio text (or prompt to add bio)
+                    InkWell(
+                      onTap: () => _showEditProfileModal(context, userDoc),
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        child: Text(
+                          userBio.isNotEmpty ? '"$userBio"' : '+ أضف نبذة تعريفية عنك (Bio)...',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontStyle: userBio.isNotEmpty ? FontStyle.italic : FontStyle.normal,
+                            color: userBio.isNotEmpty ? textSecondaryColor : primaryColor,
+                            fontWeight: userBio.isNotEmpty ? FontWeight.normal : FontWeight.w600,
+                          ),
+                        ),
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Container(
@@ -139,29 +225,33 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         style: TextStyle(fontSize: 11, color: textSecondaryColor, fontWeight: FontWeight.w600),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    InkWell(
-                      onTap: () => context.push('/academic-setup?edit=true'),
-                      borderRadius: BorderRadius.circular(12),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: primaryColor.withValues(alpha: isDark ? 0.2 : 0.08),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: primaryColor.withValues(alpha: 0.25)),
+                    const SizedBox(height: 12),
+                    // Action Buttons: Edit Profile & Academic Setup
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        OutlinedButton.icon(
+                          onPressed: () => _showEditProfileModal(context, userDoc),
+                          icon: Icon(Icons.person_outline_rounded, size: 14, color: primaryColor),
+                          label: Text('تعديل الملف ✏️', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryColor)),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: primaryColor.withValues(alpha: 0.3)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.edit_calendar_rounded, size: 14, color: primaryColor),
-                            const SizedBox(width: 6),
-                            Text(
-                              'تعديل الفرقة الدراسية والترم ✏️',
-                              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryColor),
-                            ),
-                          ],
+                        const SizedBox(width: 8),
+                        OutlinedButton.icon(
+                          onPressed: () => context.push('/academic-setup?edit=true'),
+                          icon: Icon(Icons.school_outlined, size: 14, color: primaryColor),
+                          label: Text('البيانات الأكاديمية 🎓', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryColor)),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: primaryColor.withValues(alpha: 0.3)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ],
                 ),
@@ -173,15 +263,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: _buildBadgeCard('جلسات مكتملة', '$completedSessions جلسة', Icons.check_circle_outline, AppColors.deepSage, isDark, surfaceColor, hairlineColor, textSecondaryColor),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: _buildBadgeCard('تقييم كمعلم', '${teacherRating.toStringAsFixed(1)} ★', Icons.star_outline_rounded, AppColors.pointsAmber, isDark, surfaceColor, hairlineColor, textSecondaryColor),
+                    child: _buildBadgeCard('رصيد الوقت', '$availableCoins عملة', Icons.toll_rounded, AppColors.pointsAmber, isDark, surfaceColor, hairlineColor, textSecondaryColor),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: _buildBadgeCard('ساعات المذاكرة', '$studyHours ساعة', Icons.timer_outlined, primaryColor, isDark, surfaceColor, hairlineColor, textSecondaryColor),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _buildBadgeCard('جلسات مكتملة', '$completedSessions جلسة', Icons.check_circle_outline, AppColors.success, isDark, surfaceColor, hairlineColor, textSecondaryColor),
                   ),
                 ],
               ),
@@ -203,10 +293,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     borderRadius: BorderRadius.circular(18),
                     onTap: () => context.push('/wallet'),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       child: Row(
                         children: [
-                          Icon(Icons.account_balance_wallet_outlined, color: AppColors.pointsAmber, size: 24),
+                          const Icon(Icons.toll_rounded, color: AppColors.pointsAmber, size: 26),
                           const SizedBox(width: 14),
                           Expanded(
                             child: Column(
@@ -253,10 +343,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
               ),
 
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
 
               // ==========================================
-              // كارت موادي الدراسية (تحت محفظة الوقت مباشرة بنفس الستايل)
+              // كارت موادي الدراسية (تحت محفظة الوقت مباشرة بنفس الستايل تماماً)
               // ==========================================
               Container(
                 decoration: BoxDecoration(
@@ -264,13 +354,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(color: hairlineColor),
                 ),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(18),
+                    onTap: () => _showCoursesBottomSheet(context, userCourses, userRatings, isDark),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       child: Row(
                         children: [
-                          Icon(Icons.menu_book_outlined, color: primaryColor, size: 24),
+                          Icon(Icons.menu_book_outlined, color: primaryColor, size: 26),
                           const SizedBox(width: 14),
                           Expanded(
                             child: Column(
@@ -282,7 +375,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  'المقررات المسجلة للفرقة والترم الحالي',
+                                  'المقررات المسجلة للفرقة والترم الحالي • اضغط للإدارة والتعديل',
                                   style: TextStyle(fontSize: 12, color: textSecondaryColor),
                                 ),
                               ],
@@ -291,60 +384,29 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              InkWell(
-                                onTap: () => _showAddCourseModal(context, userCourses, userRatings, isDark),
-                                borderRadius: BorderRadius.circular(8),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.add_circle_outline_rounded, size: 15, color: primaryColor),
-                                      const SizedBox(width: 3),
-                                      Text(
-                                        'إضافة',
-                                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryColor),
-                                      ),
-                                    ],
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: primaryColor.withValues(alpha: isDark ? 0.25 : 0.12),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  '${userCourses.length} مواد',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: primaryColor,
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 4),
-                              InkWell(
-                                onTap: () => _showManageCoursesModal(context, userCourses, userRatings, isDark),
-                                borderRadius: BorderRadius.circular(8),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.tune_rounded, size: 15, color: textSecondaryColor),
-                                      const SizedBox(width: 3),
-                                      Text(
-                                        'تعديل',
-                                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: textSecondaryColor),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
+                              const SizedBox(width: 8),
+                              Icon(Icons.arrow_back_ios_rounded, size: 14, color: textSecondaryColor),
                             ],
                           ),
                         ],
                       ),
                     ),
-                    if (userCourses.isNotEmpty) ...[
-                      for (int i = 0; i < userCourses.length; i++) ...[
-                        Divider(height: 1, color: hairlineColor),
-                        _buildCourseRow(
-                          userCourses[i],
-                          userRatings[userCourses[i].id] ?? 2,
-                          isDark,
-                          textPrimaryColor,
-                          textSecondaryColor,
-                          surfaceAltColor,
-                        ),
-                      ],
-                    ],
-                  ],
+                  ),
                 ),
               ),
 
@@ -439,6 +501,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
                 child: Column(
                   children: [
+                    ListTile(
+                      leading: Icon(Icons.person_outline_rounded, color: primaryColor),
+                      title: Text('تعديل الملف الشخصي', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimaryColor)),
+                      subtitle: Text('تغيير الاسم، اسم المستخدم، والنبذة', style: TextStyle(fontSize: 12, color: textSecondaryColor)),
+                      trailing: Icon(Icons.arrow_back_ios_rounded, size: 14, color: textSecondaryColor),
+                      onTap: () => _showEditProfileModal(context, userDoc),
+                    ),
+                    Divider(height: 1, color: hairlineColor),
+                    ListTile(
+                      leading: Icon(Icons.school_outlined, color: primaryColor),
+                      title: Text('البيانات الأكاديمية والمقررات', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimaryColor)),
+                      subtitle: Text('الكلية، الفرقة، الترم، والمقررات', style: TextStyle(fontSize: 12, color: textSecondaryColor)),
+                      trailing: Icon(Icons.arrow_back_ios_rounded, size: 14, color: textSecondaryColor),
+                      onTap: () => context.push('/academic-setup?edit=true'),
+                    ),
+                    Divider(height: 1, color: hairlineColor),
                     SwitchListTile(
                       title: Text('الوضع الليلي (Dark Theme)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimaryColor)),
                       subtitle: Text('تبديل مظهر الشاشات للألوان الداكنة', style: TextStyle(fontSize: 12, color: textSecondaryColor)),
@@ -474,15 +552,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
               const SizedBox(height: 24),
 
-              // Sign Out Button -> /welcome
+              // Sign Out Button -> _confirmSignOut
               OutlinedButton.icon(
-                onPressed: () async {
-                  ref.read(plannerProvider.notifier).switchUser(null);
-                  await ref.read(authServiceProvider).signOut();
-                  if (context.mounted) {
-                    context.go('/welcome');
-                  }
-                },
+                onPressed: () => _confirmSignOut(context),
                 icon: const Icon(Icons.logout_rounded, color: AppColors.error),
                 label: const Text(
                   'تسجيل الخروج',
@@ -1148,6 +1220,548 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               color: selected ? color : modalTextSecondary,
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmSignOut(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('تسجيل الخروج 🚪'),
+        content: const Text('هل أنت متأكد من رغبتك في تسجيل الخروج من تطبيق زميل؟'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('نعم، تسجيل الخروج'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      ref.read(plannerProvider.notifier).switchUser(null);
+      await ref.read(authServiceProvider).signOut();
+      if (context.mounted) {
+        context.go('/welcome');
+      }
+    }
+  }
+
+  void _showCoursesBottomSheet(
+    BuildContext context,
+    List<CourseSeed> currentCourses,
+    Map<String, int> currentRatings,
+    bool isDark,
+  ) {
+    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.surface;
+    final surfaceAltColor = isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt;
+    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final hairlineColor = isDark ? AppColors.darkHairline : AppColors.hairline;
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          return Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.75,
+            ),
+            decoration: BoxDecoration(
+              color: surfaceColor,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border.all(color: hairlineColor),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 12),
+                Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: hairlineColor,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.menu_book_outlined, color: primaryColor, size: 22),
+                          const SizedBox(width: 10),
+                          Text(
+                            'موادي الدراسية 📚 (${currentCourses.length})',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimaryColor),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          InkWell(
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              _showAddCourseModal(context, currentCourses, currentRatings, isDark);
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: primaryColor.withValues(alpha: isDark ? 0.25 : 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.add_circle_outline_rounded, size: 14, color: primaryColor),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'إضافة',
+                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryColor),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          InkWell(
+                            onTap: () {
+                              Navigator.pop(ctx);
+                              _showManageCoursesModal(context, currentCourses, currentRatings, isDark);
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: surfaceAltColor,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.tune_rounded, size: 14, color: textSecondaryColor),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'تعديل',
+                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: textSecondaryColor),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Divider(height: 1, color: hairlineColor),
+                Flexible(
+                  child: currentCourses.isEmpty
+                      ? Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Center(
+                            child: Text('لا توجد مواد مسجلة حالياً', style: TextStyle(color: textSecondaryColor)),
+                          ),
+                        )
+                      : ListView.separated(
+                          shrinkWrap: true,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          itemCount: currentCourses.length,
+                          separatorBuilder: (_, _) => Divider(height: 1, color: hairlineColor),
+                          itemBuilder: (context, index) {
+                            final course = currentCourses[index];
+                            final rating = currentRatings[course.id] ?? 2;
+                            return _buildCourseRow(
+                              course,
+                              rating,
+                              isDark,
+                              textPrimaryColor,
+                              textSecondaryColor,
+                              surfaceAltColor,
+                            );
+                          },
+                        ),
+                ),
+                const SizedBox(height: 16),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showEditProfileModal(BuildContext context, Map<String, dynamic>? userDoc) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => _EditProfileSheet(userDoc: userDoc),
+    );
+  }
+}
+
+class _EditProfileSheet extends ConsumerStatefulWidget {
+  final Map<String, dynamic>? userDoc;
+
+  const _EditProfileSheet({required this.userDoc});
+
+  @override
+  ConsumerState<_EditProfileSheet> createState() => _EditProfileSheetState();
+}
+
+class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _usernameController;
+  late final TextEditingController _bioController;
+
+  bool _isSaving = false;
+  String? _errorMessage;
+
+  bool _isNameLocked = false;
+  int _nameRemainingDays = 0;
+
+  bool _isUsernameLocked = false;
+  int _usernameRemainingDays = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    final user = ref.read(authServiceProvider).currentUser;
+    final doc = widget.userDoc;
+
+    final initialName = (doc?['name'] as String?)?.isNotEmpty == true
+        ? (doc!['name'] as String)
+        : (user?.displayName ?? '');
+
+    final initialUsername = (doc?['username'] as String?)?.trim().replaceAll('@', '') ??
+        (user?.email != null && user!.email!.contains('@')
+            ? user.email!.split('@').first.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_').toLowerCase()
+            : '');
+
+    final initialBio = (doc?['bio'] as String?) ?? '';
+
+    _nameController = TextEditingController(text: initialName);
+    _usernameController = TextEditingController(text: initialUsername);
+    _bioController = TextEditingController(text: initialBio);
+
+    _checkCooldowns();
+  }
+
+  void _checkCooldowns() {
+    DateTime? parseDate(dynamic val) {
+      if (val == null) return null;
+      if (val is DateTime) return val;
+      if (val is String) return DateTime.tryParse(val);
+      try {
+        return (val as dynamic).toDate();
+      } catch (_) {
+        return null;
+      }
+    }
+
+    final doc = widget.userDoc;
+    final now = DateTime.now();
+
+    final lastNameChange = parseDate(doc?['lastDisplayNameChangedAt']);
+    if (lastNameChange != null) {
+      final diff = now.difference(lastNameChange).inDays;
+      if (diff < 7) {
+        _isNameLocked = true;
+        _nameRemainingDays = 7 - diff;
+      }
+    }
+
+    final lastUsernameChange = parseDate(doc?['lastUsernameChangedAt']);
+    if (lastUsernameChange != null) {
+      final diff = now.difference(lastUsernameChange).inDays;
+      if (diff < 14) {
+        _isUsernameLocked = true;
+        _usernameRemainingDays = 14 - diff;
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _usernameController.dispose();
+    _bioController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final name = _nameController.text.trim();
+    final username = _usernameController.text.trim().replaceAll('@', '');
+    final bio = _bioController.text.trim();
+
+    if (!_isNameLocked && (name.length < 3 || name.length > 35)) {
+      setState(() => _errorMessage = 'الاسم يجب أن يتراوح بين 3 و 35 حرفاً');
+      return;
+    }
+
+    if (!_isUsernameLocked) {
+      final regex = RegExp(r'^[a-z0-9_]{3,20}$');
+      if (!regex.hasMatch(username)) {
+        setState(() => _errorMessage = 'اسم المستخدم يجب أن يتكون من 3 إلى 20 حرفاً (أحرف إنجليزية صغيرة، أرقام، و _ فقط)');
+        return;
+      }
+    }
+
+    if (bio.length > 120) {
+      setState(() => _errorMessage = 'النبذة التعريفية يجب ألا تتجاوز 120 حرفاً');
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await ref.read(authServiceProvider).updateProfileDetails(
+        newName: _isNameLocked ? null : name,
+        newUsername: _isUsernameLocked ? null : username,
+        newBio: bio,
+      );
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('تم تحديث بيانات الملف الشخصي بنجاح! ✨'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString().replaceAll('Exception: ', '');
+          _isSaving = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final surfaceColor = isDark ? AppColors.darkSurface : Colors.white;
+    final surfaceAltColor = isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt;
+    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
+
+    return Container(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      decoration: BoxDecoration(
+        color: surfaceColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: textSecondaryColor.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'تعديل الملف الشخصي ✏️',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textPrimaryColor),
+                ),
+                IconButton(
+                  icon: Icon(Icons.close_rounded, color: textSecondaryColor),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'يمكنك تحديث بياناتك الشخصية مع مراعاة فترات التهدئة وسياسات الأمان.',
+              style: TextStyle(fontSize: 12, color: textSecondaryColor),
+            ),
+            const SizedBox(height: 18),
+
+            if (_errorMessage != null) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _errorMessage!,
+                        style: const TextStyle(fontSize: 12, color: AppColors.error, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 14),
+            ],
+
+            // Display Name
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('الاسم الكامل', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimaryColor)),
+                if (_isNameLocked)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      '🔒 متاح التغيير بعد $_nameRemainingDays يوم',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.amber),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _nameController,
+              enabled: !_isNameLocked,
+              style: TextStyle(color: _isNameLocked ? textSecondaryColor : textPrimaryColor),
+              decoration: InputDecoration(
+                hintText: 'أدخل اسمك الحقيقي',
+                hintStyle: TextStyle(color: textSecondaryColor),
+                filled: true,
+                fillColor: _isNameLocked ? surfaceAltColor.withValues(alpha: 0.5) : surfaceAltColor,
+                prefixIcon: Icon(Icons.badge_outlined, color: _isNameLocked ? textSecondaryColor : primaryColor),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Username
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('اسم المستخدم (@handle)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimaryColor)),
+                if (_isUsernameLocked)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      '🔒 متاح التغيير بعد $_usernameRemainingDays يوم',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.amber),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _usernameController,
+              enabled: !_isUsernameLocked,
+              style: TextStyle(color: _isUsernameLocked ? textSecondaryColor : textPrimaryColor),
+              decoration: InputDecoration(
+                hintText: 'e.g. ahmed_cs',
+                hintStyle: TextStyle(color: textSecondaryColor),
+                prefixText: '@ ',
+                prefixStyle: TextStyle(color: primaryColor, fontWeight: FontWeight.bold),
+                filled: true,
+                fillColor: _isUsernameLocked ? surfaceAltColor.withValues(alpha: 0.5) : surfaceAltColor,
+                prefixIcon: Icon(Icons.alternate_email_rounded, color: _isUsernameLocked ? textSecondaryColor : primaryColor),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Bio
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('النبذة التعريفية (Bio)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimaryColor)),
+                ListenableBuilder(
+                  listenable: _bioController,
+                  builder: (context, _) => Text(
+                    '${_bioController.text.length} / 120',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: _bioController.text.length > 120 ? AppColors.error : textSecondaryColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _bioController,
+              maxLines: 3,
+              maxLength: 120,
+              buildCounter: (_, {required currentLength, required isFocused, maxLength}) => const SizedBox.shrink(),
+              style: TextStyle(color: textPrimaryColor),
+              decoration: InputDecoration(
+                hintText: 'اكتب نبذة قصيرة عن اهتماماتك الأكاديمية وطموحك...',
+                hintStyle: TextStyle(color: textSecondaryColor),
+                filled: true,
+                fillColor: surfaceAltColor,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Save Button
+            FilledButton(
+              onPressed: _isSaving ? null : _save,
+              style: FilledButton.styleFrom(
+                backgroundColor: primaryColor,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              ),
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text(
+                      'حفظ التغييرات ✨',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+            ),
+          ],
         ),
       ),
     );

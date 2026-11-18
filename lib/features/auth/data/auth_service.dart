@@ -300,6 +300,123 @@ class AuthService {
     }
     return firestore.collection('users').doc(uid).snapshots();
   }
+
+  /// فحص توفر اسم المستخدم (هل هو متاح أم مأخوذ من قبل طالب آخر)
+  Future<bool> isUsernameAvailable(String username) async {
+    final firestore = _firestore;
+    final uid = currentUser?.uid;
+    if (firestore == null) return true;
+
+    final clean = username.trim().toLowerCase().replaceAll('@', '');
+    if (clean.isEmpty) return false;
+
+    final query = await firestore
+        .collection('users')
+        .where('username', isEqualTo: clean)
+        .limit(2)
+        .get();
+
+    return query.docs.isEmpty || (query.docs.length == 1 && query.docs.first.id == uid);
+  }
+
+  /// تحديث بيانات الملف الشخصي (الاسم، اسم المستخدم، النبذة) مع تطبيق سياسات الأمان
+  Future<void> updateProfileDetails({
+    String? newName,
+    String? newUsername,
+    String? newBio,
+  }) async {
+    final uid = currentUser?.uid;
+    final firestore = _firestore;
+    if (uid == null || firestore == null) {
+      throw Exception('يرجى تسجيل الدخول أولاً');
+    }
+
+    final userDoc = await firestore.collection('users').doc(uid).get();
+    final data = userDoc.data() ?? {};
+
+    DateTime? parseDate(dynamic val) {
+      if (val == null) return null;
+      if (val is DateTime) return val;
+      if (val is String) return DateTime.tryParse(val);
+      try {
+        return (val as dynamic).toDate();
+      } catch (_) {
+        return null;
+      }
+    }
+
+    final now = DateTime.now();
+    final updates = <String, dynamic>{};
+
+    // 1. فحص وتحديث الاسم الكامل (Display Name) - مرة واحدة كل 7 أيام
+    if (newName != null) {
+      final trimmedName = newName.trim();
+      final currentName = data['name'] as String? ?? currentUser?.displayName ?? '';
+      if (trimmedName != currentName) {
+        if (trimmedName.length < 3 || trimmedName.length > 35) {
+          throw Exception('الاسم يجب أن يتراوح بين 3 و 35 حرفاً');
+        }
+
+        final lastDisplayNameChanged = parseDate(data['lastDisplayNameChangedAt']);
+        if (lastDisplayNameChanged != null) {
+          final diff = now.difference(lastDisplayNameChanged).inDays;
+          if (diff < 7) {
+            final remainingDays = 7 - diff;
+            throw Exception('يمكنك تغيير اسمك مجدداً بعد $remainingDays يوم');
+          }
+        }
+
+        updates['name'] = trimmedName;
+        updates['lastDisplayNameChangedAt'] = FieldValue.serverTimestamp();
+
+        try {
+          await currentUser?.updateDisplayName(trimmedName);
+        } catch (_) {}
+      }
+    }
+
+    // 2. فحص وتحديث اسم المستخدم (@handle) - مرة واحدة كل 14 يوماً
+    if (newUsername != null) {
+      final cleanUsername = newUsername.trim().toLowerCase().replaceAll('@', '');
+      final currentUsername = (data['username'] as String?)?.trim().toLowerCase().replaceAll('@', '') ?? '';
+      if (cleanUsername != currentUsername) {
+        final regex = RegExp(r'^[a-z0-9_]{3,20}$');
+        if (!regex.hasMatch(cleanUsername)) {
+          throw Exception('اسم المستخدم يجب أن يتكون من 3 إلى 20 حرفاً (أحرف إنجليزية صغيرة، أرقام، و _ فقط)');
+        }
+
+        final lastUsernameChanged = parseDate(data['lastUsernameChangedAt']);
+        if (lastUsernameChanged != null) {
+          final diff = now.difference(lastUsernameChanged).inDays;
+          if (diff < 14) {
+            final remainingDays = 14 - diff;
+            throw Exception('متبقي $remainingDays يوم للتغيير القادم لاسم المستخدم');
+          }
+        }
+
+        final available = await isUsernameAvailable(cleanUsername);
+        if (!available) {
+          throw Exception('اسم المستخدم @$cleanUsername مأخوذ بالفعل، يرجى اختيار اسم آخر');
+        }
+
+        updates['username'] = cleanUsername;
+        updates['lastUsernameChangedAt'] = FieldValue.serverTimestamp();
+      }
+    }
+
+    // 3. تحديث النبذة التعريفية (Bio) - مسموحة في أي وقت حتى 120 حرفاً
+    if (newBio != null) {
+      final trimmedBio = newBio.trim();
+      if (trimmedBio.length > 120) {
+        throw Exception('النبذة التعريفية يجب ألا تتجاوز 120 حرفاً');
+      }
+      updates['bio'] = trimmedBio;
+    }
+
+    if (updates.isNotEmpty) {
+      await firestore.collection('users').doc(uid).set(updates, SetOptions(merge: true));
+    }
+  }
 }
 
 final authServiceProvider = Provider<AuthService>((ref) {

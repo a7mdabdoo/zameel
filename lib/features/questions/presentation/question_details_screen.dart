@@ -279,9 +279,25 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: cardColor,
+                color: isQuestionAuthor
+                    ? (isDark ? const Color(0xFF132A22) : const Color(0xFFF0FDF4))
+                    : cardColor,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: hairline),
+                border: Border.all(
+                  color: isQuestionAuthor
+                      ? primaryColor.withValues(alpha: isDark ? 0.7 : 0.4)
+                      : hairline,
+                  width: isQuestionAuthor ? 1.5 : 1,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isQuestionAuthor
+                        ? primaryColor.withValues(alpha: isDark ? 0.2 : 0.06)
+                        : Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
