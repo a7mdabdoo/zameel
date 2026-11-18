@@ -558,7 +558,10 @@ class TimeBankRepository {
       );
     }
 
-    final trimmed = meetingUrl.trim();
+    var trimmed = meetingUrl.trim();
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+      trimmed = 'https://$trimmed';
+    }
     final uri = Uri.tryParse(trimmed);
     if (uri == null || uri.scheme != 'https') {
       throw Exception('رابط الاجتماع يجب أن يبدأ بـ https://');
@@ -567,7 +570,8 @@ class TimeBankRepository {
     final allowed = host == 'meet.google.com' ||
         host == 'zoom.us' ||
         host.endsWith('.zoom.us') ||
-        host == 'teams.microsoft.com';
+        host == 'teams.microsoft.com' ||
+        host.contains('meet');
     if (!allowed) {
       throw Exception('رابط الاجتماع يجب أن يكون من Google Meet أو Zoom أو Microsoft Teams');
     }
@@ -575,6 +579,24 @@ class TimeBankRepository {
     await firestore.collection('sessions').doc(sessionId).update({
       'meetingUrl': trimmed,
       'meetingUpdatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  Future<void> updateOfferMeetingUrl({
+    required String offerId,
+    required String teacherId,
+    required String meetingUrl,
+  }) async {
+    final firestore = _firestore;
+    if (firestore == null) return;
+
+    var trimmed = meetingUrl.trim();
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
+      trimmed = 'https://$trimmed';
+    }
+
+    await firestore.collection('offers').doc(offerId).update({
+      'meetingUrl': trimmed,
     });
   }
 
