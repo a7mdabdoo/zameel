@@ -49,6 +49,7 @@ class AppConstants {
   // App Identity
   static const String appName = 'زَميل';
   static const String appSlogan = 'ذاكر بخطة، وعلّم زميلك، وتعلّم من غيرك';
+  static const String supportEmail = 'ahmed@mohamed-abdo.me';
 
   // Faculty and Default Year
   static const String faculty = 'كلية الحاسبات والذكاء الاصطناعي';

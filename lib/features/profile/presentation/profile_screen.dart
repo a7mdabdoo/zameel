@@ -2,8 +2,10 @@
 // فيجما: حسابي - ذاكر وعلّم
 
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../auth/data/auth_service.dart';
@@ -534,23 +536,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       title: Text('المساعدة والدعم', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimaryColor)),
                       subtitle: Text('الأسئلة الشائعة والتواصل مع فريق زميل', style: TextStyle(fontSize: 12, color: textSecondaryColor)),
                       trailing: Icon(Icons.arrow_back_ios_rounded, size: 14, color: textSecondaryColor),
-                      onTap: () {
-                        showDialog(
-                          context: context,
-                          builder: (ctx) => AlertDialog(
-                            title: const Text('المساعدة والدعم 💬'),
-                            content: const Text(
-                              'فريق زميل هنا لمساعدتك! إذا واجهت أي استفسار أو مشكلة تقنية، يمكنك مراسلتنا عبر الدعم الفني أو عبر مجتمع دفعتك.',
-                            ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.of(ctx).pop(),
-                                child: const Text('حسناً'),
-                              ),
-                            ],
-                          ),
-                        );
-                      },
+                      onTap: () => _showSupportDialog(
+                        context,
+                        isDark: isDark,
+                        surfaceColor: surfaceColor,
+                        hairlineColor: hairlineColor,
+                        textPrimaryColor: textPrimaryColor,
+                        textSecondaryColor: textSecondaryColor,
+                        primaryColor: primaryColor,
+                      ),
                     ),
                     Divider(height: 1, color: hairlineColor),
                     ListTile(
@@ -571,6 +565,138 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showSupportDialog(
+    BuildContext context, {
+    required bool isDark,
+    required Color surfaceColor,
+    required Color hairlineColor,
+    required Color textPrimaryColor,
+    required Color textSecondaryColor,
+    required Color primaryColor,
+  }) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: surfaceColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: hairlineColor),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: primaryColor.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.support_agent_rounded, color: primaryColor, size: 22),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'المساعدة والدعم الفني 💬',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: textPrimaryColor,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'فريق تطبيق زميل هنا لمساعدتك! إذا واجهت أي استفسار، مشكلة تقنية، أو رغبت في مشاركة اقتراحاتك لتطوير التطبيق، يمكنك التواصل معنا مباشرة عبر البريد الإلكتروني:',
+              style: TextStyle(fontSize: 13, height: 1.4, color: textSecondaryColor),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E2D3D) : AppColors.surfaceAlt,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: hairlineColor),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.email_outlined, color: primaryColor, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: SelectableText(
+                      AppConstants.supportEmail,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: textPrimaryColor,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.copy_rounded, size: 18),
+                    tooltip: 'نسخ الإيميل',
+                    color: primaryColor,
+                    onPressed: () {
+                      Clipboard.setData(const ClipboardData(text: AppConstants.supportEmail));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('تم نسخ البريد الإلكتروني بنجاح 📋'),
+                          backgroundColor: AppColors.success,
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text('إغلاق', style: TextStyle(color: textSecondaryColor)),
+          ),
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: primaryColor,
+              foregroundColor: isDark ? AppColors.darkOnPrimary : AppColors.onPrimary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () async {
+              final uri = Uri.parse('mailto:${AppConstants.supportEmail}?subject=${Uri.encodeComponent("استفسار ودعم - تطبيق زميل")}');
+              try {
+                final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                if (!launched && context.mounted) {
+                  Clipboard.setData(const ClipboardData(text: AppConstants.supportEmail));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('تم نسخ البريد الإلكتروني إلى الحافظة لتعذر فتح التطبيق مباشرة 📋'),
+                      backgroundColor: AppColors.primary,
+                    ),
+                  );
+                }
+              } catch (_) {
+                Clipboard.setData(const ClipboardData(text: AppConstants.supportEmail));
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('تم نسخ البريد الإلكتروني إلى الحافظة 📋'),
+                      backgroundColor: AppColors.primary,
+                    ),
+                  );
+                }
+              }
+            },
+            icon: const Icon(Icons.send_rounded, size: 16),
+            label: const Text('مراسلة الآن ✉️', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }
