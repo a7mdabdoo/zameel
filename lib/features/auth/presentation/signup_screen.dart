@@ -80,13 +80,20 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final inputFillColor = isDark ? AppColors.darkSurfaceAlt : AppColors.surface;
+    final hairlineColor = isDark ? AppColors.darkHairline : AppColors.hairline;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_forward_ios_rounded, color: textPrimaryColor),
           onPressed: () => context.pop(),
         ),
       ),
@@ -98,20 +105,20 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
+                Text(
                   'انضم إلى زَميل 🎓',
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: textPrimaryColor,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'أنشئ حسابك واحصل على ${AppConstants.welcomeCoins} عملات وقت ترحيبية لبدء التعلّم التشاركي',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
-                    color: AppColors.textSecondary,
+                    color: textSecondaryColor,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -133,20 +140,21 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 ],
 
                 // Full Name
-                const Text(
+                Text(
                   'الاسم بالكامل',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimaryColor),
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _nameController,
+                  style: TextStyle(color: textPrimaryColor),
                   decoration: InputDecoration(
                     hintText: 'أحمد محمود',
                     prefixIcon: const Icon(Icons.person_outline_rounded, color: AppColors.textTertiary),
                     filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
+                    fillColor: inputFillColor,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hairlineColor)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hairlineColor)),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) return 'يرجى إدخال اسمك';
@@ -157,22 +165,23 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 const SizedBox(height: 16),
 
                 // Username (Codeforces / LinkedIn style)
-                const Text(
+                Text(
                   'اسم المستخدم (Username)',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimaryColor),
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _usernameController,
                   textDirection: TextDirection.ltr,
+                  style: TextStyle(color: textPrimaryColor),
                   decoration: InputDecoration(
                     hintText: 'ahmed_dev',
                     hintTextDirection: TextDirection.ltr,
                     prefixIcon: const Icon(Icons.alternate_email_rounded, color: AppColors.textTertiary),
                     filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
+                    fillColor: inputFillColor,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hairlineColor)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hairlineColor)),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) return 'يرجى إدخال اسم المستخدم';
@@ -187,23 +196,24 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 const SizedBox(height: 16),
 
                 // Email
-                const Text(
+                Text(
                   'البريد الإلكتروني (Gmail أو أي بريد شخصي)',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimaryColor),
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   textDirection: TextDirection.ltr,
+                  style: TextStyle(color: textPrimaryColor),
                   decoration: InputDecoration(
                     hintText: 'yourname@gmail.com',
                     hintTextDirection: TextDirection.ltr,
                     prefixIcon: const Icon(Icons.email_outlined, color: AppColors.textTertiary),
                     filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
+                    fillColor: inputFillColor,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hairlineColor)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hairlineColor)),
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
@@ -219,15 +229,16 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 const SizedBox(height: 16),
 
                 // Password
-                const Text(
+                Text(
                   'كلمة المرور',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimaryColor),
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
                   textDirection: TextDirection.ltr,
+                  style: TextStyle(color: textPrimaryColor),
                   decoration: InputDecoration(
                     hintText: '••••••••',
                     prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppColors.textTertiary),
@@ -236,9 +247,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                       onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                     ),
                     filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
+                    fillColor: inputFillColor,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hairlineColor)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hairlineColor)),
                   ),
                   validator: (value) {
                     if (value == null || value.length < 6) return 'يجب أن لا تقل عن 6 أحرف';
@@ -249,22 +260,23 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 const SizedBox(height: 16),
 
                 // Confirm Password
-                const Text(
+                Text(
                   'تأكيد كلمة المرور',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimaryColor),
                 ),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _confirmPasswordController,
                   obscureText: _obscurePassword,
                   textDirection: TextDirection.ltr,
+                  style: TextStyle(color: textPrimaryColor),
                   decoration: InputDecoration(
                     hintText: '••••••••',
                     prefixIcon: const Icon(Icons.lock_reset_rounded, color: AppColors.textTertiary),
                     filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.hairline)),
+                    fillColor: inputFillColor,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hairlineColor)),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hairlineColor)),
                   ),
                   validator: (value) {
                     if (value != _passwordController.text) return 'كلمات المرور غير متطابقة';
@@ -280,15 +292,16 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _handleSignUp,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: isDark ? AppColors.darkPrimary : AppColors.primary,
+                      foregroundColor: isDark ? AppColors.darkOnPrimary : AppColors.onPrimary,
                       elevation: 1,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     ),
                     child: _isLoading
-                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : const Text(
+                        ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                        : Text(
                             'إنشاء الحساب ومتابعة التهيئة',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? AppColors.darkOnPrimary : AppColors.onPrimary),
                           ),
                   ),
                 ),
@@ -297,12 +310,12 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('لديك حساب بالفعل؟', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                    Text('لديك حساب بالفعل؟', style: TextStyle(fontSize: 13, color: textSecondaryColor)),
                     TextButton(
                       onPressed: () => context.push('/login'),
-                      child: const Text(
+                      child: Text(
                         'تسجيل الدخول',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary),
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? AppColors.darkPrimary : AppColors.primary),
                       ),
                     ),
                   ],

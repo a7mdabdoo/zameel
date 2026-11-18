@@ -238,6 +238,32 @@ class TodayScreen extends ConsumerWidget {
                             ),
                           ),
                         ),
+
+                        const SizedBox(width: 8),
+
+                        // Quick Theme Toggle 🌙 / ☀️
+                        Tooltip(
+                          message: isDark ? 'التبديل إلى الوضع النهاري ☀️' : 'التبديل إلى الوضع الليلي 🌙',
+                          child: InkWell(
+                            onTap: () {
+                              ref.read(themeModeProvider.notifier).toggleTheme(!isDark);
+                            },
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: surfaceAltColor,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: hairlineColor),
+                              ),
+                              child: Icon(
+                                isDark ? Icons.light_mode_rounded : Icons.dark_mode_outlined,
+                                size: 16,
+                                color: isDark ? Colors.amber : textSecondaryColor,
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ],

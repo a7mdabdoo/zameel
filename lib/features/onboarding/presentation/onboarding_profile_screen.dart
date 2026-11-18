@@ -50,23 +50,31 @@ class _OnboardingProfileScreenState extends ConsumerState<OnboardingProfileScree
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.surface;
+    final hairlineColor = isDark ? AppColors.darkHairline : AppColors.hairline;
+    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'الخطوة 1 من 3',
-          style: TextStyle(fontSize: 14, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+          style: TextStyle(fontSize: 14, color: textSecondaryColor, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
         actions: [
           TextButton(
             onPressed: _skipOnboarding,
-            child: const Text(
+            child: Text(
               'تخطي',
               style: TextStyle(
-                color: AppColors.primary,
+                color: primaryColor,
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
               ),
@@ -84,54 +92,54 @@ class _OnboardingProfileScreenState extends ConsumerState<OnboardingProfileScree
               // Progress indicator
               Row(
                 children: [
-                  Expanded(child: Container(height: 4, decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(2)))),
+                  Expanded(child: Container(height: 4, decoration: BoxDecoration(color: primaryColor, borderRadius: BorderRadius.circular(2)))),
                   const SizedBox(width: 6),
-                  Expanded(child: Container(height: 4, decoration: BoxDecoration(color: AppColors.hairline, borderRadius: BorderRadius.circular(2)))),
+                  Expanded(child: Container(height: 4, decoration: BoxDecoration(color: hairlineColor, borderRadius: BorderRadius.circular(2)))),
                   const SizedBox(width: 6),
-                  Expanded(child: Container(height: 4, decoration: BoxDecoration(color: AppColors.hairline, borderRadius: BorderRadius.circular(2)))),
+                  Expanded(child: Container(height: 4, decoration: BoxDecoration(color: hairlineColor, borderRadius: BorderRadius.circular(2)))),
                 ],
               ),
               const SizedBox(height: 24),
 
-              const Text(
+              Text(
                 'بياناتك الأكاديمية 🏫',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: textPrimaryColor,
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'لتخصيص المواد ومطابقة مواعيدك مع زملاء دفعتك',
                 style: TextStyle(
                   fontSize: 14,
-                  color: AppColors.textSecondary,
+                  color: textSecondaryColor,
                 ),
               ),
               const SizedBox(height: 28),
 
               // Faculty
-              const Text(
+              Text(
                 'الكلية',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimaryColor),
               ),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: surfaceColor,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.hairline),
+                  border: Border.all(color: hairlineColor),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.school_outlined, color: AppColors.primary, size: 22),
+                    Icon(Icons.school_outlined, color: primaryColor, size: 22),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         _selectedFaculty,
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimaryColor),
                       ),
                     ),
                   ],
@@ -141,17 +149,17 @@ class _OnboardingProfileScreenState extends ConsumerState<OnboardingProfileScree
               const SizedBox(height: 20),
 
               // Year
-              const Text(
+              Text(
                 'السنة الدراسية',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimaryColor),
               ),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: surfaceColor,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.hairline),
+                  border: Border.all(color: hairlineColor),
                 ),
                 child: Row(
                   children: [
@@ -160,7 +168,7 @@ class _OnboardingProfileScreenState extends ConsumerState<OnboardingProfileScree
                     Expanded(
                       child: Text(
                         _selectedYear,
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimaryColor),
                       ),
                     ),
                   ],
@@ -170,27 +178,28 @@ class _OnboardingProfileScreenState extends ConsumerState<OnboardingProfileScree
               const SizedBox(height: 20),
 
               // Department Dropdown
-              const Text(
+              Text(
                 'القسم الأكاديمي',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimaryColor),
               ),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: surfaceColor,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.hairline),
+                  border: Border.all(color: hairlineColor),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: _selectedDepartment,
                     isExpanded: true,
-                    icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondary),
+                    dropdownColor: surfaceColor,
+                    icon: Icon(Icons.keyboard_arrow_down_rounded, color: textSecondaryColor),
                     items: _departments.map((dept) {
                       return DropdownMenuItem<String>(
                         value: dept,
-                        child: Text(dept, style: const TextStyle(fontSize: 14, color: AppColors.textPrimary)),
+                        child: Text(dept, style: TextStyle(fontSize: 14, color: textPrimaryColor)),
                       );
                     }).toList(),
                     onChanged: (val) {
@@ -207,13 +216,13 @@ class _OnboardingProfileScreenState extends ConsumerState<OnboardingProfileScree
                 height: 52,
                 child: ElevatedButton.icon(
                   onPressed: _proceedToCourses,
-                  icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20),
-                  label: const Text(
+                  icon: Icon(Icons.arrow_back_rounded, color: isDark ? AppColors.darkOnPrimary : AppColors.onPrimary, size: 20),
+                  label: Text(
                     'التالي: اختيار المواد',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? AppColors.darkOnPrimary : AppColors.onPrimary),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: primaryColor,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                 ),

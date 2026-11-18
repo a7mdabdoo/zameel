@@ -102,25 +102,32 @@ class _AcademicSetupScreenState extends ConsumerState<AcademicSetupScreen> {
     final previewCourses = CurriculumConstants.getCoursesFor(_selectedYear, _selectedSemester);
     final yearName = CurriculumConstants.academicYearLabels[_selectedYear] ?? 'الفرقة الأولى';
     final semesterName = CurriculumConstants.semesterLabels[_selectedSemester] ?? 'الترم الأول';
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.surface;
+    final hairlineColor = isDark ? AppColors.darkHairline : AppColors.hairline;
+    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         leading: widget.isEditMode
             ? IconButton(
-                icon: const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textPrimary),
+                icon: Icon(Icons.arrow_forward_ios_rounded, color: textPrimaryColor),
                 onPressed: () => context.pop(),
               )
             : null,
         title: Text(
           widget.isEditMode ? 'تعديل البيانات الأكاديمية ✏️' : 'التهيئة الأكاديمية 🎓',
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
+            color: textPrimaryColor,
           ),
         ),
       ),
@@ -137,12 +144,12 @@ class _AcademicSetupScreenState extends ConsumerState<AcademicSetupScreen> {
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: surfaceColor,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.hairline),
+                        border: Border.all(color: hairlineColor),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.02),
+                            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -153,13 +160,13 @@ class _AcademicSetupScreenState extends ConsumerState<AcademicSetupScreen> {
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: AppColors.primaryContainer.withValues(alpha: 0.5),
+                              color: primaryColor.withValues(alpha: 0.15),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(Icons.school_rounded, color: AppColors.primary, size: 24),
+                            child: Icon(Icons.school_rounded, color: primaryColor, size: 24),
                           ),
                           const SizedBox(width: 14),
-                          const Expanded(
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -168,15 +175,15 @@ class _AcademicSetupScreenState extends ConsumerState<AcademicSetupScreen> {
                                   style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.bold,
-                                    color: AppColors.textPrimary,
+                                    color: textPrimaryColor,
                                   ),
                                 ),
-                                SizedBox(height: 4),
+                                const SizedBox(height: 4),
                                 Text(
                                   'سنقوم بتهيئة مقرراتك الرسمية وجدولك الدراسي بناءً على الخطة المعتمدة فوراً.',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: AppColors.textSecondary,
+                                    color: textSecondaryColor,
                                     height: 1.3,
                                   ),
                                 ),
@@ -276,11 +283,11 @@ class _AcademicSetupScreenState extends ConsumerState<AcademicSetupScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
-                border: const Border(top: BorderSide(color: AppColors.hairline)),
+                color: surfaceColor,
+                border: Border(top: BorderSide(color: hairlineColor)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.04),
+                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
                     blurRadius: 10,
                     offset: const Offset(0, -4),
                   ),
@@ -292,8 +299,9 @@ class _AcademicSetupScreenState extends ConsumerState<AcademicSetupScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _handleConfirm,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.6),
+                    backgroundColor: primaryColor,
+                    foregroundColor: isDark ? AppColors.darkOnPrimary : AppColors.onPrimary,
+                    disabledBackgroundColor: primaryColor.withValues(alpha: 0.6),
                     elevation: 1,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
@@ -302,21 +310,20 @@ class _AcademicSetupScreenState extends ConsumerState<AcademicSetupScreen> {
                           width: 24,
                           height: 24,
                           child: CircularProgressIndicator(
-                            color: Colors.white,
                             strokeWidth: 2.2,
                           ),
                         )
-                      : const Row(
+                      : Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 20),
-                            SizedBox(width: 8),
+                            Icon(Icons.check_circle_outline_rounded, color: isDark ? AppColors.darkOnPrimary : AppColors.onPrimary, size: 20),
+                            const SizedBox(width: 8),
                             Text(
                               'تأكيد وإضافة المواد',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                color: isDark ? AppColors.darkOnPrimary : AppColors.onPrimary,
                               ),
                             ),
                           ],
@@ -332,6 +339,15 @@ class _AcademicSetupScreenState extends ConsumerState<AcademicSetupScreen> {
 
   /// أزرار اختيار الفرقة الدراسية (1 إلى 4)
   Widget _buildYearSelector() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.surface;
+    final hairlineColor = isDark ? AppColors.darkHairline : AppColors.hairline;
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
+    final containerColor = isDark ? AppColors.darkPrimaryContainer : AppColors.primaryContainer;
+    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final textTertiaryColor = isDark ? AppColors.darkTextTertiary : AppColors.textTertiary;
+
     final years = [
       {'id': 1, 'label': 'الفرقة الأولى', 'sub': 'السنة 1'},
       {'id': 2, 'label': 'الفرقة الثانية', 'sub': 'السنة 2'},
@@ -367,10 +383,12 @@ class _AcademicSetupScreenState extends ConsumerState<AcademicSetupScreen> {
             duration: const Duration(milliseconds: 180),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: isSelected ? AppColors.primaryContainer.withValues(alpha: 0.35) : Colors.white,
+              color: isSelected
+                  ? containerColor.withValues(alpha: isDark ? 0.45 : 0.4)
+                  : surfaceColor,
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
-                color: isSelected ? AppColors.primary : AppColors.hairline,
+                color: isSelected ? primaryColor : hairlineColor,
                 width: isSelected ? 1.8 : 1.0,
               ),
             ),
@@ -378,13 +396,13 @@ class _AcademicSetupScreenState extends ConsumerState<AcademicSetupScreen> {
               children: [
                 CircleAvatar(
                   radius: 14,
-                  backgroundColor: isSelected ? AppColors.primary : AppColors.surfaceAlt,
+                  backgroundColor: isSelected ? primaryColor : (isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt),
                   child: Text(
                     '$id',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: isSelected ? Colors.white : AppColors.textSecondary,
+                      color: isSelected ? (isDark ? AppColors.darkOnPrimary : AppColors.onPrimary) : textSecondaryColor,
                     ),
                   ),
                 ),
@@ -399,16 +417,16 @@ class _AcademicSetupScreenState extends ConsumerState<AcademicSetupScreen> {
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                          color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                          color: isSelected ? primaryColor : textPrimaryColor,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
                         sub,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 10,
-                          color: AppColors.textTertiary,
+                          color: textTertiaryColor,
                         ),
                         maxLines: 1,
                       ),
@@ -416,7 +434,7 @@ class _AcademicSetupScreenState extends ConsumerState<AcademicSetupScreen> {
                   ),
                 ),
                 if (isSelected)
-                  const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 18),
+                  Icon(Icons.check_circle_rounded, color: primaryColor, size: 18),
               ],
             ),
           ),
@@ -427,6 +445,14 @@ class _AcademicSetupScreenState extends ConsumerState<AcademicSetupScreen> {
 
   /// أزرار اختيار الفصل الدراسي (الترم الأول أو الثاني)
   Widget _buildSemesterSelector() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.surface;
+    final hairlineColor = isDark ? AppColors.darkHairline : AppColors.hairline;
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
+    final containerColor = isDark ? AppColors.darkPrimaryContainer : AppColors.primaryContainer;
+    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+
     final semesters = [
       {'id': 1, 'label': 'الترم الأول', 'icon': Icons.looks_one_rounded},
       {'id': 2, 'label': 'الترم الثاني', 'icon': Icons.looks_two_rounded},
@@ -456,10 +482,12 @@ class _AcademicSetupScreenState extends ConsumerState<AcademicSetupScreen> {
                 duration: const Duration(milliseconds: 180),
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
                 decoration: BoxDecoration(
-                  color: isSelected ? AppColors.primaryContainer.withValues(alpha: 0.35) : Colors.white,
+                  color: isSelected
+                      ? containerColor.withValues(alpha: isDark ? 0.45 : 0.4)
+                      : surfaceColor,
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: isSelected ? AppColors.primary : AppColors.hairline,
+                    color: isSelected ? primaryColor : hairlineColor,
                     width: isSelected ? 1.8 : 1.0,
                   ),
                 ),
@@ -469,7 +497,7 @@ class _AcademicSetupScreenState extends ConsumerState<AcademicSetupScreen> {
                     Icon(
                       icon,
                       size: 20,
-                      color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                      color: isSelected ? primaryColor : textSecondaryColor,
                     ),
                     const SizedBox(width: 8),
                     Text(
@@ -477,12 +505,12 @@ class _AcademicSetupScreenState extends ConsumerState<AcademicSetupScreen> {
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                        color: isSelected ? AppColors.primary : AppColors.textPrimary,
+                        color: isSelected ? primaryColor : textPrimaryColor,
                       ),
                     ),
                     if (isSelected) ...[
                       const SizedBox(width: 6),
-                      const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 16),
+                      Icon(Icons.check_circle_rounded, color: primaryColor, size: 16),
                     ],
                   ],
                 ),
@@ -496,17 +524,23 @@ class _AcademicSetupScreenState extends ConsumerState<AcademicSetupScreen> {
 
   /// قائمة المعاينة الحية للمواد
   Widget _buildCoursesPreviewList(List<CourseSeed> courses) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.surface;
+    final hairlineColor = isDark ? AppColors.darkHairline : AppColors.hairline;
+    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: surfaceColor,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.hairline),
+        border: Border.all(color: hairlineColor),
       ),
       child: ListView.separated(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: courses.length,
-        separatorBuilder: (_, _) => const Divider(height: 1, color: AppColors.hairline),
+        separatorBuilder: (_, _) => Divider(height: 1, color: hairlineColor),
         itemBuilder: (context, index) {
           final course = courses[index];
           return Padding(
@@ -537,10 +571,10 @@ class _AcademicSetupScreenState extends ConsumerState<AcademicSetupScreen> {
                 Expanded(
                   child: Text(
                     course.name,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
+                      color: textPrimaryColor,
                     ),
                   ),
                 ),
@@ -549,15 +583,15 @@ class _AcademicSetupScreenState extends ConsumerState<AcademicSetupScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceAlt,
+                    color: isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     course.code,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.textSecondary,
+                      color: textSecondaryColor,
                     ),
                   ),
                 ),
@@ -565,9 +599,9 @@ class _AcademicSetupScreenState extends ConsumerState<AcademicSetupScreen> {
                 // الساعات المعتمدة
                 Text(
                   course.creditHours == 2 ? 'ساعتان' : '${course.creditHours} س',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11,
-                    color: AppColors.textTertiary,
+                    color: isDark ? AppColors.darkTextTertiary : AppColors.textTertiary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),

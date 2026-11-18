@@ -75,18 +75,27 @@ class _OnboardingRateScreenState extends ConsumerState<OnboardingRateScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.surface;
+    final surfaceAltColor = isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt;
+    final hairlineColor = isDark ? AppColors.darkHairline : AppColors.hairline;
+    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_forward_ios_rounded, color: textPrimaryColor),
           onPressed: () => context.pop(),
         ),
-        title: const Text(
+        title: Text(
           'الخطوة 3 من 3',
-          style: TextStyle(fontSize: 14, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+          style: TextStyle(fontSize: 14, color: textSecondaryColor, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
       ),
@@ -101,22 +110,22 @@ class _OnboardingRateScreenState extends ConsumerState<OnboardingRateScreen> {
                   // Progress indicator: 3 of 3 full
                   Row(
                     children: [
-                      Expanded(child: Container(height: 4, decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(2)))),
+                      Expanded(child: Container(height: 4, decoration: BoxDecoration(color: primaryColor, borderRadius: BorderRadius.circular(2)))),
                       const SizedBox(width: 6),
-                      Expanded(child: Container(height: 4, decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(2)))),
+                      Expanded(child: Container(height: 4, decoration: BoxDecoration(color: primaryColor, borderRadius: BorderRadius.circular(2)))),
                       const SizedBox(width: 6),
-                      Expanded(child: Container(height: 4, decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(2)))),
+                      Expanded(child: Container(height: 4, decoration: BoxDecoration(color: primaryColor, borderRadius: BorderRadius.circular(2)))),
                     ],
                   ),
                   const SizedBox(height: 20),
-                  const Text(
+                  Text(
                     'قيّم مستواك في المواد 🎯',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textPrimaryColor),
                   ),
                   const SizedBox(height: 6),
-                  const Text(
+                  Text(
                     'لتوجيه خوارزمية التوافق الذكي لبنك الوقت بين المتعلمين والشارحين',
-                    style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    style: TextStyle(fontSize: 13, color: textSecondaryColor),
                   ),
                   const SizedBox(height: 12),
                 ],
@@ -136,12 +145,12 @@ class _OnboardingRateScreenState extends ConsumerState<OnboardingRateScreen> {
                     margin: const EdgeInsets.only(bottom: 12),
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: surfaceColor,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.hairline),
+                      border: Border.all(color: hairlineColor),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.02),
+                          color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
                           blurRadius: 6,
                           offset: const Offset(0, 2),
                         ),
@@ -164,16 +173,20 @@ class _OnboardingRateScreenState extends ConsumerState<OnboardingRateScreen> {
                             Expanded(
                               child: Text(
                                 course.name,
-                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textPrimaryColor),
                               ),
                             ),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                               decoration: BoxDecoration(
-                                color: course.creditHours >= 3 ? AppColors.primaryContainer.withValues(alpha: 0.6) : AppColors.surfaceAlt,
+                                color: course.creditHours >= 3
+                                    ? primaryColor.withValues(alpha: isDark ? 0.3 : 0.2)
+                                    : surfaceAltColor,
                                 borderRadius: BorderRadius.circular(6),
                                 border: Border.all(
-                                  color: course.creditHours >= 3 ? AppColors.primary.withValues(alpha: 0.3) : AppColors.hairline,
+                                  color: course.creditHours >= 3
+                                      ? primaryColor.withValues(alpha: 0.4)
+                                      : hairlineColor,
                                 ),
                               ),
                               child: Text(
@@ -181,14 +194,14 @@ class _OnboardingRateScreenState extends ConsumerState<OnboardingRateScreen> {
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: course.creditHours >= 3 ? AppColors.primary : AppColors.textSecondary,
+                                  color: course.creditHours >= 3 ? primaryColor : textSecondaryColor,
                                 ),
                               ),
                             ),
                             const SizedBox(width: 8),
                             Text(
                               course.code,
-                              style: const TextStyle(fontSize: 11, color: AppColors.textTertiary),
+                              style: TextStyle(fontSize: 11, color: isDark ? AppColors.darkTextTertiary : AppColors.textTertiary),
                             ),
                           ],
                         ),
@@ -197,9 +210,9 @@ class _OnboardingRateScreenState extends ConsumerState<OnboardingRateScreen> {
                           children: [
                             _buildRateOption(course.id, 1, 'أحتاج مساعدة', currentRate == 1, Colors.orange.shade700),
                             const SizedBox(width: 8),
-                            _buildRateOption(course.id, 2, 'متوسط', currentRate == 2, AppColors.primary),
+                            _buildRateOption(course.id, 2, 'متوسط', currentRate == 2, primaryColor),
                             const SizedBox(width: 8),
-                            _buildRateOption(course.id, 3, 'مستعد للشرح', currentRate == 3, AppColors.deepSage),
+                            _buildRateOption(course.id, 3, 'مستعد للشرح', currentRate == 3, isDark ? AppColors.darkPrimary : AppColors.deepSage),
                           ],
                         ),
                       ],
@@ -217,15 +230,15 @@ class _OnboardingRateScreenState extends ConsumerState<OnboardingRateScreen> {
                 height: 52,
                 child: ElevatedButton.icon(
                   onPressed: _isSaving ? null : _finishOnboarding,
-                  icon: const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 20),
+                  icon: Icon(Icons.check_circle_outline_rounded, color: isDark ? AppColors.darkOnPrimary : AppColors.onPrimary, size: 20),
                   label: _isSaving
-                      ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                      : const Text(
+                      ? SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: isDark ? AppColors.darkOnPrimary : AppColors.onPrimary, strokeWidth: 2))
+                      : Text(
                           'ابدأ رحلتك في زَميل',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? AppColors.darkOnPrimary : AppColors.onPrimary),
                         ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: primaryColor,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                 ),

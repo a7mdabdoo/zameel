@@ -71,13 +71,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final inputFillColor = isDark ? AppColors.darkSurfaceAlt : AppColors.surface;
+    final hairlineColor = isDark ? AppColors.darkHairline : AppColors.hairline;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_forward_ios_rounded, color: textPrimaryColor),
           onPressed: () => context.pop(),
         ),
       ),
@@ -90,20 +97,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   'مرحباً بعودتك 👋',
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                    color: textPrimaryColor,
                   ),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                Text(
                   'سجّل دخولك للوصول إلى خطتك الدراسية وجلسات بنك الوقت',
                   style: TextStyle(
                     fontSize: 14,
-                    color: AppColors.textSecondary,
+                    color: textSecondaryColor,
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -133,12 +140,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ],
 
                 // Email or Username field
-                const Text(
+                Text(
                   'البريد الإلكتروني أو اسم المستخدم',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: textPrimaryColor,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -146,19 +153,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   textDirection: TextDirection.ltr,
+                  style: TextStyle(color: textPrimaryColor),
                   decoration: InputDecoration(
                     hintText: 'ahmed_dev أو student@gmail.com',
                     hintTextDirection: TextDirection.ltr,
                     prefixIcon: const Icon(Icons.alternate_email_rounded, color: AppColors.textTertiary),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: inputFillColor,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.hairline),
+                      borderSide: BorderSide(color: hairlineColor),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.hairline),
+                      borderSide: BorderSide(color: hairlineColor),
                     ),
                   ),
                   validator: (value) {
@@ -172,12 +180,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 const SizedBox(height: 20),
 
                 // Password field
-                const Text(
+                Text(
                   'كلمة المرور',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
+                    color: textPrimaryColor,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -185,6 +193,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   controller: _passwordController,
                   obscureText: _obscurePassword,
                   textDirection: TextDirection.ltr,
+                  style: TextStyle(color: textPrimaryColor),
                   decoration: InputDecoration(
                     hintText: '••••••••',
                     prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppColors.textTertiary),
@@ -200,14 +209,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       },
                     ),
                     filled: true,
-                    fillColor: Colors.white,
+                    fillColor: inputFillColor,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.hairline),
+                      borderSide: BorderSide(color: hairlineColor),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
-                      borderSide: const BorderSide(color: AppColors.hairline),
+                      borderSide: BorderSide(color: hairlineColor),
                     ),
                   ),
                   validator: (value) {
@@ -223,11 +232,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   alignment: Alignment.centerLeft,
                   child: TextButton(
                     onPressed: () {},
-                    child: const Text(
+                    child: Text(
                       'نسيت كلمة المرور؟',
                       style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.textSecondary,
+                        color: textSecondaryColor,
                       ),
                     ),
                   ),
@@ -241,7 +250,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _handleLogin,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: isDark ? AppColors.darkPrimary : AppColors.primary,
+                      foregroundColor: isDark ? AppColors.darkOnPrimary : AppColors.onPrimary,
                       elevation: 1,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
@@ -251,14 +261,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         ? const SizedBox(
                             width: 24,
                             height: 24,
-                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            child: CircularProgressIndicator(strokeWidth: 2),
                           )
-                        : const Text(
+                        : Text(
                             'تسجيل الدخول',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                              color: isDark ? AppColors.darkOnPrimary : AppColors.onPrimary,
                             ),
                           ),
                   ),
@@ -270,18 +280,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
+                    Text(
                       'ليس لديك حساب؟',
-                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                      style: TextStyle(fontSize: 13, color: textSecondaryColor),
                     ),
                     TextButton(
                       onPressed: () => context.push('/signup'),
-                      child: const Text(
+                      child: Text(
                         'أنشئ حساباً الآن',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
+                          color: isDark ? AppColors.darkPrimary : AppColors.primary,
                         ),
                       ),
                     ),
