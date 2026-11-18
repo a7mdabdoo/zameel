@@ -105,7 +105,7 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                             color: isSelected
                                 ? (isDark ? AppColors.darkOnPrimary : AppColors.onPrimary)
-                                : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+                                : (isDark ? Colors.white70 : AppColors.textSecondary),
                           ),
                         ),
                       ),
@@ -289,7 +289,7 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
           child: IntrinsicHeight(
             child: Row(
               children: [
-                Container(width: 4.5, color: unifiedAccentColor.withValues(alpha: 0.85)),
+                Container(width: 4.5, color: unifiedAccentColor.withValues(alpha: 0.7)),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(14.0),
