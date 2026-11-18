@@ -501,24 +501,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
                 child: Column(
                   children: [
-                    ListTile(
-                      leading: Icon(Icons.person_outline_rounded, color: primaryColor),
-                      title: Text('تعديل الملف الشخصي', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimaryColor)),
-                      subtitle: Text('تغيير الاسم، اسم المستخدم، والنبذة', style: TextStyle(fontSize: 12, color: textSecondaryColor)),
-                      trailing: Icon(Icons.arrow_back_ios_rounded, size: 14, color: textSecondaryColor),
-                      onTap: () => _showEditProfileModal(context, userDoc),
-                    ),
-                    Divider(height: 1, color: hairlineColor),
-                    ListTile(
-                      leading: Icon(Icons.school_outlined, color: primaryColor),
-                      title: Text('البيانات الأكاديمية والمقررات', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimaryColor)),
-                      subtitle: Text('الكلية، الفرقة، الترم، والمقررات', style: TextStyle(fontSize: 12, color: textSecondaryColor)),
-                      trailing: Icon(Icons.arrow_back_ios_rounded, size: 14, color: textSecondaryColor),
-                      onTap: () => context.push('/academic-setup?edit=true'),
-                    ),
-                    Divider(height: 1, color: hairlineColor),
                     SwitchListTile(
-                      title: Text('الوضع الليلي (Dark Theme)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimaryColor)),
+                      title: Text('الوضع الداكن (Dark Theme)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimaryColor)),
                       subtitle: Text('تبديل مظهر الشاشات للألوان الداكنة وحفظ التفضيل', style: TextStyle(fontSize: 12, color: textSecondaryColor)),
                       secondary: Icon(Icons.dark_mode_outlined, color: primaryColor),
                       value: isDark,
@@ -537,8 +521,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     Divider(height: 1, color: hairlineColor),
                     SwitchListTile(
-                      title: Text('تنبيهات المذاكرة والجلسات', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimaryColor)),
-                      subtitle: Text('إشعارات قبل بدء المواعيد بـ 15 دقيقة', style: TextStyle(fontSize: 12, color: textSecondaryColor)),
+                      title: Text('الإشعارات والتنبيهات', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimaryColor)),
+                      subtitle: Text('تنبيهات قبل بدء مواعيد المذاكرة والجلسات بـ 15 دقيقة', style: TextStyle(fontSize: 12, color: textSecondaryColor)),
                       secondary: Icon(Icons.notifications_none_rounded, color: primaryColor),
                       value: _notifications,
                       activeTrackColor: primaryColor,
@@ -546,29 +530,40 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     Divider(height: 1, color: hairlineColor),
                     ListTile(
-                      leading: Icon(Icons.privacy_tip_outlined, color: textSecondaryColor),
-                      title: Text('سياسة الخصوصية وبنك الساعات', style: TextStyle(fontSize: 14, color: textPrimaryColor)),
+                      leading: Icon(Icons.help_outline_rounded, color: primaryColor),
+                      title: Text('المساعدة والدعم', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimaryColor)),
+                      subtitle: Text('الأسئلة الشائعة والتواصل مع فريق زميل', style: TextStyle(fontSize: 12, color: textSecondaryColor)),
                       trailing: Icon(Icons.arrow_back_ios_rounded, size: 14, color: textSecondaryColor),
-                      onTap: () {},
+                      onTap: () {
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Text('المساعدة والدعم 💬'),
+                            content: const Text(
+                              'فريق زميل هنا لمساعدتك! إذا واجهت أي استفسار أو مشكلة تقنية، يمكنك مراسلتنا عبر الدعم الفني أو عبر مجتمع دفعتك.',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(ctx).pop(),
+                                child: const Text('حسناً'),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                    Divider(height: 1, color: hairlineColor),
+                    ListTile(
+                      leading: const Icon(Icons.logout_rounded, color: AppColors.error),
+                      title: const Text(
+                        'تسجيل الخروج',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.error),
+                      ),
+                      subtitle: Text('إنهاء الجلسة الحالية من هذا الجهاز', style: TextStyle(fontSize: 12, color: textSecondaryColor)),
+                      trailing: const Icon(Icons.arrow_back_ios_rounded, size: 14, color: AppColors.error),
+                      onTap: () => _confirmSignOut(context),
                     ),
                   ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Sign Out Button -> _confirmSignOut
-              OutlinedButton.icon(
-                onPressed: () => _confirmSignOut(context),
-                icon: const Icon(Icons.logout_rounded, color: AppColors.error),
-                label: const Text(
-                  'تسجيل الخروج',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.error),
-                ),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: AppColors.error),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                 ),
               ),
 

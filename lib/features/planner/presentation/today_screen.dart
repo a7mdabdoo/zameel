@@ -34,7 +34,7 @@ class TodayScreen extends ConsumerWidget {
     final primaryContainerColor = isDark ? AppColors.darkPrimaryContainer : AppColors.primaryContainer;
     final surfaceColor = isDark ? AppColors.darkSurface : AppColors.surface;
     final surfaceAltColor = isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt;
-    final hairlineColor = isDark ? const Color(0xFF1E2D3D) : AppColors.hairline;
+    final hairlineColor = isDark ? AppColors.darkHairline.withValues(alpha: 0.5) : AppColors.hairline;
     final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
     final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
     final textTertiaryColor = isDark ? AppColors.darkTextTertiary : AppColors.textTertiary;
@@ -805,7 +805,7 @@ class TodayScreen extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
     final surfaceColor = isDark ? AppColors.darkSurface : AppColors.surface;
     final surfaceAltColor = isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt;
-    final hairlineColor = isDark ? const Color(0xFF1E2D3D) : AppColors.hairline;
+    final hairlineColor = isDark ? AppColors.darkHairline.withValues(alpha: 0.5) : AppColors.hairline;
     final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
     final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
     final textTertiaryColor = isDark ? AppColors.darkTextTertiary : AppColors.textTertiary;

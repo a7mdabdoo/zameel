@@ -26,13 +26,13 @@ class AppColors {
   static const Color darkBackground = Color(0xFF0B131E);
   static const Color darkSurface = Color(0xFF15202B);
   static const Color darkSurfaceAlt = Color(0xFF1E2D3D);
-  static const Color darkHairline = Color(0xFF1E2D3D);
+  static const Color darkHairline = Color(0xFF223244);
   static const Color darkPrimary = Color(0xFF2DD4BF);
   static const Color darkPrimaryContainer = Color(0xFF133938);
   static const Color darkOnPrimary = Color(0xFF0B131E);
   static const Color darkTextPrimary = Color(0xFFF1F5F9);
-  static const Color darkTextSecondary = Color(0xFF94A3B8);
-  static const Color darkTextTertiary = Color(0xFF64748B);
+  static const Color darkTextSecondary = Color(0xFFCBD5E1);
+  static const Color darkTextTertiary = Color(0xFF94A3B8);
 
   // Course Color Tags (Muted, exactly 6)
   static const Color courseTeal = Color(0xFF2F8F89);

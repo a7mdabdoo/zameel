@@ -41,6 +41,10 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
     final currentDay = _days[_selectedDayIndex];
     final dayBlocks = plannerState.studyBlocks.where((b) => b.day == currentDay).toList();
     final dayLectures = plannerState.lectureSchedule.where((l) => l.day == currentDay).toList();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
+    final hairlineColor = isDark ? const Color(0xFF1E2D3D) : AppColors.hairline;
+    final statAccentColor = isDark ? const Color(0xFF2DD4BF) : AppColors.primary;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -53,7 +57,7 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.tune_rounded, color: AppColors.primary),
+            icon: Icon(Icons.tune_rounded, color: primaryColor),
             onPressed: () => context.push('/schedule-setup'),
           ),
         ],
@@ -61,11 +65,11 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'fab_weekly_plan',
         onPressed: () => context.push('/schedule-setup'),
-        backgroundColor: AppColors.primary,
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text(
+        backgroundColor: primaryColor,
+        icon: Icon(Icons.add, color: isDark ? AppColors.darkOnPrimary : AppColors.onPrimary),
+        label: Text(
           'إضافة لمواعيدي',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+          style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? AppColors.darkOnPrimary : AppColors.onPrimary),
         ),
       ),
       body: SafeArea(
@@ -87,8 +91,11 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
                       margin: const EdgeInsets.symmetric(horizontal: 4),
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
-                        color: isSelected ? AppColors.primary : AppColors.surfaceAlt,
+                        color: isSelected
+                            ? primaryColor
+                            : (isDark ? const Color(0xFF1E2D3D) : AppColors.surfaceAlt),
                         borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: hairlineColor),
                       ),
                       child: Center(
                         child: Text(
@@ -96,7 +103,9 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                            color: isSelected ? Colors.white : AppColors.textSecondary,
+                            color: isSelected
+                                ? (isDark ? AppColors.darkOnPrimary : AppColors.onPrimary)
+                                : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
                           ),
                         ),
                       ),
@@ -114,15 +123,15 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
               child: Row(
                 children: [
                   Expanded(
-                    child: _buildMiniStatCard('جلسات اليوم', '${dayBlocks.length} جلسات', AppColors.primary),
+                    child: _buildMiniStatCard('جلسات اليوم', '${dayBlocks.length} جلسات', statAccentColor),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _buildMiniStatCard('محاضرات رسمية', '${dayLectures.length} محاضرات', AppColors.deepSage),
+                    child: _buildMiniStatCard('محاضرات رسمية', '${dayLectures.length} محاضرات', statAccentColor),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _buildMiniStatCard('إنجاز الأسبوع', '${(plannerState.progressPercentage * 100).round()}%', AppColors.pointsAmber),
+                    child: _buildMiniStatCard('إنجاز الأسبوع', '${(plannerState.progressPercentage * 100).round()}%', statAccentColor),
                   ),
                 ],
               ),
@@ -220,7 +229,7 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final surfaceColor = isDark ? AppColors.darkSurface : AppColors.surface;
     final hairlineColor = isDark ? const Color(0xFF1E2D3D) : AppColors.hairline;
-    final textTertiaryColor = isDark ? AppColors.darkTextTertiary : AppColors.textTertiary;
+    final statLabelColor = isDark ? const Color(0xFF94A3B8) : AppColors.textSecondary;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
@@ -231,7 +240,7 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
       ),
       child: Column(
         children: [
-          Text(label, style: TextStyle(fontSize: 11, color: textTertiaryColor)),
+          Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: statLabelColor)),
           const SizedBox(height: 2),
           Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color)),
         ],
@@ -254,6 +263,7 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
     final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
     final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
     final textTertiaryColor = isDark ? AppColors.darkTextTertiary : AppColors.textTertiary;
+    final unifiedAccentColor = isDark ? AppColors.darkPrimary : AppColors.primary;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -279,7 +289,7 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
           child: IntrinsicHeight(
             child: Row(
               children: [
-                Container(width: 5, color: ribbonColor),
+                Container(width: 4.5, color: unifiedAccentColor.withValues(alpha: 0.85)),
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.all(14.0),
@@ -292,12 +302,12 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: ribbonColor.withValues(alpha: isDark ? 0.2 : 0.15),
+                                color: unifiedAccentColor.withValues(alpha: isDark ? 0.2 : 0.12),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
                                 type,
-                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: ribbonColor),
+                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: unifiedAccentColor),
                               ),
                             ),
                             Text(time, style: TextStyle(fontSize: 11, color: textTertiaryColor)),

@@ -30,6 +30,16 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
   String _selectedCourseFilter = 'الكل';
   bool _isProcessingAction = false;
 
+  // محرك البحث الفوري
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authServiceProvider).currentUser;
@@ -241,21 +251,79 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
     required Color surfaceColor,
     required Color hairlineColor,
   }) {
-    // 1. فلترة العروض بالمواد
+    // 1. فلترة العروض بالمواد والبحث الفوري
+    final query = _searchQuery.trim().toLowerCase();
     final filteredOffers = allOffers.where((offer) {
       if (offer.isCompleted) return false;
-      if (_selectedCourseFilter == 'الكل') return true;
-      return offer.courseName.contains(_selectedCourseFilter) ||
-          _selectedCourseFilter.contains(offer.courseName) ||
-          offer.courseCode.contains(_selectedCourseFilter);
+      if (_selectedCourseFilter != 'الكل') {
+        final matchesCourse = offer.courseName.contains(_selectedCourseFilter) ||
+            _selectedCourseFilter.contains(offer.courseName) ||
+            offer.courseCode.contains(_selectedCourseFilter);
+        if (!matchesCourse) return false;
+      }
+      if (query.isNotEmpty) {
+        final matchesQuery = offer.topic.toLowerCase().contains(query) ||
+            offer.courseName.toLowerCase().contains(query) ||
+            offer.teacherName.toLowerCase().contains(query) ||
+            offer.courseCode.toLowerCase().contains(query);
+        if (!matchesQuery) return false;
+      }
+      return true;
     }).toList();
 
     return Column(
       children: [
+        // شريط البحث الفوري المباشر
+        Container(
+          color: surfaceColor,
+          padding: const EdgeInsets.fromLTRB(16, 6, 16, 4),
+          child: TextField(
+            controller: _searchController,
+            onChanged: (val) => setState(() => _searchQuery = val),
+            textInputAction: TextInputAction.search,
+            style: TextStyle(
+              fontSize: 13,
+              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+            ),
+            decoration: InputDecoration(
+              hintText: 'ابحث عن موضوع، مادة، أو اسم الشارح...',
+              hintStyle: TextStyle(
+                fontSize: 12,
+                color: isDark ? AppColors.darkTextTertiary : AppColors.textTertiary,
+              ),
+              prefixIcon: Icon(Icons.search_rounded, size: 20, color: primaryColor),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear_rounded, size: 18),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _searchQuery = '');
+                      },
+                    )
+                  : null,
+              filled: true,
+              fillColor: isDark ? const Color(0xFF1E2D3D) : AppColors.surfaceAlt,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: hairlineColor),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: hairlineColor),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: primaryColor, width: 1.5),
+              ),
+            ),
+          ),
+        ),
+
         // شريط فلترة المواد السريع (Filter Chips)
         Container(
           color: surfaceColor,
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 10),
           child: SizedBox(
             height: 38,
             child: ListView(
@@ -274,7 +342,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
         // قائمة بطاقات العروض
         Expanded(
           child: filteredOffers.isEmpty
-              ? _buildEmptyOffersPlaceholder(isDark, primaryColor)
+              ? _buildEmptyOffersPlaceholder(isDark, primaryColor, isSearching: _searchQuery.isNotEmpty)
               : ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: filteredOffers.length,
@@ -936,7 +1004,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
     );
   }
 
-  Widget _buildEmptyOffersPlaceholder(bool isDark, Color primaryColor) {
+  Widget _buildEmptyOffersPlaceholder(bool isDark, Color primaryColor, {bool isSearching = false}) {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -945,23 +1013,38 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
           children: [
             Icon(Icons.search_off_rounded, size: 64, color: isDark ? Colors.white24 : Colors.black12),
             const SizedBox(height: 14),
-            const Text(
-              'لا توجد عروض شرح متاحة حالياً',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            Text(
+              isSearching ? 'لم يتم العثور على عروض تطابق بحثك' : 'لا توجد عروض شرح متاحة حالياً',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const SizedBox(height: 6),
-            const Text(
-              'كن أول من يبادر ويطرح جلسة شرح لزملائه في دفعتك واكسب عملات وقت 💡',
+            Text(
+              isSearching
+                  ? 'جرب البحث بكلمات أخرى أو اختر مادة دراسية أخرى 🔍'
+                  : 'كن أول من يبادر ويطرح جلسة شرح لزملائه في دفعتك واكسب عملات وقت 💡',
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 12.5),
+              style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary, fontSize: 12.5),
             ),
             const SizedBox(height: 18),
-            FilledButton.icon(
-              onPressed: () => context.push('/create-offer'),
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('نشر عرض شرح جديد 🚀'),
-              style: FilledButton.styleFrom(backgroundColor: primaryColor),
-            ),
+            if (isSearching)
+              OutlinedButton.icon(
+                onPressed: () {
+                  _searchController.clear();
+                  setState(() {
+                    _searchQuery = '';
+                    _selectedCourseFilter = 'الكل';
+                  });
+                },
+                icon: const Icon(Icons.refresh_rounded, size: 16),
+                label: const Text('إعادة ضبط البحث'),
+              )
+            else
+              FilledButton.icon(
+                onPressed: () => context.push('/create-offer'),
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('نشر عرض شرح جديد 🚀'),
+                style: FilledButton.styleFrom(backgroundColor: primaryColor),
+              ),
           ],
         ),
       ),

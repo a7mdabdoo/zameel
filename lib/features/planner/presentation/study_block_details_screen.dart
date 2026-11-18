@@ -890,67 +890,70 @@ class _StudyBlockDetailsScreenState
                                   fontSize: 12,
                                   color: AppColors.textSecondary),
                             ),
-                            if (_isRunning && _currentMode == 0) ...[
-                              const SizedBox(height: 8),
-                              GestureDetector(
-                                onTap: () async {
-                                  final hasPerm = await ref.read(focusDndServiceProvider).hasPermission();
-                                  if (!context.mounted) return;
-                                  if (!hasPerm) {
-                                    showDialog(
-                                      context: context,
-                                      builder: (ctx) => AlertDialog(
-                                        title: const Text('وضع عدم الإزعاج (DND)'),
-                                        content: const Text(
-                                          'لتفعيل الصامت التلقائي وكتم الإشعارات الخارجية على هاتفك أثناء جلسات التركيز، يرجى منح إذن الوصول للإشعارات، أو تفعيل نمط عدم الإزعاج يدوياً من مركز التحكم.',
-                                        ),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () => Navigator.pop(ctx),
-                                            child: const Text('لاحقاً'),
-                                          ),
-                                          FilledButton(
-                                            onPressed: () {
-                                              Navigator.pop(ctx);
-                                              ref.read(focusDndServiceProvider).openDndSettings();
-                                            },
-                                            child: const Text('فتح الإعدادات'),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  }
-                                },
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary.withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  child: const Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.do_not_disturb_on_rounded, size: 14, color: AppColors.primary),
-                                      SizedBox(width: 4),
-                                      Text(
-                                        'وضع التركيز وعدم الإزعاج نشط 🔕',
-                                        style: TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.primary,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
                           ],
                         ),
                       ],
                     ),
                   ),
                 ),
+
+                if (_isRunning && _currentMode == 0) ...[
+                  const SizedBox(height: 12),
+                  Center(
+                    child: GestureDetector(
+                      onTap: () async {
+                        final hasPerm = await ref.read(focusDndServiceProvider).hasPermission();
+                        if (!context.mounted) return;
+                        if (!hasPerm) {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('وضع عدم الإزعاج (DND)'),
+                              content: const Text(
+                                'لتفعيل الصامت التلقائي وكتم الإشعارات الخارجية على هاتفك أثناء جلسات التركيز، يرجى منح إذن الوصول للإشعارات، أو تفعيل نمط عدم الإزعاج يدوياً من مركز التحكم.',
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx),
+                                  child: const Text('لاحقاً'),
+                                ),
+                                FilledButton(
+                                  onPressed: () {
+                                    Navigator.pop(ctx);
+                                    ref.read(focusDndServiceProvider).openDndSettings();
+                                  },
+                                  child: const Text('فتح الإعدادات'),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.do_not_disturb_on_rounded, size: 14, color: AppColors.primary),
+                            SizedBox(width: 6),
+                            Text(
+                              'وضع التركيز وعدم الإزعاج نشط 🔕',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
 
                 const SizedBox(height: 20),
 
