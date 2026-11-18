@@ -77,6 +77,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
     final inputFillColor = isDark ? AppColors.darkSurfaceAlt : AppColors.surface;
     final hairlineColor = isDark ? AppColors.darkHairline : AppColors.hairline;
+    final iconColor = isDark ? AppColors.darkTextSecondary : AppColors.textTertiary;
+    final hintColor = isDark ? AppColors.darkTextTertiary : AppColors.textTertiary;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -119,9 +121,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.error.withValues(alpha: 0.1),
+                      color: AppColors.error.withValues(alpha: isDark ? 0.2 : 0.1),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                      border: Border.all(color: AppColors.error.withValues(alpha: isDark ? 0.4 : 0.3)),
                     ),
                     child: Row(
                       children: [
@@ -156,8 +158,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   style: TextStyle(color: textPrimaryColor),
                   decoration: InputDecoration(
                     hintText: 'ahmed_dev أو student@gmail.com',
+                    hintStyle: TextStyle(color: hintColor),
                     hintTextDirection: TextDirection.ltr,
-                    prefixIcon: const Icon(Icons.alternate_email_rounded, color: AppColors.textTertiary),
+                    prefixIcon: Icon(Icons.alternate_email_rounded, color: iconColor),
                     filled: true,
                     fillColor: inputFillColor,
                     border: OutlineInputBorder(
@@ -196,11 +199,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   style: TextStyle(color: textPrimaryColor),
                   decoration: InputDecoration(
                     hintText: '••••••••',
-                    prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppColors.textTertiary),
+                    hintStyle: TextStyle(color: hintColor),
+                    prefixIcon: Icon(Icons.lock_outline_rounded, color: iconColor),
                     suffixIcon: IconButton(
                       icon: Icon(
                         _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-                        color: AppColors.textTertiary,
+                        color: iconColor,
                       ),
                       onPressed: () {
                         setState(() {

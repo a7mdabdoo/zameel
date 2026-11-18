@@ -33,11 +33,11 @@ class WelcomeScreen extends StatelessWidget {
                   width: 100,
                   height: 100,
                   decoration: BoxDecoration(
-                    color: AppColors.primaryContainer.withValues(alpha: 0.35),
+                    color: (isDark ? AppColors.darkPrimaryContainer : AppColors.primaryContainer).withValues(alpha: 0.35),
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.08),
+                        color: primaryColor.withValues(alpha: 0.1),
                         blurRadius: 24,
                         offset: const Offset(0, 8),
                       ),
@@ -46,17 +46,17 @@ class WelcomeScreen extends StatelessWidget {
                   child: Stack(
                     alignment: Alignment.center,
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.hourglass_top_rounded,
                         size: 48,
-                        color: AppColors.primary,
+                        color: primaryColor,
                       ),
                       Positioned(
                         bottom: 4,
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: isDark ? AppColors.darkSurfaceAlt : Colors.white,
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: const [
                               BoxShadow(
@@ -77,12 +77,12 @@ class WelcomeScreen extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(width: 4),
-                              const Text(
+                              Text(
                                 'رصيد معرفي',
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
-                                  color: AppColors.deepSage,
+                                  color: isDark ? AppColors.darkPrimary : AppColors.deepSage,
                                 ),
                               ),
                             ],
@@ -100,15 +100,15 @@ class WelcomeScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryContainer.withValues(alpha: 0.5),
+                  color: (isDark ? AppColors.darkPrimaryContainer : AppColors.primaryContainer).withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Text(
+                child: Text(
                   'زَميل • ذاكر وعلّم',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.primary,
+                    color: primaryColor,
                   ),
                 ),
               ),
@@ -116,13 +116,13 @@ class WelcomeScreen extends StatelessWidget {
               const SizedBox(height: 16),
 
               // Headline
-              const Text(
+              Text(
                 'ذاكر بخطة، وعلّم زميلك، وتعلّم من غيرك',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: textPrimaryColor,
                   height: 1.35,
                 ),
               ),
@@ -130,12 +130,12 @@ class WelcomeScreen extends StatelessWidget {
               const SizedBox(height: 12),
 
               // Supporting body
-              const Text(
+              Text(
                 'خطة مذاكرة ذكية، وبنك وقت يربطك بزملائك في كلية الحاسبات. مجاني بالكامل.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
-                  color: AppColors.textSecondary,
+                  color: textSecondaryColor,
                   height: 1.5,
                 ),
               ),
@@ -151,20 +151,26 @@ class WelcomeScreen extends StatelessWidget {
                   _buildChip(
                     label: 'نقاط وقت',
                     icon: Icons.monetization_on_outlined,
-                    bgColor: AppColors.pointsAmber.withValues(alpha: 0.15),
-                    textColor: const Color(0xFF664700),
+                    bgColor: isDark
+                        ? const Color(0xFFFBBF24).withValues(alpha: 0.15)
+                        : AppColors.pointsAmber.withValues(alpha: 0.15),
+                    textColor: isDark ? const Color(0xFFFBBF24) : const Color(0xFF664700),
                   ),
                   _buildChip(
                     label: 'شرح متبادل',
                     icon: Icons.groups_rounded,
-                    bgColor: AppColors.sage.withValues(alpha: 0.2),
-                    textColor: AppColors.deepSage,
+                    bgColor: isDark
+                        ? const Color(0xFF34D399).withValues(alpha: 0.15)
+                        : AppColors.sage.withValues(alpha: 0.2),
+                    textColor: isDark ? const Color(0xFF34D399) : AppColors.deepSage,
                   ),
                   _buildChip(
                     label: 'خطة ذكية',
                     icon: Icons.auto_awesome_rounded,
-                    bgColor: AppColors.primaryContainer.withValues(alpha: 0.5),
-                    textColor: AppColors.primary,
+                    bgColor: isDark
+                        ? const Color(0xFF2DD4BF).withValues(alpha: 0.15)
+                        : AppColors.primaryContainer.withValues(alpha: 0.5),
+                    textColor: isDark ? const Color(0xFF2DD4BF) : AppColors.primary,
                   ),
                 ],
               ),
@@ -290,14 +296,18 @@ class WelcomeScreen extends StatelessWidget {
               // Trust indicator
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.verified_user_rounded, size: 14, color: AppColors.sage),
-                  SizedBox(width: 6),
+                children: [
+                  Icon(
+                    Icons.verified_user_rounded,
+                    size: 14,
+                    color: isDark ? AppColors.darkPrimary : AppColors.sage,
+                  ),
+                  const SizedBox(width: 6),
                   Text(
                     'منصة جامعية تعاونية موثوقة • كلية الحاسبات والذكاء الاصطناعي',
                     style: TextStyle(
                       fontSize: 11,
-                      color: AppColors.textTertiary,
+                      color: isDark ? AppColors.darkTextTertiary : AppColors.textTertiary,
                     ),
                   ),
                 ],

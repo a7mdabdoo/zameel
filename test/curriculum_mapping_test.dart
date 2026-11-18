@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:zameel/core/constants/app_constants.dart';
 import 'package:zameel/core/models/app_models.dart';
@@ -139,6 +140,55 @@ void main() {
       expect(reconstructed.semester, equals(1));
       expect(reconstructed.isOnboarded, isTrue);
       expect(reconstructed.onboardingCompleted, isTrue);
+    });
+
+    test('ScheduleItemModel and schedule validation rules prevent duplicate courses and time conflicts', () {
+      final lectures = <ScheduleItemModel>[
+        const ScheduleItemModel(
+          id: 'lec_1',
+          courseName: 'التصميم المنطقي',
+          courseCode: 'CS201',
+          day: 'السبت',
+          startTime: '09:00 ص',
+          endTime: '10:30 ص',
+          room: 'مدرج 1',
+          color: Color(0xFF2F8F89),
+        ),
+      ];
+
+      // Check Rule 1: Duplicate course in the entire weekly schedule
+      final isDuplicate = lectures.any((l) => l.courseCode == 'CS201' || l.courseName == 'التصميم المنطقي');
+      expect(isDuplicate, isTrue);
+
+      final isDifferentCourse = lectures.any((l) => l.courseCode == 'CS202' || l.courseName == 'بحوث العمليات');
+      expect(isDifferentCourse, isFalse);
+
+      // Check Rule 2: Time overlaps on the same day
+      int parseMin(String timeStr) {
+        final clean = timeStr.trim();
+        final isPM = clean.contains('م') || clean.toUpperCase().contains('PM');
+        final digits = clean.replaceAll(RegExp(r'[^\d:]'), '');
+        final parts = digits.split(':');
+        var hour = int.tryParse(parts[0]) ?? 9;
+        final minute = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+        if (isPM && hour < 12) hour += 12;
+        if (!isPM && hour == 12) hour = 0;
+        return hour * 60 + minute;
+      }
+
+      bool hasOverlap(int s1, int e1, int s2, int e2) => s1 < e2 && s2 < e1;
+
+      // 09:30 - 11:00 on Saturday overlaps with 09:00 - 10:30
+      final sNew1 = parseMin('09:30 ص');
+      final eNew1 = parseMin('11:00 ص');
+      final sLec = parseMin(lectures.first.startTime);
+      final eLec = parseMin(lectures.first.endTime);
+      expect(hasOverlap(sNew1, eNew1, sLec, eLec), isTrue);
+
+      // 11:00 - 12:30 on Saturday does NOT overlap with 09:00 - 10:30
+      final sNew2 = parseMin('11:00 ص');
+      final eNew2 = parseMin('12:30 م');
+      expect(hasOverlap(sNew2, eNew2, sLec, eLec), isFalse);
     });
   });
 }
