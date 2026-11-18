@@ -898,7 +898,7 @@ class _StudyBlockDetailsScreenState
                 ),
 
                 if (_isRunning && _currentMode == 0) ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
                   Center(
                     child: GestureDetector(
                       onTap: () async {
