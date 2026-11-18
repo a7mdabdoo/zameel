@@ -386,22 +386,28 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                         ),
                         const SizedBox(width: 6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                           decoration: BoxDecoration(
-                            color: Colors.amber.withValues(alpha: isDark ? 0.25 : 0.12),
+                            color: offer.teacherRating > 0
+                                ? Colors.amber.withValues(alpha: isDark ? 0.25 : 0.12)
+                                : (isDark ? AppColors.darkSurfaceAlt : Colors.black.withValues(alpha: 0.05)),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.star_rounded, size: 12, color: Colors.amber),
+                              Icon(
+                                Icons.star_rounded,
+                                size: 12,
+                                color: offer.teacherRating > 0 ? Colors.amber : (isDark ? Colors.white60 : Colors.black45),
+                              ),
                               const SizedBox(width: 2),
                               Text(
-                                offer.teacherRating.toStringAsFixed(1),
-                                style: const TextStyle(
+                                offer.teacherRating > 0 ? offer.teacherRating.toStringAsFixed(1) : 'جديد',
+                                style: TextStyle(
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.amber,
+                                  color: offer.teacherRating > 0 ? Colors.amber : (isDark ? Colors.white70 : Colors.black54),
                                 ),
                               ),
                             ],

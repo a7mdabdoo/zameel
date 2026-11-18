@@ -155,7 +155,9 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
         id: offerId,
         teacherId: user.uid,
         teacherName: teacherName,
-        teacherRating: (userDoc?['rating'] as num?)?.toDouble() ?? 5.0,
+        teacherRating: ((userDoc?['ratingCount'] as num?)?.toInt() ?? 0) > 0
+            ? (((userDoc!['ratingSum'] as num?)?.toDouble() ?? 0.0) / (userDoc['ratingCount'] as num).toDouble())
+            : 0.0,
         courseId: _selectedCourse.id,
         courseName: _selectedCourse.name,
         courseCode: _selectedCourse.id.toUpperCase(),

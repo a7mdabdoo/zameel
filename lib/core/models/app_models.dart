@@ -10,6 +10,8 @@ class UserModel {
   final String uid;
   final String name;
   final String email;
+  final String? username;
+  final String? bio;
   final String faculty;
   final String year;
   final dynamic academicYear; // 1, 2, 3, 4
@@ -26,13 +28,30 @@ class UserModel {
   final int ratingSum;
   final int ratingCount;
   final bool onboardingCompleted;
+  final DateTime? lastDisplayNameChangedAt;
+  final DateTime? lastUsernameChangedAt;
 
-  double get teacherRating => ratingCount > 0 ? (ratingSum / ratingCount) : 5.0;
+  // If no sessions have been rated yet, rating must be 0.0 (NEVER default to 5.0)
+  double get teacherRating => ratingCount > 0 ? (ratingSum / ratingCount) : 0.0;
+  bool get hasRating => ratingCount > 0;
+
+  // Formatted username handle with @
+  String get handle {
+    if (username != null && username!.trim().isNotEmpty) {
+      final clean = username!.trim().replaceAll('@', '');
+      return '@$clean';
+    }
+    final prefix = email.contains('@') ? email.split('@').first : 'user';
+    final clean = prefix.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_').toLowerCase();
+    return '@${clean.isNotEmpty ? clean : 'zameel'}';
+  }
 
   const UserModel({
     required this.uid,
     required this.name,
     required this.email,
+    this.username,
+    this.bio,
     required this.faculty,
     required this.year,
     this.academicYear,
@@ -49,6 +68,8 @@ class UserModel {
     this.ratingSum = 0,
     this.ratingCount = 0,
     this.onboardingCompleted = false,
+    this.lastDisplayNameChangedAt,
+    this.lastUsernameChangedAt,
   });
 
   Map<String, dynamic> toMap() {
@@ -56,6 +77,8 @@ class UserModel {
       'uid': uid,
       'name': name,
       'email': email,
+      'username': username,
+      'bio': bio,
       'faculty': faculty,
       'year': year,
       'academicYear': academicYear,
@@ -73,15 +96,37 @@ class UserModel {
       'ratingCount': ratingCount,
       'teacherRating': teacherRating,
       'onboardingCompleted': onboardingCompleted || isOnboarded,
+      'lastDisplayNameChangedAt': lastDisplayNameChangedAt?.toIso8601String(),
+      'lastUsernameChangedAt': lastUsernameChangedAt?.toIso8601String(),
     };
   }
 
   factory UserModel.fromMap(Map<String, dynamic> map, String uid) {
+    DateTime? parseDate(dynamic val) {
+      if (val == null) return null;
+      if (val is DateTime) return val;
+      if (val is String) return DateTime.tryParse(val);
+      try {
+        return (val as dynamic).toDate();
+      } catch (_) {
+        return null;
+      }
+    }
+
     final isOnboardedVal = map['isOnboarded'] as bool? ?? (map['onboardingCompleted'] as bool? ?? false);
+    final rawUsername = map['username'] as String?;
+    final defaultUsername = rawUsername?.isNotEmpty == true
+        ? rawUsername!.replaceAll('@', '')
+        : (map['email'] != null && (map['email'] as String).contains('@')
+            ? (map['email'] as String).split('@').first.replaceAll(RegExp(r'[^a-zA-Z0-9_]'), '_').toLowerCase()
+            : null);
+
     return UserModel(
       uid: uid,
       name: map['name'] as String? ?? 'طالب زميل',
       email: map['email'] as String? ?? '',
+      username: defaultUsername,
+      bio: map['bio'] as String?,
       faculty: map['faculty'] as String? ?? AppConstants.faculty,
       year: map['year'] as String? ?? AppConstants.academicYear,
       academicYear: map['academicYear'],
@@ -103,12 +148,16 @@ class UserModel {
       ratingSum: (map['ratingSum'] as num?)?.toInt() ?? 0,
       ratingCount: (map['ratingCount'] as num?)?.toInt() ?? 0,
       onboardingCompleted: isOnboardedVal,
+      lastDisplayNameChangedAt: parseDate(map['lastDisplayNameChangedAt']),
+      lastUsernameChangedAt: parseDate(map['lastUsernameChangedAt']),
     );
   }
 
   UserModel copyWith({
     String? name,
     String? email,
+    String? username,
+    String? bio,
     String? faculty,
     String? year,
     dynamic academicYear,
@@ -125,11 +174,15 @@ class UserModel {
     int? ratingSum,
     int? ratingCount,
     bool? onboardingCompleted,
+    DateTime? lastDisplayNameChangedAt,
+    DateTime? lastUsernameChangedAt,
   }) {
     return UserModel(
       uid: uid,
       name: name ?? this.name,
       email: email ?? this.email,
+      username: username ?? this.username,
+      bio: bio ?? this.bio,
       faculty: faculty ?? this.faculty,
       year: year ?? this.year,
       academicYear: academicYear ?? this.academicYear,
@@ -146,6 +199,8 @@ class UserModel {
       ratingSum: ratingSum ?? this.ratingSum,
       ratingCount: ratingCount ?? this.ratingCount,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
+      lastDisplayNameChangedAt: lastDisplayNameChangedAt ?? this.lastDisplayNameChangedAt,
+      lastUsernameChangedAt: lastUsernameChangedAt ?? this.lastUsernameChangedAt,
     );
   }
 }
@@ -677,7 +732,7 @@ class TimeBankOfferModel {
     required this.teacherId,
     required this.teacherName,
     this.teacherAvatarUrl,
-    this.teacherRating = 5.0,
+    this.teacherRating = 0.0,
     required this.courseId,
     required this.courseName,
     required this.topic,
@@ -874,7 +929,7 @@ class TimeBankOfferModel {
       teacherId: map['teacherId'] as String? ?? '',
       teacherName: map['teacherName'] as String? ?? 'زميل',
       teacherAvatarUrl: map['teacherAvatarUrl'] as String?,
-      teacherRating: (map['teacherRating'] as num?)?.toDouble() ?? 5.0,
+      teacherRating: (map['teacherRating'] as num?)?.toDouble() ?? 0.0,
       courseId: map['courseId'] as String? ?? '',
       courseName: map['courseName'] as String? ?? '',
       courseCode: map['courseCode'] as String? ?? '',

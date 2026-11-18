@@ -228,7 +228,8 @@ service cloud.firestore {
     // ==========================================
     match /users/{userId} {
       allow get: if isAuthenticated();
-      allow list: if false;
+      // السماح بالاستعلام والتحقق من أسماء المستخدمين (@handles)
+      allow list: if isAuthenticated();
 
       // إنشاء الحساب الأولي: برصيد 2 عملة تماماً، وتقييم صفر مع حظر رقم الواتساب للخصوصية
       allow create: if isOwner(userId)

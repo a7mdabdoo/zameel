@@ -22,17 +22,17 @@ class AppColors {
   static const Color warning = Color(0xFFC98A2B);
   static const Color error = Color(0xFFC4554D);
 
-  // Dark Palette (True AMOLED Black - فخامة، تباين عالي، وتوفير بطارية)
-  static const Color darkBackground = Color(0xFF000000);
-  static const Color darkSurface = Color(0xFF121212);
-  static const Color darkSurfaceAlt = Color(0xFF1E1E1E);
-  static const Color darkHairline = Color(0xFF2C2C2C);
-  static const Color darkPrimary = Color(0xFF4ECDC4);
-  static const Color darkPrimaryContainer = Color(0xFF163833);
-  static const Color darkOnPrimary = Color(0xFF000000);
-  static const Color darkTextPrimary = Color(0xFFF5F5F5);
-  static const Color darkTextSecondary = Color(0xFFA0A0A0);
-  static const Color darkTextTertiary = Color(0xFF707070);
+  // Dark Palette (Calm Deep Slate / Midnight Navy - فخامة وهدوء بصري مريح للعين)
+  static const Color darkBackground = Color(0xFF0B131E);
+  static const Color darkSurface = Color(0xFF15202B);
+  static const Color darkSurfaceAlt = Color(0xFF1E2D3D);
+  static const Color darkHairline = Color(0xFF27384A);
+  static const Color darkPrimary = Color(0xFF2DD4BF);
+  static const Color darkPrimaryContainer = Color(0xFF133938);
+  static const Color darkOnPrimary = Color(0xFF0B131E);
+  static const Color darkTextPrimary = Color(0xFFE2E8F0);
+  static const Color darkTextSecondary = Color(0xFF94A3B8);
+  static const Color darkTextTertiary = Color(0xFF64748B);
 
   // Course Color Tags (Muted, exactly 6)
   static const Color courseTeal = Color(0xFF2F8F89);
