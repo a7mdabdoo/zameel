@@ -3,6 +3,7 @@
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
 import '../algorithms/planner_algorithm.dart';
 import '../algorithms/matching_algorithm.dart';
@@ -10,14 +11,48 @@ import '../models/app_models.dart';
 import '../../features/auth/data/auth_service.dart';
 
 // ==========================================
-// 1. مزود الثيم العام (Light / Dark Mode)
+// 1. مزود الثيم العام (Light / Dark Mode) مع حفظ التفضيل محلياً
 // ==========================================
-class ThemeModeNotifier extends Notifier<ThemeMode> {
-  @override
-  ThemeMode build() => ThemeMode.light;
+final initialThemeModeProvider = Provider<ThemeMode>((ref) => ThemeMode.light);
 
-  void setTheme(ThemeMode mode) => state = mode;
-  void toggleTheme(bool isDark) => state = isDark ? ThemeMode.dark : ThemeMode.light;
+class ThemeModeNotifier extends Notifier<ThemeMode> {
+  static const _key = 'zameel_is_dark_theme';
+
+  @override
+  ThemeMode build() {
+    final initial = ref.watch(initialThemeModeProvider);
+    _loadFromPrefs();
+    return initial;
+  }
+
+  Future<void> _loadFromPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final isDark = prefs.getBool(_key);
+      if (isDark != null) {
+        final mode = isDark ? ThemeMode.dark : ThemeMode.light;
+        if (state != mode) {
+          state = mode;
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> setTheme(ThemeMode mode) async {
+    state = mode;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_key, mode == ThemeMode.dark);
+    } catch (_) {}
+  }
+
+  Future<void> toggleTheme(bool isDark) async {
+    state = isDark ? ThemeMode.dark : ThemeMode.light;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_key, isDark);
+    } catch (_) {}
+  }
 }
 
 final themeModeProvider = NotifierProvider<ThemeModeNotifier, ThemeMode>(ThemeModeNotifier.new);

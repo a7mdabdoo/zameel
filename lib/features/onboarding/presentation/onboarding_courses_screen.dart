@@ -34,35 +34,41 @@ class _OnboardingCoursesScreenState extends State<OnboardingCoursesScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setModalState) {
-          return Container(
-            padding: EdgeInsets.only(
-              left: 24,
-              right: 24,
-              top: 24,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-            ),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'إضافة مادة دراسية جديدة ➕',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
-                        onPressed: () => Navigator.pop(ctx),
-                      ),
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        final modalSurfaceColor = isDark ? AppColors.darkSurface : AppColors.surface;
+        final modalTextPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+        final modalTextSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 24,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              decoration: BoxDecoration(
+                color: modalSurfaceColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'إضافة مادة دراسية جديدة ➕',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: modalTextPrimary),
+                        ),
+                        IconButton(
+                          icon: Icon(Icons.close_rounded, color: modalTextSecondary),
+                          onPressed: () => Navigator.pop(ctx),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -218,9 +224,10 @@ class _OnboardingCoursesScreenState extends State<OnboardingCoursesScreen> {
             ),
           );
         },
-      ),
-    );
-  }
+      );
+    },
+  );
+}
 
   Widget _buildHourOption({
     required int hours,
@@ -270,18 +277,27 @@ class _OnboardingCoursesScreenState extends State<OnboardingCoursesScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.surface;
+    final surfaceAltColor = isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt;
+    final hairlineColor = isDark ? AppColors.darkHairline : AppColors.hairline;
+    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textPrimary),
+          icon: Icon(Icons.arrow_forward_ios_rounded, color: textPrimaryColor),
           onPressed: () => context.pop(),
         ),
-        title: const Text(
+        title: Text(
           'الخطوة 2 من 3',
-          style: TextStyle(fontSize: 14, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+          style: TextStyle(fontSize: 14, color: textSecondaryColor, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
       ),
@@ -296,30 +312,30 @@ class _OnboardingCoursesScreenState extends State<OnboardingCoursesScreen> {
                   // Progress indicator
                   Row(
                     children: [
-                      Expanded(child: Container(height: 4, decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(2)))),
+                      Expanded(child: Container(height: 4, decoration: BoxDecoration(color: primaryColor, borderRadius: BorderRadius.circular(2)))),
                       const SizedBox(width: 6),
-                      Expanded(child: Container(height: 4, decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(2)))),
+                      Expanded(child: Container(height: 4, decoration: BoxDecoration(color: primaryColor, borderRadius: BorderRadius.circular(2)))),
                       const SizedBox(width: 6),
-                      Expanded(child: Container(height: 4, decoration: BoxDecoration(color: AppColors.hairline, borderRadius: BorderRadius.circular(2)))),
+                      Expanded(child: Container(height: 4, decoration: BoxDecoration(color: hairlineColor, borderRadius: BorderRadius.circular(2)))),
                     ],
                   ),
                   const SizedBox(height: 20),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           'اختر مواد الفصل الدراسي 📚',
-                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textPrimaryColor),
                         ),
                       ),
                       // زر إضافة مادة مخصصة
                       TextButton.icon(
                         onPressed: _showAddCourseDialog,
-                        icon: const Icon(Icons.add_circle_outline_rounded, size: 20, color: AppColors.primary),
-                        label: const Text(
+                        icon: Icon(Icons.add_circle_outline_rounded, size: 20, color: primaryColor),
+                        label: Text(
                           'أضف مادة',
-                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary),
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: primaryColor),
                         ),
                       ),
                     ],
@@ -327,7 +343,7 @@ class _OnboardingCoursesScreenState extends State<OnboardingCoursesScreen> {
                   const SizedBox(height: 4),
                   Text(
                     'حدد موادك المقررة أو أضف موادك الخاصة (${_selectedCourseIds.length} محددة)',
-                    style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    style: TextStyle(fontSize: 13, color: textSecondaryColor),
                   ),
                   const SizedBox(height: 12),
                 ],
@@ -347,15 +363,15 @@ class _OnboardingCoursesScreenState extends State<OnboardingCoursesScreen> {
                   return Container(
                     margin: const EdgeInsets.only(bottom: 10),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: surfaceColor,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: isSelected ? course.color : AppColors.hairline,
+                        color: isSelected ? course.color : hairlineColor,
                         width: isSelected ? 1.5 : 1.0,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.02),
+                          color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
                           blurRadius: 6,
                           offset: const Offset(0, 2),
                         ),
@@ -383,7 +399,7 @@ class _OnboardingCoursesScreenState extends State<OnboardingCoursesScreen> {
                       ),
                       title: Text(
                         course.name,
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textPrimaryColor),
                       ),
                       subtitle: Padding(
                         padding: const EdgeInsets.only(top: 4.0),
@@ -391,7 +407,7 @@ class _OnboardingCoursesScreenState extends State<OnboardingCoursesScreen> {
                           children: [
                             Text(
                               course.code,
-                              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                              style: TextStyle(fontSize: 12, color: textSecondaryColor),
                             ),
                             const SizedBox(width: 8),
                             // شارة عدد الساعات المعتمدة ومستوى الأهمية
@@ -400,13 +416,13 @@ class _OnboardingCoursesScreenState extends State<OnboardingCoursesScreen> {
                                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                                 decoration: BoxDecoration(
                                   color: isHighPriority
-                                      ? AppColors.pointsAmber.withValues(alpha: 0.15)
-                                      : AppColors.surfaceAlt,
+                                      ? AppColors.pointsAmber.withValues(alpha: isDark ? 0.25 : 0.15)
+                                      : surfaceAltColor,
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
                                     color: isHighPriority
                                         ? AppColors.pointsAmber.withValues(alpha: 0.4)
-                                        : AppColors.hairline,
+                                        : hairlineColor,
                                   ),
                                 ),
                                 child: Row(
@@ -478,13 +494,14 @@ class _OnboardingCoursesScreenState extends State<OnboardingCoursesScreen> {
                               .toList();
                           context.push('/onboarding-rate', extra: selectedCourses);
                         },
-                  icon: const Icon(Icons.arrow_back_rounded, color: Colors.white, size: 20),
-                  label: const Text(
+                  icon: Icon(Icons.arrow_back_rounded, color: isDark ? AppColors.darkOnPrimary : AppColors.onPrimary, size: 20),
+                  label: Text(
                     'التالي: تقييم مستواك',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? AppColors.darkOnPrimary : AppColors.onPrimary),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: primaryColor,
+                    disabledBackgroundColor: primaryColor.withValues(alpha: 0.4),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
                 ),

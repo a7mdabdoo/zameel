@@ -519,14 +519,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     Divider(height: 1, color: hairlineColor),
                     SwitchListTile(
                       title: Text('الوضع الليلي (Dark Theme)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimaryColor)),
-                      subtitle: Text('تبديل مظهر الشاشات للألوان الداكنة', style: TextStyle(fontSize: 12, color: textSecondaryColor)),
+                      subtitle: Text('تبديل مظهر الشاشات للألوان الداكنة وحفظ التفضيل', style: TextStyle(fontSize: 12, color: textSecondaryColor)),
                       secondary: Icon(Icons.dark_mode_outlined, color: primaryColor),
                       value: isDark,
                       activeTrackColor: primaryColor,
                       onChanged: (val) {
                         ref.read(themeModeProvider.notifier).toggleTheme(val);
+                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(val ? 'تم تفعيل الوضع الداكن بنجاح 🌙' : 'تم تفعيل الوضع الفاتح بنجاح ☀️')),
+                          SnackBar(
+                            content: Text(val ? 'تم تفعيل الوضع الداكن وحفظ تفضيلك بنجاح 🌙' : 'تم تفعيل الوضع الفاتح وحفظ تفضيلك بنجاح ☀️'),
+                            duration: const Duration(seconds: 2),
+                            backgroundColor: val ? AppColors.darkSurfaceAlt : AppColors.primary,
+                          ),
                         );
                       },
                     ),

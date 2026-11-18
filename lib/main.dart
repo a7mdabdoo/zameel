@@ -9,9 +9,19 @@ import 'core/constants/app_constants.dart';
 import 'core/state/app_state.dart';
 import 'core/l10n/app_localizations.dart';
 import 'core/services/global_notification_listener.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  bool isDarkSaved = false;
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    isDarkSaved = prefs.getBool('zameel_is_dark_theme') ?? false;
+  } catch (e) {
+    debugPrint('Prefs init error: $e');
+  }
+
   Object? initError;
   try {
     await Firebase.initializeApp();
@@ -26,8 +36,12 @@ void main() async {
   }
 
   runApp(
-    const ProviderScope(
-      child: ZameelApp(),
+    ProviderScope(
+      overrides: [
+        if (isDarkSaved)
+          initialThemeModeProvider.overrideWithValue(ThemeMode.dark),
+      ],
+      child: const ZameelApp(),
     ),
   );
 }
@@ -51,9 +65,19 @@ class _FirebaseInitErrorAppState extends State<FirebaseInitErrorApp> {
 
     try {
       await Firebase.initializeApp();
+      bool isDarkSaved = false;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        isDarkSaved = prefs.getBool('zameel_is_dark_theme') ?? false;
+      } catch (_) {}
+
       runApp(
-        const ProviderScope(
-          child: ZameelApp(),
+        ProviderScope(
+          overrides: [
+            if (isDarkSaved)
+              initialThemeModeProvider.overrideWithValue(ThemeMode.dark),
+          ],
+          child: const ZameelApp(),
         ),
       );
     } catch (e) {

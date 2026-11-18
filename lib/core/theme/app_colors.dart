@@ -4,20 +4,20 @@
 import 'package:material_ui/material_ui.dart';
 
 class AppColors {
-  // Light Palette
-  static const Color background = Color(0xFFF6F8F5);
+  // Light Palette (Modern Crisp & Calm - وضوح ونقاء عصري مريح للعين)
+  static const Color background = Color(0xFFF8FAFC);
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color surfaceAlt = Color(0xFFEAF0EA);
-  static const Color hairline = Color(0xFFD8E2DD);
+  static const Color surfaceAlt = Color(0xFFF1F5F9);
+  static const Color hairline = Color(0xFFE2E8F0);
   static const Color primary = Color(0xFF1F6F6B);
-  static const Color primaryContainer = Color(0xFFD7ECE9);
+  static const Color primaryContainer = Color(0xFFE0F2F1);
   static const Color onPrimary = Color(0xFFFFFFFF);
   static const Color sage = Color(0xFF7FA787);
   static const Color deepSage = Color(0xFF3F6B52);
   static const Color pointsAmber = Color(0xFFD9A441);
-  static const Color textPrimary = Color(0xFF1B2B2A);
-  static const Color textSecondary = Color(0xFF5A6B69);
-  static const Color textTertiary = Color(0xFF8A9896);
+  static const Color textPrimary = Color(0xFF0F172A);
+  static const Color textSecondary = Color(0xFF475569);
+  static const Color textTertiary = Color(0xFF94A3B8);
   static const Color success = Color(0xFF3E8E63);
   static const Color warning = Color(0xFFC98A2B);
   static const Color error = Color(0xFFC4554D);
@@ -30,7 +30,7 @@ class AppColors {
   static const Color darkPrimary = Color(0xFF2DD4BF);
   static const Color darkPrimaryContainer = Color(0xFF133938);
   static const Color darkOnPrimary = Color(0xFF0B131E);
-  static const Color darkTextPrimary = Color(0xFFE2E8F0);
+  static const Color darkTextPrimary = Color(0xFFF1F5F9);
   static const Color darkTextSecondary = Color(0xFF94A3B8);
   static const Color darkTextTertiary = Color(0xFF64748B);
 
