@@ -121,12 +121,15 @@ class PlannerAlgorithm {
         return !_hasCollision(slot['start']!, slot['end']!, dayLectures);
       }).toList();
 
-      // إذا كانت الفترات غير كافية بسبب كثافة المحاضرات، نستعين بالفترات المسائية المتاحة
+      // إذا كانت الفترات غير كافية بسبب كثافة المحاضرات، نستعين بالفترات المسائية المتاحة بشرط عدم التعارض مع المحاضرات أو الفترات القائمة
       final availableSlots = <Map<String, String>>[...nonConflictingSlots];
       if (availableSlots.length < 2) {
         for (final fb in fallbackEveningSlots) {
-          if (!_hasCollision(fb['start']!, fb['end']!, dayLectures) &&
-              !availableSlots.any((s) => s['start'] == fb['start'])) {
+          final conflictsWithLectures = _hasCollision(fb['start']!, fb['end']!, dayLectures);
+          final conflictsWithOtherSlots = availableSlots.any(
+            (s) => _hasTimeOverlap(s['start']!, s['end']!, fb['start']!, fb['end']!),
+          );
+          if (!conflictsWithLectures && !conflictsWithOtherSlots) {
             availableSlots.add(fb);
             if (availableSlots.length >= 3) break;
           }
@@ -155,12 +158,24 @@ class PlannerAlgorithm {
           break; // الوصول للحد اليومي المناسب
         }
 
+        // التأكد التام من عدم تداخل وقت كتلة المذاكرة مع أي محاضرة أو كتلة مذاكرة مسجلة في هذا اليوم
+        final conflictsWithExistingLectures = dayLectures.any(
+          (l) => _hasTimeOverlap(slot['start']!, slot['end']!, l.startTime, l.endTime),
+        );
+        final conflictsWithExistingBlocks = generatedBlocks
+            .where((b) => b.day == day)
+            .any((b) => _hasTimeOverlap(slot['start']!, slot['end']!, b.startTime, b.endTime));
+
+        if (conflictsWithExistingLectures || conflictsWithExistingBlocks) {
+          continue;
+        }
+
         // 3. اختيار المادة وفق القيود الذكية:
-        // - منع تكرار نفس المادة في نفس اليوم إن وُجدت بدائل
+        // - منع تكرار نفس المادة في نفس اليوم نهائياً
         // - شرط حتمي: ممنوع وضع أكثر من مادة صعبة واحدة في نفس اليوم! (heavyCoursesToday < 1)
         final eligibleInputs = courseInputs.where((c) {
-          // استبعاد مادة استُخدمت اليوم مسبقاً إذا كانت هناك مواد أخرى
-          if (coursesUsedToday.contains(c.course.id) && coursesUsedToday.length < courseInputs.length) {
+          // استبعاد مادة استُخدمت اليوم مسبقاً
+          if (coursesUsedToday.contains(c.course.id)) {
             return false;
           }
           // إذا كان اليوم يحتوي بالفعل على مادة صعبة، نمنع أي مادة صعبة أخرى في نفس اليوم
@@ -175,7 +190,12 @@ class PlannerAlgorithm {
             ? eligibleInputs
             : courseInputs.where((c) => !coursesUsedToday.contains(c.course.id)).toList();
 
-        final finalPool = candidatePool.isNotEmpty ? candidatePool : courseInputs;
+        if (candidatePool.isEmpty) {
+          // تم تغطية جميع المقررات المتاحة لليوم، يمنع تكرار نفس المادة في نفس اليوم
+          break;
+        }
+
+        final finalPool = candidatePool;
 
         String? bestCourseId;
         double highestPriority = -1.0;
@@ -291,6 +311,15 @@ class PlannerAlgorithm {
     } catch (_) {
       return 540;
     }
+  }
+
+  /// التحقق من تداخل فترتين زمنيتين
+  static bool _hasTimeOverlap(String startA, String endA, String startB, String endB) {
+    final sA = _parseTimeToMinutes(startA);
+    final eA = _parseTimeToMinutes(endA);
+    final sB = _parseTimeToMinutes(startB);
+    final eB = _parseTimeToMinutes(endB);
+    return sA < eB && sB < eA;
   }
 
   /// التحقق مما إذا كانت فترة المذاكرة تتعارض مع أي محاضرة في نفس اليوم

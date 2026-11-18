@@ -86,6 +86,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
     final inputFillColor = isDark ? AppColors.darkSurfaceAlt : AppColors.surface;
     final hairlineColor = isDark ? AppColors.darkHairline : AppColors.hairline;
+    final iconColor = isDark ? AppColors.darkTextSecondary : AppColors.textTertiary;
+    final hintColor = isDark ? AppColors.darkTextTertiary : AppColors.textTertiary;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -127,13 +129,21 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.error.withValues(alpha: 0.1),
+                      color: AppColors.error.withValues(alpha: isDark ? 0.2 : 0.1),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                      border: Border.all(color: AppColors.error.withValues(alpha: isDark ? 0.4 : 0.3)),
                     ),
-                    child: Text(
-                      _errorMessage!,
-                      style: const TextStyle(color: AppColors.error, fontSize: 13),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline, color: AppColors.error, size: 20),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _errorMessage!,
+                            style: const TextStyle(color: AppColors.error, fontSize: 13),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -150,7 +160,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   style: TextStyle(color: textPrimaryColor),
                   decoration: InputDecoration(
                     hintText: 'أحمد محمود',
-                    prefixIcon: const Icon(Icons.person_outline_rounded, color: AppColors.textTertiary),
+                    hintStyle: TextStyle(color: hintColor),
+                    prefixIcon: Icon(Icons.person_outline_rounded, color: iconColor),
                     filled: true,
                     fillColor: inputFillColor,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hairlineColor)),
@@ -176,8 +187,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   style: TextStyle(color: textPrimaryColor),
                   decoration: InputDecoration(
                     hintText: 'ahmed_dev',
+                    hintStyle: TextStyle(color: hintColor),
                     hintTextDirection: TextDirection.ltr,
-                    prefixIcon: const Icon(Icons.alternate_email_rounded, color: AppColors.textTertiary),
+                    prefixIcon: Icon(Icons.alternate_email_rounded, color: iconColor),
                     filled: true,
                     fillColor: inputFillColor,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hairlineColor)),
@@ -208,8 +220,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   style: TextStyle(color: textPrimaryColor),
                   decoration: InputDecoration(
                     hintText: 'yourname@gmail.com',
+                    hintStyle: TextStyle(color: hintColor),
                     hintTextDirection: TextDirection.ltr,
-                    prefixIcon: const Icon(Icons.email_outlined, color: AppColors.textTertiary),
+                    prefixIcon: Icon(Icons.email_outlined, color: iconColor),
                     filled: true,
                     fillColor: inputFillColor,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hairlineColor)),
@@ -241,9 +254,10 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   style: TextStyle(color: textPrimaryColor),
                   decoration: InputDecoration(
                     hintText: '••••••••',
-                    prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppColors.textTertiary),
+                    hintStyle: TextStyle(color: hintColor),
+                    prefixIcon: Icon(Icons.lock_outline_rounded, color: iconColor),
                     suffixIcon: IconButton(
-                      icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: AppColors.textTertiary),
+                      icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined, color: iconColor),
                       onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                     ),
                     filled: true,
@@ -272,7 +286,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                   style: TextStyle(color: textPrimaryColor),
                   decoration: InputDecoration(
                     hintText: '••••••••',
-                    prefixIcon: const Icon(Icons.lock_reset_rounded, color: AppColors.textTertiary),
+                    hintStyle: TextStyle(color: hintColor),
+                    prefixIcon: Icon(Icons.lock_reset_rounded, color: iconColor),
                     filled: true,
                     fillColor: inputFillColor,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hairlineColor)),

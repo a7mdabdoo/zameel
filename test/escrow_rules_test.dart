@@ -1248,6 +1248,79 @@ void main() {
       }
     });
 
+    test('خوارزمية المذاكرة لا تسند نفس المادة أكثر من مرة واحدة في نفس اليوم نهائياً (Deduplication)', () {
+      final inputs = PlannerAlgorithm.getDefaultSeedInputs();
+      final plan = PlannerAlgorithm.generateWeeklyPlan(
+        courseInputs: inputs,
+        lectureSchedule: [],
+      );
+
+      final days = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
+      for (final day in days) {
+        final dayBlocks = plan.where((b) => b.day == day).toList();
+        final courseIds = dayBlocks.map((b) => b.courseId).toList();
+        final uniqueCourseIds = courseIds.toSet().toList();
+        expect(
+          courseIds.length,
+          equals(uniqueCourseIds.length),
+          reason: 'اليوم $day يحتوي على تكرار لنفس المادة في جدول المذاكرة!',
+        );
+      }
+    });
+
+    test('جلسات المذاكرة لا تتعارض زمنياً مع المحاضرات المسجلة ولا مع جلسات المذاكرة الأخرى', () {
+      final inputs = PlannerAlgorithm.getDefaultSeedInputs();
+      const saturdayLecture = ScheduleItemModel(
+        id: 'lec_sat_midday',
+        courseName: 'خوارزميات',
+        courseCode: 'CS201',
+        day: 'السبت',
+        startTime: '02:00 م',
+        endTime: '03:30 م',
+        room: 'قاعة 5',
+        color: Colors.green,
+      );
+
+      final plan = PlannerAlgorithm.generateWeeklyPlan(
+        courseInputs: inputs,
+        lectureSchedule: [saturdayLecture],
+      );
+
+      int parseMin(String timeStr) {
+        final clean = timeStr.trim();
+        final isPM = clean.contains('م') || clean.toUpperCase().contains('PM');
+        final digits = clean.replaceAll(RegExp(r'[^\d:]'), '');
+        final parts = digits.split(':');
+        var hour = int.tryParse(parts[0]) ?? 9;
+        final minute = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+        if (isPM && hour < 12) hour += 12;
+        if (!isPM && hour == 12) hour = 0;
+        return hour * 60 + minute;
+      }
+
+      bool hasOverlap(int s1, int e1, int s2, int e2) => s1 < e2 && s2 < e1;
+
+      final days = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
+      for (final day in days) {
+        final dayBlocks = plan.where((b) => b.day == day).toList();
+        for (int i = 0; i < dayBlocks.length; i++) {
+          final s1 = parseMin(dayBlocks[i].startTime);
+          final e1 = parseMin(dayBlocks[i].endTime);
+          for (int j = i + 1; j < dayBlocks.length; j++) {
+            final s2 = parseMin(dayBlocks[j].startTime);
+            final e2 = parseMin(dayBlocks[j].endTime);
+            expect(hasOverlap(s1, e1, s2, e2), isFalse, reason: 'تعارض بين كتلتي مذاكرة في يوم $day');
+          }
+
+          if (day == 'السبت') {
+            final lecStart = parseMin(saturdayLecture.startTime);
+            final lecEnd = parseMin(saturdayLecture.endTime);
+            expect(hasOverlap(s1, e1, lecStart, lecEnd), isFalse, reason: 'تعارض مع محاضرة السبت');
+          }
+        }
+      }
+    });
+
     test('مراعاة كثافة المحاضرات وتخفيف ساعات المذاكرة الذاتية في الأيام المزدحمة بالمحاضرات', () {
       final inputs = PlannerAlgorithm.getDefaultSeedInputs();
       // يوم السبت به محاضرتان طويلتان بإجمالي 180 دقيقة

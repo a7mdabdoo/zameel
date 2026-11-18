@@ -102,8 +102,72 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
     return uniqueMap.values.toList();
   }
 
+  int _parseTimeToMinutes(String timeStr) {
+    try {
+      final clean = timeStr.trim().replaceAll('–', '-').replaceAll('—', '-');
+      final isPM = clean.contains('م') || clean.toUpperCase().contains('PM');
+      final digits = clean.replaceAll(RegExp(r'[^\d:]'), '');
+      final parts = digits.split(':');
+      if (parts.isEmpty) return 540;
+      var hour = int.tryParse(parts[0]) ?? 9;
+      final minute = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+      if (isPM && hour < 12) hour += 12;
+      if (!isPM && hour == 12) hour = 0;
+      return hour * 60 + minute;
+    } catch (_) {
+      return 540;
+    }
+  }
+
   void _addLectureToList() {
     if (_selectedCourse == null) return;
+
+    // Rule 1: No Duplicate Course in the Entire Weekly Schedule
+    final existingLecture = _lectures.where(
+      (l) => l.courseCode == _selectedCourse!.code || l.courseName == _selectedCourse!.name
+    ).firstOrNull;
+    if (existingLecture != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('⚠️ لقد قمت بإضافة محاضرة لمادة "${_selectedCourse!.name}" مسبقاً (يوم ${existingLecture.day})! لا يمكن تكرار نفس المادة في جدول الأسبوع.'),
+          backgroundColor: AppColors.error,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+
+    // Rule 2: No Time Overlaps on the Same Day
+    final newStartMin = _parseTimeToMinutes(_startTime);
+    final newEndMin = _parseTimeToMinutes(_endTime);
+
+    if (newEndMin <= newStartMin) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('⚠️ وقت انتهاء المحاضرة يجب أن يكون بعد وقت البدء!'),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      return;
+    }
+
+    final hasConflict = _lectures.any((l) {
+      if (l.day != _selectedDay) return false;
+      final lStart = _parseTimeToMinutes(l.startTime);
+      final lEnd = _parseTimeToMinutes(l.endTime);
+      return newStartMin < lEnd && lStart < newEndMin;
+    });
+
+    if (hasConflict) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('⚠️ يوجد تعارض في التوقيت مع محاضرة أخرى مسجلة في يوم $_selectedDay!'),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      return;
+    }
+
     final room = _roomController.text.trim().isEmpty ? 'قاعة عامة' : _roomController.text.trim();
 
     final newLecture = ScheduleItemModel(
