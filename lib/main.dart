@@ -10,10 +10,6 @@ import 'core/state/app_state.dart';
 import 'core/l10n/app_localizations.dart';
 import 'core/services/global_notification_listener.dart';
 
-// ==========================================
-// نقطة البداية لتطبيق زَميل (Zameel App)
-// تهيئة خدمات Firebase وتشغيل واجهة التطبيق مع إدارة الحالة عبر Riverpod
-// ==========================================
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   Object? initError;
@@ -35,8 +31,6 @@ void main() async {
     ),
   );
 }
-
-/// شاشة خطأ كاملة تظهر باللغة العربية عند فشل تهيئة Firebase مع زر إعادة المحاولة
 class FirebaseInitErrorApp extends StatefulWidget {
   final Object error;
   const FirebaseInitErrorApp({super.key, required this.error});
@@ -75,7 +69,6 @@ class _FirebaseInitErrorAppState extends State<FirebaseInitErrorApp> {
   @override
   Widget build(BuildContext context) {
     final displayError = _lastError ?? widget.error.toString();
-
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Directionality(

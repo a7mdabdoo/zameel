@@ -34,6 +34,7 @@ import '../../features/timebank/presentation/create_offer_screen.dart';
 import '../../features/timebank/presentation/my_sessions_screen.dart';
 
 // شاشات مطور 1
+import '../../features/sessions/presentation/session_details_screen.dart';
 import '../../features/sessions/presentation/session_details_teacher_screen.dart';
 import '../../features/sessions/presentation/session_details_learner_screen.dart';
 import '../../features/sessions/presentation/session_chat_screen.dart';
@@ -201,6 +202,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/my-sessions',
         builder: (context, state) => const MySessionsScreen(),
+      ),
+      GoRoute(
+        path: '/session-details',
+        builder: (context, state) {
+          final extra = state.extra;
+          if (extra is TimeBankSessionModel) {
+            return SessionDetailsScreen(session: extra);
+          } else if (extra is TimeBankOfferModel) {
+            return SessionDetailsScreen(offer: extra);
+          }
+          return const SessionDetailsScreen();
+        },
       ),
       GoRoute(
         path: '/session-teacher',

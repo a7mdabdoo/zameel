@@ -581,7 +581,10 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                                         ),
                                       ],
                                       const SizedBox(width: 6),
-                                      Text('• ', style: TextStyle(fontSize: 10, color: textSecondary)),
+                                      Text(
+                                        '• ${_formatTime(answer.createdAt)}',
+                                        style: TextStyle(fontSize: 10, color: textSecondary),
+                                      ),
                                     ],
                                   ),
                                 ),

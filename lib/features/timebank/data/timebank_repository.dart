@@ -1172,6 +1172,207 @@ class TimeBankRepository {
     await firestore.collection('offers').doc(offer.id).set(offer.toMap());
   }
 
+  // =========================================================================
+  // الانضمام للجلسة عبر الضمان المالي الذري (Live Marketplace Join & Escrow)
+  // =========================================================================
+  Future<TimeBankSessionModel> joinSessionWithEscrow({
+    required String offerId,
+    required String learnerId,
+    required String learnerName,
+  }) async {
+    final firestore = _firestore;
+    if (firestore == null) {
+      throw FirebaseException(
+        plugin: 'firestore',
+        message: 'Firebase Firestore is not initialized',
+      );
+    }
+
+    final learnerDocRef = firestore.collection('users').doc(learnerId);
+    final offerDocRef = firestore.collection('offers').doc(offerId);
+    final sessionId = '${offerId}_$learnerId';
+    final sessionDocRef = firestore.collection('sessions').doc(sessionId);
+    final txId = '${sessionId}_escrow';
+    final txDocRef = firestore.collection('transactions').doc(txId);
+
+    return await firestore.runTransaction((transaction) async {
+      // 1. التحقق من رصيد المتعلّم
+      final learnerSnap = await transaction.get(learnerDocRef);
+      if (!learnerSnap.exists) {
+        throw Exception('حساب المتعلّم غير موجود');
+      }
+
+      final learnerData = learnerSnap.data() as Map<String, dynamic>;
+      final currentCoins = (learnerData['timeCoins'] as num?)?.toInt() ?? 0;
+      if (currentCoins < 1) {
+        throw Exception('رصيدك من عملات الوقت غير كافٍ للانضمام للجلسة (مطلوب 1 عملة)');
+      }
+
+      // 2. التحقق من العرض والسعة وعدم التسجيل المسبق
+      final offerSnap = await transaction.get(offerDocRef);
+      if (!offerSnap.exists) {
+        throw Exception('عرض الشرح غير موجود أو تم حذفه');
+      }
+
+      final offer = TimeBankOfferModel.fromMap(offerSnap.data() as Map<String, dynamic>, offerId);
+      if (offer.isCompleted) {
+        throw Exception('هذه الجلسة مكتملة بالفعل ولا يمكن الانضمام إليها');
+      }
+
+      if (offer.attendeeIds.contains(learnerId)) {
+        throw Exception('أنت منضم بالفعل لهذه الجلسة');
+      }
+
+      if (offer.isFull) {
+        throw Exception('عفواً، اكتملت السعة القصوى للمشاركين في هذه الجلسة');
+      }
+
+      // 3. خصم عملة واحدة (1 TimeCoin) ذرياً من محفظة المتعلم
+      transaction.update(learnerDocRef, {
+        'timeCoins': FieldValue.increment(-1),
+        'lastSessionId': sessionId,
+      });
+
+      // 4. إنشاء سجل المعاملة المالية في الضمان (status: held)
+      transaction.set(txDocRef, {
+        'id': txId,
+        'userId': learnerId,
+        'otherPartyId': offer.teacherId,
+        'sessionId': sessionId,
+        'offerId': offerId,
+        'amount': -1,
+        'type': 'session_booking_escrow',
+        'status': 'held',
+        'courseName': offer.courseName,
+        'topic': offer.topic,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
+      // 5. إضافة معرف المتعلم لقائمة الحضور في العرض
+      final updatedAttendeeIds = [...offer.attendeeIds, learnerId];
+      final willBeFull = updatedAttendeeIds.length >= offer.maxAttendees;
+      transaction.update(offerDocRef, {
+        'attendeeIds': FieldValue.arrayUnion([learnerId]),
+        'enrolledLearnerIds': FieldValue.arrayUnion([learnerId]),
+        if (willBeFull) 'isAvailable': false,
+      });
+
+      // 6. إنشاء وثيقة الجلسة في sessions
+      final sessionModel = TimeBankSessionModel(
+        id: sessionId,
+        learnerId: learnerId,
+        learnerName: learnerName,
+        teacherId: offer.teacherId,
+        teacherName: offer.teacherName,
+        teacherInitials: offer.teacherName.isNotEmpty ? offer.teacherName.substring(0, 1) : 'ز',
+        courseName: offer.courseName,
+        courseCode: offer.courseCode,
+        topic: offer.topic,
+        day: offer.day,
+        time: offer.time,
+        durationMinutes: offer.durationMinutes,
+        location: offer.location,
+        costCoins: 1,
+        status: 'confirmed',
+        escrowStatus: 'held',
+        mode: 'online',
+        meetingUrl: offer.meetingUrl,
+        scheduledAt: offer.scheduledAt,
+        createdAt: DateTime.now(),
+        isGroupSession: offer.sessionType == SessionType.group,
+        enrolledLearnerIds: updatedAttendeeIds,
+        maxLearners: offer.maxAttendees,
+      );
+
+      transaction.set(sessionDocRef, sessionModel.toMap());
+
+      return sessionModel;
+    });
+  }
+
+  // =========================================================================
+  // تسوية وإغلاق الجلسة وصرف أجر المعلم المتدرج (Settlement & Completion)
+  // =========================================================================
+  Future<int> settleSessionCompletion({
+    required String offerId,
+    required String settledByUserId,
+  }) async {
+    final firestore = _firestore;
+    if (firestore == null) {
+      throw FirebaseException(
+        plugin: 'firestore',
+        message: 'Firebase Firestore is not initialized',
+      );
+    }
+
+    final offerDocRef = firestore.collection('offers').doc(offerId);
+    final offerSnap = await offerDocRef.get();
+    if (!offerSnap.exists) {
+      throw Exception('عرض الشرح غير موجود');
+    }
+
+    final offer = TimeBankOfferModel.fromMap(offerSnap.data() as Map<String, dynamic>, offerId);
+    if (offer.isCompleted) {
+      throw Exception('تمت تسوية هذه الجلسة وإغلاقها مسبقاً');
+    }
+
+    final teacherDocRef = firestore.collection('users').doc(offer.teacherId);
+    final rewardCoins = TimeBankPureLogic.calculateTeacherReward(
+      type: offer.sessionType,
+      attendeeCount: offer.attendeesCount,
+    );
+
+    // 1. صرف العملات للمعلم وتحديث الجلسات المكتملة
+    await firestore.runTransaction((transaction) async {
+      final teacherSnap = await transaction.get(teacherDocRef);
+      if (!teacherSnap.exists) {
+        throw Exception('حساب المعلم غير موجود');
+      }
+
+      transaction.update(teacherDocRef, {
+        'timeCoins': FieldValue.increment(rewardCoins),
+        'completedSessions': FieldValue.increment(1),
+      });
+
+      transaction.update(offerDocRef, {
+        'isCompleted': true,
+        'isAvailable': false,
+        'completedAt': FieldValue.serverTimestamp(),
+        'rewardCoins': rewardCoins,
+      });
+    });
+
+    // 2. تحديث جلسات المشتركين وسجلات الضمان (Escrow -> released)
+    try {
+      final sessionsQuery = await firestore
+          .collection('sessions')
+          .where('teacherId', isEqualTo: offer.teacherId)
+          .where('escrowStatus', isEqualTo: 'held')
+          .get();
+
+      final batch = firestore.batch();
+      for (final doc in sessionsQuery.docs) {
+        final isMatchingOffer = doc.id.startsWith('${offerId}_');
+        if (isMatchingOffer) {
+          batch.update(doc.reference, {
+            'status': 'completed',
+            'escrowStatus': 'released_to_teacher',
+            'completedAt': FieldValue.serverTimestamp(),
+          });
+
+          final txRef = firestore.collection('transactions').doc('${doc.id}_escrow');
+          batch.set(txRef, {
+            'status': 'released',
+            'releasedAt': FieldValue.serverTimestamp(),
+          }, SetOptions(merge: true));
+        }
+      }
+      await batch.commit();
+    } catch (_) {}
+
+    return rewardCoins;
+  }
+
   Stream<List<SessionMessageModel>> streamSessionMessages(String sessionId) {
     final firestore = _firestore;
     if (firestore == null || sessionId.isEmpty) {
@@ -1319,6 +1520,13 @@ final sessionMessagesStreamProvider =
     StreamProvider.family<List<SessionMessageModel>, String>((ref, sessionId) {
   final repo = ref.watch(timeBankRepositoryProvider);
   return repo.streamSessionMessages(sessionId);
+});
+
+final enrolledOffersStreamProvider =
+    StreamProvider.family<List<TimeBankOfferModel>, String>((ref, userId) {
+  final repo = ref.watch(timeBankRepositoryProvider);
+  return repo.streamAvailableOffers().map((offers) =>
+      offers.where((o) => o.attendeeIds.contains(userId)).toList());
 });
 
 final peerCandidatesProvider =
