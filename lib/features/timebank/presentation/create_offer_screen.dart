@@ -20,6 +20,7 @@ class CreateOfferScreen extends ConsumerStatefulWidget {
 
 class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
   final _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
 
   // 1. المادة والموضوع
   CourseSeed _selectedCourse = AppConstants.seedCourses[0];
@@ -41,6 +42,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
 
   @override
   void dispose() {
+    _scrollController.dispose();
     _topicController.dispose();
     _meetingUrlController.dispose();
     super.dispose();
@@ -76,20 +78,31 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
   }
 
   Future<void> _publishOffer() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    final topic = _topicController.text.trim();
-    final meetingUrl = _meetingUrlController.text.trim();
-
-    // التحقق من الرابط في حالة الجلسة الجماعية
-    if (_sessionType == SessionType.group && meetingUrl.isEmpty) {
+    if (!_formKey.currentState!.validate()) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('يرجى إرفاق رابط الاجتماع (Google Meet / Zoom) للجلسة الجماعية'),
+          content: Text('يرجى ملء موضوع الشرح والتأكد من صحة البيانات أولاً 📝'),
           backgroundColor: AppColors.error,
         ),
       );
       return;
+    }
+
+    final topic = _topicController.text.trim();
+    final rawMeetingUrl = _meetingUrlController.text.trim();
+    String? meetingUrl;
+    if (rawMeetingUrl.isNotEmpty) {
+      meetingUrl = rawMeetingUrl;
+      if (!meetingUrl.startsWith('http://') && !meetingUrl.startsWith('https://')) {
+        meetingUrl = 'https://$meetingUrl';
+      }
     }
 
     final user = ref.read(authServiceProvider).currentUser;
@@ -151,7 +164,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
         sessionType: _sessionType,
         scheduledAt: scheduledAt,
         durationMinutes: _durationMinutes,
-        meetingUrl: meetingUrl.isNotEmpty ? meetingUrl : null,
+        meetingUrl: meetingUrl,
         maxAttendees: _sessionType == SessionType.individual ? 1 : _maxAttendees,
         attendeeIds: const [],
         isCompleted: false,
@@ -236,6 +249,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
         child: Form(
           key: _formKey,
           child: ListView(
+            controller: _scrollController,
             padding: const EdgeInsets.all(16),
             children: [
               // لافتة تعريفية
@@ -321,8 +335,8 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                       ),
                     ),
                     validator: (val) {
-                      if (val == null || val.trim().length < 5) {
-                        return 'يرجى كتابة عنوان واضح ومفصل لموضوع الشرح (5 أحرف على الأقل)';
+                      if (val == null || val.trim().isEmpty) {
+                        return 'يرجى كتابة عنوان أو فكرة الشرح';
                       }
                       return null;
                     },
@@ -491,9 +505,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                       prefixIcon: const Icon(Icons.link_rounded),
                       hintText: 'https://meet.google.com/xxx-yyyy-zzz',
                       hintStyle: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : AppColors.textTertiary),
-                      helperText: _sessionType == SessionType.group
-                          ? 'إلزامي للجلسات الجماعية ليتمكن الطلاب من الانضمام المباشر'
-                          : 'اختياري - يمكنك أيضاً مشاركته في الشات الخاص قبل بدء الجلسة',
+                      helperText: 'اختياري - يمكنك تركه فارغاً وتعيينه أو مشاركته لاحقاً داخل تفاصيل الجلسة',
                       filled: true,
                       fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
                       border: OutlineInputBorder(
@@ -502,13 +514,10 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                       ),
                     ),
                     validator: (val) {
-                      if (_sessionType == SessionType.group && (val == null || val.trim().isEmpty)) {
-                        return 'يرجى إرفاق رابط الاجتماع للجلسة الجماعية';
-                      }
                       if (val != null && val.trim().isNotEmpty) {
                         final v = val.trim();
-                        if (!v.contains('.') || v.length < 5) {
-                          return 'يرجى إدخال رابط اجتماع صالح';
+                        if (!v.contains('.') || v.length < 4) {
+                          return 'يرجى إدخال رابط اجتماع صالح أو تركه فارغاً';
                         }
                       }
                       return null;

@@ -765,7 +765,17 @@ class TimeBankOfferModel {
       'isCompleted': isCompleted,
       'createdAt': (createdAt ?? DateTime.now()).toIso8601String(),
       'courseColor': courseColor.toARGB32(),
-      'slots': slots.map((s) => s.toMap()).toList(),
+      'slots': (slots.isNotEmpty
+              ? slots
+              : [
+                  OfferTimeSlot(
+                    weekday: (effectiveScheduledAt.weekday - 1) % 7,
+                    startMin: effectiveScheduledAt.hour * 60 + effectiveScheduledAt.minute,
+                    endMin: effectiveScheduledAt.hour * 60 + effectiveScheduledAt.minute + durationMinutes,
+                  )
+                ])
+          .map((s) => s.toMap())
+          .toList(),
       // Legacy compatibility keys:
       'isAvailable': isAvailable,
       'isGroupSession': isGroupSession,

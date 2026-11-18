@@ -63,6 +63,109 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
     );
   }
 
+  Future<void> _showUpdateMeetingUrlDialog([String? currentUrl]) async {
+    final controller = TextEditingController(text: currentUrl ?? '');
+    final formKey = GlobalKey<FormState>();
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('رابط الاجتماع الأونلاين 📹', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'أدخل رابط Google Meet أو Zoom ليتمكن الطلاب المنضمون من الدخول المباشر:',
+                style: TextStyle(fontSize: 12.5),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: controller,
+                keyboardType: TextInputType.url,
+                decoration: InputDecoration(
+                  hintText: 'https://meet.google.com/xxx-yyyy-zzz',
+                  prefixIcon: const Icon(Icons.link_rounded),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                ),
+                validator: (val) {
+                  if (val == null || val.trim().isEmpty) {
+                    return 'يرجى إدخال الرابط';
+                  }
+                  final v = val.trim();
+                  if (!v.contains('.') || v.length < 5) {
+                    return 'يرجى إدخال رابط صالح';
+                  }
+                  return null;
+                },
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('إلغاء'),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                Navigator.pop(ctx, controller.text.trim());
+              }
+            },
+            child: const Text('حفظ الرابط'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && result.isNotEmpty) {
+      final user = ref.read(authServiceProvider).currentUser;
+      if (user == null) return;
+
+      setState(() => _isProcessing = true);
+      try {
+        if (widget.session != null) {
+          await ref.read(timeBankRepositoryProvider).updateSessionMeetingUrl(
+                sessionId: widget.session!.id,
+                teacherId: user.uid,
+                meetingUrl: result,
+              );
+        }
+        if (widget.offer != null) {
+          await ref.read(timeBankRepositoryProvider).updateOfferMeetingUrl(
+                offerId: widget.offer!.id,
+                teacherId: user.uid,
+                meetingUrl: result,
+              );
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('تم حفظ رابط الاجتماع بنجاح! 📹🎉'),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('تعذر حفظ الرابط: $e'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isProcessing = false);
+      }
+    }
+  }
+
   Future<void> _settleSessionAsTeacher(String offerId, String teacherId) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -365,13 +468,41 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                           icon: const Icon(Icons.copy_rounded, size: 18),
                           onPressed: () => _copyToClipboard(meetingUrl),
                         ),
+                        if (isTeacher) ...[
+                          const SizedBox(width: 6),
+                          IconButton.filledTonal(
+                            tooltip: 'تعديل الرابط',
+                            icon: const Icon(Icons.edit_rounded, size: 18),
+                            onPressed: () => _showUpdateMeetingUrlDialog(meetingUrl),
+                          ),
+                        ],
                       ],
                     ),
                   ] else ...[
-                    const Text(
-                      'لم يقم الزميل الشارح بتعيين رابط الاجتماع بعد. سيصلك إشعار فور تعيينه ومشاركته في محادثة الجلسة 💬',
-                      style: TextStyle(fontSize: 12, height: 1.4),
-                    ),
+                    if (isTeacher) ...[
+                      const Text(
+                        'لم تقم بتعيين رابط الاجتماع بعد. يمكنك إضافة الرابط الآن ليتمكن الطلاب من الانضمام المباشر:',
+                        style: TextStyle(fontSize: 12, height: 1.4),
+                      ),
+                      const SizedBox(height: 10),
+                      FilledButton.icon(
+                        onPressed: () => _showUpdateMeetingUrlDialog(null),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.success,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: const Icon(Icons.add_link_rounded, size: 18),
+                        label: const Text(
+                          'تعيين رابط الاجتماع (Google Meet / Zoom) 📹',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ] else ...[
+                      const Text(
+                        'لم يقم الزميل الشارح بتعيين رابط الاجتماع بعد. سيصلك إشعار فور تعيينه ومشاركته في محادثة الجلسة 💬',
+                        style: TextStyle(fontSize: 12, height: 1.4),
+                      ),
+                    ],
                   ],
                 ],
               ),
