@@ -3,7 +3,7 @@
 
 import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -11,12 +11,12 @@ class WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.surface;
-    final hairlineColor = isDark ? AppColors.darkHairline : AppColors.hairline;
-    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
-    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
-    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
+    final tokens = context.tokens;
+    final surfaceColor = tokens.surface;
+    final hairlineColor = tokens.border;
+    final textPrimaryColor = tokens.textHigh;
+    final textSecondaryColor = tokens.textMedium;
+    final primaryColor = tokens.brand;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -33,7 +33,7 @@ class WelcomeScreen extends StatelessWidget {
                   width: 100,
                   height: 100,
                   decoration: BoxDecoration(
-                    color: (isDark ? AppColors.darkPrimaryContainer : AppColors.primaryContainer).withValues(alpha: 0.35),
+                    color: tokens.brandContainer,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
@@ -56,8 +56,8 @@ class WelcomeScreen extends StatelessWidget {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                           decoration: BoxDecoration(
-                            color: isDark ? AppColors.darkSurfaceAlt : Colors.white,
-                            borderRadius: BorderRadius.circular(20),
+                            color: tokens.surfaceAlt,
+                            borderRadius: AppRadii.chipRadius,
                             boxShadow: const [
                               BoxShadow(
                                 color: Colors.black12,
@@ -71,8 +71,8 @@ class WelcomeScreen extends StatelessWidget {
                               Container(
                                 width: 6,
                                 height: 6,
-                                decoration: const BoxDecoration(
-                                  color: AppColors.pointsAmber,
+                                decoration: BoxDecoration(
+                                  color: tokens.coin,
                                   shape: BoxShape.circle,
                                 ),
                               ),
@@ -82,7 +82,7 @@ class WelcomeScreen extends StatelessWidget {
                                 style: TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
-                                  color: isDark ? AppColors.darkPrimary : AppColors.deepSage,
+                                  color: tokens.brand,
                                 ),
                               ),
                             ],
@@ -100,8 +100,8 @@ class WelcomeScreen extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                 decoration: BoxDecoration(
-                  color: (isDark ? AppColors.darkPrimaryContainer : AppColors.primaryContainer).withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(20),
+                  color: tokens.brandContainer,
+                  borderRadius: AppRadii.chipRadius,
                 ),
                 child: Text(
                   'زَميل • ذاكر وعلّم',
@@ -151,26 +151,20 @@ class WelcomeScreen extends StatelessWidget {
                   _buildChip(
                     label: 'نقاط وقت',
                     icon: Icons.monetization_on_outlined,
-                    bgColor: isDark
-                        ? const Color(0xFFFBBF24).withValues(alpha: 0.15)
-                        : AppColors.pointsAmber.withValues(alpha: 0.15),
-                    textColor: isDark ? const Color(0xFFFBBF24) : const Color(0xFF664700),
+                    bgColor: tokens.warningContainer,
+                    textColor: tokens.warning,
                   ),
                   _buildChip(
                     label: 'شرح متبادل',
                     icon: Icons.groups_rounded,
-                    bgColor: isDark
-                        ? const Color(0xFF34D399).withValues(alpha: 0.15)
-                        : AppColors.sage.withValues(alpha: 0.2),
-                    textColor: isDark ? const Color(0xFF34D399) : AppColors.deepSage,
+                    bgColor: tokens.successContainer,
+                    textColor: tokens.success,
                   ),
                   _buildChip(
                     label: 'خطة ذكية',
                     icon: Icons.auto_awesome_rounded,
-                    bgColor: isDark
-                        ? const Color(0xFF2DD4BF).withValues(alpha: 0.15)
-                        : AppColors.primaryContainer.withValues(alpha: 0.5),
-                    textColor: isDark ? const Color(0xFF2DD4BF) : AppColors.primary,
+                    bgColor: tokens.brandContainer,
+                    textColor: tokens.brand,
                   ),
                 ],
               ),
@@ -182,15 +176,9 @@ class WelcomeScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: surfaceColor,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: AppRadii.cardRadius,
                   border: Border.all(color: hairlineColor),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  boxShadow: tokens.floatingShadow,
                 ),
                 child: Row(
                   children: [
@@ -233,15 +221,15 @@ class WelcomeScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.pointsAmber.withValues(alpha: isDark ? 0.25 : 0.18),
-                        borderRadius: BorderRadius.circular(8),
+                        color: tokens.warningContainer,
+                        borderRadius: AppRadii.controlRadius,
                       ),
                       child: Text(
                         '1:1',
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? const Color(0xFFFFD54F) : const Color(0xFF664700),
+                          color: tokens.warning,
                         ),
                       ),
                     ),
@@ -257,20 +245,20 @@ class WelcomeScreen extends StatelessWidget {
                 height: 52,
                 child: ElevatedButton.icon(
                   onPressed: () => context.push('/signup'),
-                  icon: Icon(Icons.arrow_back_rounded, color: isDark ? AppColors.darkOnPrimary : AppColors.onPrimary, size: 20),
+                  icon: Icon(Icons.arrow_back_rounded, color: tokens.onBrand, size: 20),
                   label: Text(
                     'ابدأ الآن',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: isDark ? AppColors.darkOnPrimary : AppColors.onPrimary,
+                      color: tokens.onBrand,
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryColor,
                     elevation: 2,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: AppRadii.cardRadius,
                     ),
                   ),
                 ),
@@ -300,14 +288,14 @@ class WelcomeScreen extends StatelessWidget {
                   Icon(
                     Icons.verified_user_rounded,
                     size: 14,
-                    color: isDark ? AppColors.darkPrimary : AppColors.sage,
+                    color: tokens.brand,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     'منصة جامعية تعاونية موثوقة • كلية الحاسبات والذكاء الاصطناعي',
                     style: TextStyle(
                       fontSize: 11,
-                      color: isDark ? AppColors.darkTextTertiary : AppColors.textTertiary,
+                      color: tokens.textLow,
                     ),
                   ),
                 ],
@@ -330,7 +318,7 @@ class WelcomeScreen extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: AppRadii.chipRadius,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

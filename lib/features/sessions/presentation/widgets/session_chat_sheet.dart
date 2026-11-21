@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_tokens.dart';
 import '../../../../core/models/app_models.dart';
 import '../../../auth/data/auth_service.dart';
 import '../../../timebank/data/timebank_repository.dart';
@@ -114,7 +114,7 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('تعذر إرسال الرسالة: $e'),
-            backgroundColor: AppColors.error,
+            backgroundColor: context.tokens.danger,
             duration: const Duration(seconds: 4),
           ),
         );
@@ -143,7 +143,7 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
       height: MediaQuery.of(context).size.height * 0.75 + bottomInset,
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: AppRadii.sheetTopRadius,
       ),
       padding: EdgeInsets.only(bottom: bottomInset),
       child: Column(
@@ -155,7 +155,7 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
             height: 4,
             decoration: BoxDecoration(
               color: Colors.grey.shade400,
-              borderRadius: BorderRadius.circular(2),
+              borderRadius: AppRadii.chipRadius,
             ),
           ),
           const SizedBox(height: 12),
@@ -167,7 +167,7 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.close_rounded),
+                  icon: Icon(Icons.close_rounded),
                   onPressed: () => Navigator.pop(context),
                 ),
                 Column(
@@ -183,7 +183,7 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
                     const SizedBox(height: 2),
                     Text(
                       'مع الزميل: ${widget.peerName} • ${widget.session.courseName}',
-                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      style: TextStyle(fontSize: 12, color: context.tokens.textMedium),
                     ),
                   ],
                 ),
@@ -198,7 +198,7 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
               ],
             ),
           ),
-          const Divider(height: 16, color: AppColors.hairline),
+          Divider(height: 16, color: context.tokens.border),
 
           // Messages list
           Expanded(
@@ -211,15 +211,15 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
                         children: [
                           Icon(Icons.forum_outlined, size: 52, color: Colors.grey.shade400),
                           const SizedBox(height: 12),
-                          const Text(
+                          Text(
                             'لا توجد رسائل بعد',
                             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                           ),
                           const SizedBox(height: 6),
-                          const Text(
+                          Text(
                             'تواصل مع زميلك لتحديد مكان التجمع الدقيق في الكلية أو الاتفاق على موعد البدء.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+                            style: TextStyle(fontSize: 12, color: context.tokens.textMedium, height: 1.4),
                           ),
                         ],
                       ),
@@ -240,15 +240,15 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                           constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.78),
                           decoration: BoxDecoration(
-                            color: isMe ? AppColors.primary : Theme.of(context).cardTheme.color,
+                            color: isMe ? context.tokens.brand : context.tokens.surfaceAlt,
                             borderRadius: BorderRadius.only(
-                              topLeft: const Radius.circular(16),
-                              topRight: const Radius.circular(16),
-                              bottomLeft: isMe ? const Radius.circular(4) : const Radius.circular(16),
-                              bottomRight: isMe ? const Radius.circular(16) : const Radius.circular(4),
+                              topLeft: AppRadii.bubbleRadius,
+                              topRight: AppRadii.bubbleRadius,
+                              bottomLeft: isMe ? AppRadii.bubbleNipRadius : AppRadii.bubbleRadius,
+                              bottomRight: isMe ? AppRadii.bubbleRadius : AppRadii.bubbleNipRadius,
                             ),
                             border: Border.all(
-                              color: isMe ? Colors.transparent : AppColors.hairline,
+                              color: isMe ? Colors.transparent : context.tokens.border,
                             ),
                             boxShadow: [
                               BoxShadow(
@@ -264,7 +264,7 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
                               if (!isMe)
                                 Text(
                                   msg.senderName,
-                                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
+                                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: context.tokens.brand),
                                 ),
                               Text(
                                 msg.text,
@@ -302,9 +302,9 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
               itemBuilder: (context, index) {
                 final chip = effectiveChips[index];
                 return ActionChip(
-                  label: Text(chip, style: const TextStyle(fontSize: 11)),
-                  backgroundColor: AppColors.surfaceAlt,
-                  side: const BorderSide(color: AppColors.hairline),
+                  label: Text(chip, style: TextStyle(fontSize: 11)),
+                  backgroundColor: context.tokens.surfaceAlt,
+                  side: BorderSide(color: context.tokens.border),
                   onPressed: () => _sendMessage(chip),
                 );
               },
@@ -316,7 +316,7 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
               color: Theme.of(context).cardTheme.color,
-              border: const Border(top: BorderSide(color: AppColors.hairline)),
+              border: Border(top: BorderSide(color: context.tokens.border)),
             ),
             child: Row(
               children: [
@@ -327,11 +327,11 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
                     onSubmitted: _sendMessage,
                     decoration: InputDecoration(
                       hintText: 'اكتب رسالتك لـ ${widget.peerName}...',
-                      hintStyle: const TextStyle(fontSize: 13),
+                      hintStyle: TextStyle(fontSize: 13),
                       filled: true,
-                      fillColor: AppColors.surfaceAlt,
+                      fillColor: context.tokens.surfaceAlt,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
+                      border: OutlineInputBorder(borderRadius: AppRadii.chipRadius, borderSide: BorderSide.none),
                     ),
                   ),
                 ),
@@ -340,8 +340,8 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
                   onPressed: _isSending ? null : () => _sendMessage(_textController.text),
                   icon: _isSending
                       ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Icon(Icons.send_rounded, size: 20),
-                  style: IconButton.styleFrom(backgroundColor: AppColors.primary),
+                      : Icon(Icons.send_rounded, size: 20),
+                  style: IconButton.styleFrom(backgroundColor: context.tokens.brand),
                 ),
               ],
             ),

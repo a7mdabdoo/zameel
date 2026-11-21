@@ -5,7 +5,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../core/models/app_models.dart';
 import '../../../core/state/app_state.dart';
 import '../../../core/services/focus_dnd_service.dart';
@@ -57,7 +57,7 @@ class _StudyBlockDetailsScreenState
       startTime: '11:00 ص',
       endTime: '11:45 ص',
       durationMinutes: 45,
-      ribbonColor: AppColors.courseSage,
+      ribbonColor: AppTokens.courseSageColor,
       room: 'مكتبة الكلية • الطابق الثاني',
     );
   }
@@ -145,6 +145,7 @@ class _StudyBlockDetailsScreenState
 
   void _onSessionComplete() {
     if (!mounted) return;
+    final tokens = context.tokens;
     final block = _block;
     if (_currentMode == 0) {
       setState(() {
@@ -173,7 +174,7 @@ class _StudyBlockDetailsScreenState
       if (_completedSessions % _sessionsBeforeLongBreak == 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            backgroundColor: const Color(0xFF0D9488),
+            backgroundColor: tokens.brand,
             duration: const Duration(seconds: 4),
             content: Text(
               !wasAlreadyAwarded
@@ -187,7 +188,7 @@ class _StudyBlockDetailsScreenState
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            backgroundColor: AppColors.success,
+            backgroundColor: tokens.success,
             duration: const Duration(seconds: 3),
             content: Text(
               !wasAlreadyAwarded
@@ -201,10 +202,10 @@ class _StudyBlockDetailsScreenState
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: AppColors.primary,
-          duration: Duration(seconds: 3),
-          content: Text(
+        SnackBar(
+          backgroundColor: tokens.brand,
+          duration: const Duration(seconds: 3),
+          content: const Text(
             'انتهت الاستراحة، يمكنك بدء جلسة تركيز جديدة.',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
@@ -215,20 +216,21 @@ class _StudyBlockDetailsScreenState
   }
 
   void _showLongBreakInfo(BuildContext context) {
+    final tokens = context.tokens;
     final cycleIndex = _completedSessions % _sessionsBeforeLongBreak;
     final remainingForLongBreak = _sessionsBeforeLongBreak - cycleIndex;
 
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      shape: RoundedRectangleBorder(
+        borderRadius: AppRadii.sheetTopRadius,
       ),
       builder: (ctx) {
         return Container(
           padding: const EdgeInsets.all(22),
           decoration: BoxDecoration(
-            color: Theme.of(ctx).scaffoldBackgroundColor,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            color: tokens.surface,
+            borderRadius: AppRadii.sheetTopRadius,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -238,12 +240,12 @@ class _StudyBlockDetailsScreenState
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.close_rounded),
+                    icon: Icon(Icons.close_rounded, color: tokens.textMedium),
                     onPressed: () => Navigator.pop(ctx),
                   ),
-                  const Text(
+                  Text(
                     'دورة التركيز والاستراحة الطويلة',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: tokens.textHigh),
                   ),
                 ],
               ),
@@ -260,32 +262,30 @@ class _StudyBlockDetailsScreenState
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
                       color: isDone
-                          ? AppColors.success.withValues(alpha: 0.15)
+                          ? tokens.successContainer
                           : (isCurrent
-                              ? AppColors.primary.withValues(alpha: 0.15)
-                              : AppColors.surfaceAlt),
+                              ? tokens.brandContainer
+                              : tokens.surfaceAlt),
                       shape: BoxShape.circle,
                       border: Border.all(
                         color: isDone
-                            ? AppColors.success
+                            ? tokens.success
                             : (isCurrent
-                                ? AppColors.primary
-                                : (Theme.of(ctx).brightness == Brightness.dark
-                                    ? AppColors.darkHairline
-                                    : AppColors.hairline)),
+                                ? tokens.brand
+                                : tokens.border),
                         width: 2,
                       ),
                     ),
                     child: Text(
                       isDone ? 'منجز' : (isCurrent ? 'حالي' : 'متبقي'),
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 12,
                         fontWeight: FontWeight.bold,
                         color: isDone
-                            ? AppColors.success
+                            ? tokens.success
                             : (isCurrent
-                                ? AppColors.primary
-                                : AppColors.textTertiary),
+                                ? tokens.brand
+                                : tokens.textLow),
                       ),
                     ),
                   );
@@ -297,20 +297,19 @@ class _StudyBlockDetailsScreenState
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: Theme.of(ctx).cardTheme.color,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Theme.of(ctx).brightness == Brightness.dark
-                        ? AppColors.darkHairline
-                        : AppColors.hairline,
-                  ),
+                  color: tokens.surfaceAlt,
+                  borderRadius: AppRadii.cardRadius,
+                  border: Border.all(color: tokens.border),
                 ),
                 child: Column(
                   children: [
                     Text(
                       'أنت الآن في الجلسة: رقم ${cycleIndex + 1} من $_sessionsBeforeLongBreak',
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: tokens.textHigh,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 6),
@@ -318,17 +317,20 @@ class _StudyBlockDetailsScreenState
                       remainingForLongBreak == _sessionsBeforeLongBreak
                           ? 'متبقي لك $_sessionsBeforeLongBreak جلسات تركيز للحصول على الاستراحة الطويلة ($_longBreakMinutes دقيقة)!'
                           : 'متبقي لك $remainingForLongBreak جلسات تركيز فقط للحصول على الاستراحة الطويلة ($_longBreakMinutes دقيقة)!',
-                      style: const TextStyle(
-                          fontSize: 12, color: AppColors.textSecondary),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: tokens.textMedium,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 6),
                     Text(
                       'إجمالي جلسات التركيز المكتملة: $_completedSessions جلسات',
-                      style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w600),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: tokens.brand,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
@@ -341,18 +343,15 @@ class _StudyBlockDetailsScreenState
                   Navigator.pop(ctx);
                   _switchMode(2); // التبديل إلى استراحة طويلة
                 },
-                icon: const Icon(Icons.coffee_rounded,
-                    color: Colors.white, size: 18),
+                icon: Icon(Icons.coffee_rounded, color: tokens.onBrand, size: 18),
                 label: Text(
                   'بدء استراحة طويلة ($_longBreakMinutes دقيقة)',
-                  style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: tokens.onBrand, fontWeight: FontWeight.bold),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF0D9488),
+                  backgroundColor: tokens.brand,
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
                 ),
               ),
             ],
@@ -363,6 +362,7 @@ class _StudyBlockDetailsScreenState
   }
 
   void _showSettingsSheet(BuildContext context) {
+    final tokens = context.tokens;
     int tempFocus = _focusMinutes;
     int tempBreak = _breakMinutes;
     int tempLongBreak = _longBreakMinutes;
@@ -371,8 +371,8 @@ class _StudyBlockDetailsScreenState
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      shape: RoundedRectangleBorder(
+        borderRadius: AppRadii.sheetTopRadius,
       ),
       builder: (ctx) {
         return StatefulBuilder(
@@ -380,9 +380,8 @@ class _StudyBlockDetailsScreenState
             return Container(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
               decoration: BoxDecoration(
-                color: Theme.of(ctx).scaffoldBackgroundColor,
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(24)),
+                color: tokens.surface,
+                borderRadius: AppRadii.sheetTopRadius,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -392,22 +391,28 @@ class _StudyBlockDetailsScreenState
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.close_rounded),
+                        icon: Icon(Icons.close_rounded, color: tokens.textMedium),
                         onPressed: () => Navigator.pop(ctx),
                       ),
-                      const Text(
+                      Text(
                         'تحديد مدة المذاكرة والاستراحة',
                         style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: tokens.textHigh,
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
 
                   // 1. مدة المذاكرة
-                  const Text('مدة المذاكرة والتركيز:',
+                  Text('مدة المذاكرة والتركيز:',
                       style: TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.bold)),
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: tokens.textHigh,
+                      )),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
@@ -416,11 +421,11 @@ class _StudyBlockDetailsScreenState
                       return ChoiceChip(
                         label: Text('$m دقيقة'),
                         selected: isSelected,
-                        selectedColor: AppColors.primary.withValues(alpha: 0.2),
+                        selectedColor: tokens.brandContainer,
                         labelStyle: TextStyle(
                           color: isSelected
-                              ? AppColors.primary
-                              : AppColors.textSecondary,
+                              ? tokens.brand
+                              : tokens.textMedium,
                           fontWeight:
                               isSelected ? FontWeight.bold : FontWeight.normal,
                           fontSize: 12,
@@ -434,9 +439,12 @@ class _StudyBlockDetailsScreenState
                   const SizedBox(height: 14),
 
                   // 2. مدة الاستراحة القصيرة
-                  const Text('مدة الاستراحة القصيرة:',
+                  Text('مدة الاستراحة القصيرة:',
                       style: TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.bold)),
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: tokens.textHigh,
+                      )),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
@@ -445,12 +453,11 @@ class _StudyBlockDetailsScreenState
                       return ChoiceChip(
                         label: Text('$m دقائق'),
                         selected: isSelected,
-                        selectedColor:
-                            const Color(0xFFD97706).withValues(alpha: 0.2),
+                        selectedColor: tokens.warningContainer,
                         labelStyle: TextStyle(
                           color: isSelected
-                              ? const Color(0xFFD97706)
-                              : AppColors.textSecondary,
+                              ? tokens.warning
+                              : tokens.textMedium,
                           fontWeight:
                               isSelected ? FontWeight.bold : FontWeight.normal,
                           fontSize: 12,
@@ -464,9 +471,12 @@ class _StudyBlockDetailsScreenState
                   const SizedBox(height: 14),
 
                   // 3. استراحة طويلة كل كم جلسة
-                  const Text('أخذ استراحة طويلة بعد كل:',
+                  Text('أخذ استراحة طويلة بعد كل:',
                       style: TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.bold)),
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: tokens.textHigh,
+                      )),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
@@ -475,11 +485,11 @@ class _StudyBlockDetailsScreenState
                       return ChoiceChip(
                         label: Text('$s جلسات'),
                         selected: isSelected,
-                        selectedColor: AppColors.primary.withValues(alpha: 0.2),
+                        selectedColor: tokens.brandContainer,
                         labelStyle: TextStyle(
                           color: isSelected
-                              ? AppColors.primary
-                              : AppColors.textSecondary,
+                              ? tokens.brand
+                              : tokens.textMedium,
                           fontWeight:
                               isSelected ? FontWeight.bold : FontWeight.normal,
                           fontSize: 12,
@@ -493,9 +503,12 @@ class _StudyBlockDetailsScreenState
                   const SizedBox(height: 14),
 
                   // 4. مدة الاستراحة الطويلة
-                  const Text('مدة الاستراحة الطويلة:',
+                  Text('مدة الاستراحة الطويلة:',
                       style: TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.bold)),
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: tokens.textHigh,
+                      )),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
@@ -504,12 +517,11 @@ class _StudyBlockDetailsScreenState
                       return ChoiceChip(
                         label: Text('$m دقيقة'),
                         selected: isSelected,
-                        selectedColor:
-                            const Color(0xFF0D9488).withValues(alpha: 0.2),
+                        selectedColor: tokens.brandContainer,
                         labelStyle: TextStyle(
                           color: isSelected
-                              ? const Color(0xFF0D9488)
-                              : AppColors.textSecondary,
+                              ? tokens.brand
+                              : tokens.textMedium,
                           fontWeight:
                               isSelected ? FontWeight.bold : FontWeight.normal,
                           fontSize: 12,
@@ -544,14 +556,15 @@ class _StudyBlockDetailsScreenState
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: tokens.brand,
+                      foregroundColor: tokens.onBrand,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)),
+                          borderRadius: AppRadii.controlRadius),
                     ),
                     child: const Text('حفظ الإعدادات وتطبيقها',
                         style: TextStyle(
-                            color: Colors.white, fontWeight: FontWeight.bold)),
+                            fontWeight: FontWeight.bold)),
                   ),
                 ],
               ),
@@ -595,14 +608,15 @@ class _StudyBlockDetailsScreenState
   }
 
   void _markCompleted() {
+    final tokens = context.tokens;
     final block = _block;
     final wasAlreadyAwarded = _pointAwardedInThisScreen || block.isCompleted;
     if (wasAlreadyAwarded) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('تم إنجاز هذه الجلسة مسبقاً.'),
-            backgroundColor: AppColors.primary,
+            backgroundColor: tokens.brand,
           ),
         );
         context.pop();
@@ -628,7 +642,7 @@ class _StudyBlockDetailsScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('تم تسجيل الجلسة كمنجزة.'),
-          backgroundColor: AppColors.success,
+          backgroundColor: tokens.success,
         ),
       );
       context.pop();
@@ -637,29 +651,27 @@ class _StudyBlockDetailsScreenState
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
     final block = _block;
     final isAlreadyCompleted = _pointAwardedInThisScreen || block.isCompleted;
     final progress = _totalSeconds > 0
         ? (1.0 - (_secondsLeft / _totalSeconds)).clamp(0.0, 1.0)
         : 0.0;
     final activeColor = _currentMode == 0
-        ? AppColors.primary
+        ? tokens.brand
         : (_currentMode == 1
-            ? const Color(0xFFD97706)
-            : const Color(0xFF0D9488));
-
+            ? tokens.warning
+            : tokens.brand);
     final cycleIndex = _completedSessions % _sessionsBeforeLongBreak;
     final remainingForLongBreak = _sessionsBeforeLongBreak - cycleIndex;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final hairline = isDark ? AppColors.darkHairline : AppColors.hairline;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: tokens.bg,
       appBar: AppBar(
-        title: const Text('جلسة مذاكرة مركزة'),
+        title: Text('جلسة مذاكرة مركزة', style: TextStyle(color: tokens.textHigh)),
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_forward_ios_rounded),
+          icon: Icon(Icons.arrow_forward_ios_rounded, color: tokens.textHigh),
           onPressed: () => context.pop(),
         ),
       ),
@@ -668,8 +680,9 @@ class _StudyBlockDetailsScreenState
         children: [
           // ── بطاقة تفاصيل المادة ──────────────────────────────
           Card(
+            color: tokens.surface,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: AppRadii.cardRadius,
               side: BorderSide(color: block.ribbonColor, width: 2),
             ),
             child: Padding(
@@ -685,7 +698,7 @@ class _StudyBlockDetailsScreenState
                             horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
                           color: block.ribbonColor.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: AppRadii.fullRadius,
                         ),
                         child: Text(
                           block.courseCode.isNotEmpty ? block.courseCode : 'مادة',
@@ -705,7 +718,7 @@ class _StudyBlockDetailsScreenState
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onSurface,
+                            color: tokens.textHigh,
                           ),
                         ),
                       ),
@@ -714,14 +727,14 @@ class _StudyBlockDetailsScreenState
                   const SizedBox(height: 10),
                   Text(
                     'الموضوع: ${block.topic}',
-                    style: const TextStyle(
-                        fontSize: 13, color: AppColors.textSecondary),
+                    style: TextStyle(
+                        fontSize: 13, color: tokens.textMedium),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'الموقع: ${block.room} • الموعد: ${block.startTime}',
-                    style: const TextStyle(
-                        fontSize: 12, color: AppColors.textTertiary),
+                    style: TextStyle(
+                        fontSize: 12, color: tokens.textLow),
                   ),
                 ],
               ),
@@ -734,23 +747,14 @@ class _StudyBlockDetailsScreenState
           Container(
             padding: const EdgeInsets.all(18),
             decoration: BoxDecoration(
-              color: Theme.of(context).cardTheme.color,
-              borderRadius: BorderRadius.circular(20),
+              color: tokens.surface,
+              borderRadius: AppRadii.sheetRadius,
               border: Border.all(
                 color: _isRunning
                     ? activeColor.withValues(alpha: 0.5)
-                    : hairline,
+                    : tokens.border,
                 width: _isRunning ? 1.5 : 1,
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: _isRunning
-                      ? activeColor.withValues(alpha: 0.08)
-                      : Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 14,
-                  offset: const Offset(0, 4),
-                ),
-              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -779,10 +783,10 @@ class _StudyBlockDetailsScreenState
                         ),
                         const SizedBox(width: 8),
                         IconButton(
-                          icon: const Icon(Icons.tune_rounded, size: 19),
+                          icon: Icon(Icons.tune_rounded, size: 19, color: tokens.textHigh),
                           tooltip: 'تخصيص مدة المذاكرة والاستراحة',
                           style: IconButton.styleFrom(
-                            backgroundColor: AppColors.surfaceAlt,
+                            backgroundColor: tokens.surfaceAlt,
                             padding: const EdgeInsets.all(8),
                           ),
                           onPressed: () => _showSettingsSheet(context),
@@ -800,7 +804,7 @@ class _StudyBlockDetailsScreenState
                           style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
-                            color: Theme.of(context).colorScheme.onSurface,
+                            color: tokens.textHigh,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -808,9 +812,9 @@ class _StudyBlockDetailsScreenState
                           padding: const EdgeInsets.symmetric(
                               horizontal: 10, vertical: 3),
                           decoration: BoxDecoration(
-                            color: (_isRunning ? activeColor : AppColors.sage)
+                            color: (_isRunning ? activeColor : tokens.brand)
                                 .withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(20),
+                            borderRadius: AppRadii.fullRadius,
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -821,7 +825,7 @@ class _StudyBlockDetailsScreenState
                                 decoration: BoxDecoration(
                                   color: _isRunning
                                       ? activeColor
-                                      : AppColors.deepSage,
+                                      : tokens.brand,
                                   shape: BoxShape.circle,
                                 ),
                               ),
@@ -833,7 +837,7 @@ class _StudyBlockDetailsScreenState
                                   fontWeight: FontWeight.bold,
                                   color: _isRunning
                                       ? activeColor
-                                      : AppColors.deepSage,
+                                      : tokens.brand,
                                 ),
                               ),
                             ],
@@ -860,7 +864,7 @@ class _StudyBlockDetailsScreenState
                           child: CircularProgressIndicator(
                             value: progress,
                             strokeWidth: 8,
-                            backgroundColor: AppColors.surfaceAlt,
+                            backgroundColor: tokens.surfaceAlt,
                             valueColor:
                                 AlwaysStoppedAnimation<Color>(activeColor),
                           ),
@@ -886,9 +890,9 @@ class _StudyBlockDetailsScreenState
                                       : (_currentMode == 1
                                           ? 'استراحة $_breakMinutes دقيقة'
                                           : 'بريك كبير $_longBreakMinutes دقيقة')),
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontSize: 12,
-                                  color: AppColors.textSecondary),
+                                  color: tokens.textMedium),
                             ),
                           ],
                         ),
@@ -932,20 +936,20 @@ class _StudyBlockDetailsScreenState
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(16),
+                          color: tokens.brandContainer,
+                          borderRadius: AppRadii.cardRadius,
                         ),
-                        child: const Row(
+                        child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.do_not_disturb_on_rounded, size: 14, color: AppColors.primary),
-                            SizedBox(width: 6),
+                            Icon(Icons.do_not_disturb_on_rounded, size: 14, color: tokens.brand),
+                            const SizedBox(width: 6),
                             Text(
                               'وضع التركيز وعدم الإزعاج نشط',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.primary,
+                                color: tokens.brand,
                               ),
                             ),
                           ],
@@ -962,18 +966,18 @@ class _StudyBlockDetailsScreenState
                   children: [
                     Expanded(
                       child: InkWell(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: AppRadii.controlRadius,
                         onTap: () => _switchMode(0),
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           decoration: BoxDecoration(
                             color: _currentMode == 0
-                                ? AppColors.primary.withValues(alpha: 0.12)
-                                : AppColors.surfaceAlt,
-                            borderRadius: BorderRadius.circular(10),
+                                ? tokens.brandContainer
+                                : tokens.surfaceAlt,
+                            borderRadius: AppRadii.controlRadius,
                             border: Border.all(
                               color: _currentMode == 0
-                                  ? AppColors.primary
+                                  ? tokens.brand
                                   : Colors.transparent,
                               width: 1.2,
                             ),
@@ -985,8 +989,8 @@ class _StudyBlockDetailsScreenState
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                                 color: _currentMode == 0
-                                    ? AppColors.primary
-                                    : AppColors.textSecondary,
+                                    ? tokens.brand
+                                    : tokens.textMedium,
                               ),
                             ),
                           ),
@@ -996,18 +1000,18 @@ class _StudyBlockDetailsScreenState
                     const SizedBox(width: 6),
                     Expanded(
                       child: InkWell(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: AppRadii.controlRadius,
                         onTap: () => _switchMode(1),
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           decoration: BoxDecoration(
                             color: _currentMode == 1
-                                ? const Color(0xFFD97706).withValues(alpha: 0.12)
-                                : AppColors.surfaceAlt,
-                            borderRadius: BorderRadius.circular(10),
+                                ? tokens.warningContainer
+                                : tokens.surfaceAlt,
+                            borderRadius: AppRadii.controlRadius,
                             border: Border.all(
                               color: _currentMode == 1
-                                  ? const Color(0xFFD97706)
+                                  ? tokens.warning
                                   : Colors.transparent,
                               width: 1.2,
                             ),
@@ -1019,8 +1023,8 @@ class _StudyBlockDetailsScreenState
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                                 color: _currentMode == 1
-                                    ? const Color(0xFFD97706)
-                                    : AppColors.textSecondary,
+                                    ? tokens.warning
+                                    : tokens.textMedium,
                               ),
                             ),
                           ),
@@ -1030,18 +1034,18 @@ class _StudyBlockDetailsScreenState
                     const SizedBox(width: 6),
                     Expanded(
                       child: InkWell(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: AppRadii.controlRadius,
                         onTap: () => _switchMode(2),
                         child: Container(
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           decoration: BoxDecoration(
                             color: _currentMode == 2
-                                ? const Color(0xFF0D9488).withValues(alpha: 0.12)
-                                : AppColors.surfaceAlt,
-                            borderRadius: BorderRadius.circular(10),
+                                ? tokens.brandContainer
+                                : tokens.surfaceAlt,
+                            borderRadius: AppRadii.controlRadius,
                             border: Border.all(
                               color: _currentMode == 2
-                                  ? const Color(0xFF0D9488)
+                                  ? tokens.brand
                                   : Colors.transparent,
                               width: 1.2,
                             ),
@@ -1053,8 +1057,8 @@ class _StudyBlockDetailsScreenState
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
                                 color: _currentMode == 2
-                                    ? const Color(0xFF0D9488)
-                                    : AppColors.textSecondary,
+                                    ? tokens.brand
+                                    : tokens.textMedium,
                               ),
                             ),
                           ),
@@ -1077,7 +1081,7 @@ class _StudyBlockDetailsScreenState
                           _isRunning
                               ? Icons.pause_rounded
                               : Icons.play_arrow_rounded,
-                          color: Colors.white,
+                          color: tokens.onBrand,
                           size: 20,
                         ),
                         label: Text(
@@ -1086,16 +1090,16 @@ class _StudyBlockDetailsScreenState
                               : (_currentMode == 0
                                   ? 'ابدأ التركيز الآن'
                                   : 'بدء الاستراحة الآن'),
-                          style: const TextStyle(
+                          style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: Colors.white),
+                              color: tokens.onBrand),
                         ),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: activeColor,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
+                              borderRadius: AppRadii.controlRadius),
                           elevation: 0,
                         ),
                       ),
@@ -1104,28 +1108,27 @@ class _StudyBlockDetailsScreenState
                       const SizedBox(width: 8),
                       IconButton.filledTonal(
                         onPressed: _resetTimer,
-                        icon: const Icon(Icons.refresh_rounded, size: 20),
+                        icon: Icon(Icons.refresh_rounded, size: 20, color: tokens.textHigh),
                         tooltip: 'إعادة ضبط المؤقت',
                         style: IconButton.styleFrom(
-                          backgroundColor: AppColors.surfaceAlt,
+                          backgroundColor: tokens.surfaceAlt,
                           padding: const EdgeInsets.all(12),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
+                              borderRadius: AppRadii.controlRadius),
                         ),
                       ),
                     ],
                     const SizedBox(width: 8),
                     IconButton.filledTonal(
                       onPressed: () => _showLongBreakInfo(context),
-                      icon: const Icon(Icons.beach_access_rounded,
-                          size: 20, color: Color(0xFF0D9488)),
+                      icon: Icon(Icons.beach_access_rounded,
+                          size: 20, color: tokens.brand),
                       tooltip: 'الجلسات المتبقية للاستراحة الطويلة',
                       style: IconButton.styleFrom(
-                        backgroundColor:
-                            const Color(0xFF0D9488).withValues(alpha: 0.12),
+                        backgroundColor: tokens.brandContainer,
                         padding: const EdgeInsets.all(12),
                         shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                            borderRadius: AppRadii.controlRadius),
                       ),
                     ),
                   ],
@@ -1136,34 +1139,33 @@ class _StudyBlockDetailsScreenState
                 // شريط توضيح دورة البريك الكبير
                 InkWell(
                   onTap: () => _showLongBreakInfo(context),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: AppRadii.controlRadius,
                   child: Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0D9488).withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(10),
+                      color: tokens.brandContainer.withValues(alpha: 0.5),
+                      borderRadius: AppRadii.controlRadius,
                       border: Border.all(
-                          color:
-                              const Color(0xFF0D9488).withValues(alpha: 0.2)),
+                          color: tokens.brand.withValues(alpha: 0.2)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Icon(Icons.arrow_back_ios_new_rounded,
-                            size: 12, color: Color(0xFF0D9488)),
+                        Icon(Icons.arrow_back_ios_new_rounded,
+                            size: 12, color: tokens.brand),
                         Row(
                           children: [
                             Text(
                               'الجلسة ${cycleIndex + 1} من $_sessionsBeforeLongBreak • استراحة كبيرة بعد $remainingForLongBreak جلسات',
-                              style: const TextStyle(
+                              style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF0D9488)),
+                                  color: tokens.brand),
                             ),
                             const SizedBox(width: 6),
-                            const Icon(Icons.beach_access_rounded,
-                                size: 14, color: Color(0xFF0D9488)),
+                            Icon(Icons.beach_access_rounded,
+                                size: 14, color: tokens.brand),
                           ],
                         ),
                       ],
@@ -1182,15 +1184,15 @@ class _StudyBlockDetailsScreenState
             icon: Icon(isAlreadyCompleted ? Icons.check_circle : Icons.check_circle_outline),
             label: Text(
               'تمت المذاكرة',
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
             style: FilledButton.styleFrom(
-              backgroundColor: AppColors.success,
-              disabledBackgroundColor: AppColors.success.withValues(alpha: 0.6),
+              backgroundColor: tokens.success,
+              disabledBackgroundColor: tokens.success.withValues(alpha: 0.6),
               disabledForegroundColor: Colors.white,
               minimumSize: const Size.fromHeight(50),
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
+                  borderRadius: AppRadii.controlRadius),
             ),
           ),
 
@@ -1215,12 +1217,12 @@ class _StudyBlockDetailsScreenState
                           }
                         },
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.warning,
+                    foregroundColor: tokens.warning,
                     side: BorderSide(
-                      color: isAlreadyCompleted ? hairline : AppColors.warning,
+                      color: isAlreadyCompleted ? tokens.border : tokens.warning,
                     ),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
+                        borderRadius: AppRadii.controlRadius),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   child: const Text('إعادة جدولة',
@@ -1237,12 +1239,12 @@ class _StudyBlockDetailsScreenState
                           if (mounted) context.pop();
                         },
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.error,
+                    foregroundColor: tokens.danger,
                     side: BorderSide(
-                      color: isAlreadyCompleted ? hairline : AppColors.error,
+                      color: isAlreadyCompleted ? tokens.border : tokens.danger,
                     ),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
+                        borderRadius: AppRadii.controlRadius),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   child: const Text('فاتتني الجلسة',

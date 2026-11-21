@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/models/app_models.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../auth/data/auth_service.dart';
 import '../../timebank/data/timebank_repository.dart';
 import 'widgets/session_chat_sheet.dart';
@@ -56,9 +56,9 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
   void _copyToClipboard(String text) {
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Text('تم نسخ رابط الاجتماع.'),
-        backgroundColor: AppColors.success,
+        backgroundColor: context.tokens.success,
       ),
     );
   }
@@ -88,7 +88,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                 decoration: InputDecoration(
                   hintText: 'https://meet.google.com/xxx-yyyy-zzz',
                   prefixIcon: const Icon(Icons.link_rounded),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  border: OutlineInputBorder(borderRadius: AppRadii.controlRadius),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
                 validator: (val) {
@@ -145,9 +145,9 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Text('تم حفظ رابط الاجتماع بنجاح.'),
-              backgroundColor: AppColors.success,
+              backgroundColor: context.tokens.success,
             ),
           );
         }
@@ -156,7 +156,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('تعذر حفظ الرابط: $e'),
-              backgroundColor: AppColors.error,
+              backgroundColor: context.tokens.danger,
             ),
           );
         }
@@ -196,7 +196,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('تم إنهاء الجلسة بنجاح وإيداع $reward عملات في محفظتك.'),
-            backgroundColor: AppColors.success,
+            backgroundColor: context.tokens.success,
           ),
         );
         context.pop();
@@ -204,7 +204,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('تعذر إنهاء الجلسة: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: Text('تعذر إنهاء الجلسة: $e'), backgroundColor: context.tokens.danger),
         );
       }
     } finally {
@@ -219,7 +219,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('إلغاء حجز الجلسة'),
+        title: Text('إلغاء حجز الجلسة'),
         content: const Text(
           'قواعد استرداد الضمان:\n'
           '• الإلغاء قبل الموعد بأكثر من ساعتين: استرداد عملة الوقت كاملة فوراً إلى محفظتك.\n'
@@ -231,7 +231,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('تراجع')),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(backgroundColor: context.tokens.danger),
             child: const Text('تأكيد الإلغاء', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -288,10 +288,10 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
     final status = session?.status ?? (offer?.isCompleted == true ? 'completed' : 'confirmed');
 
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
-    final surfaceColor = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E293B) : Colors.white);
-    final hairlineColor = isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.08);
+    final tokens = context.tokens;
+    final primaryColor = tokens.brand;
+    final surfaceColor = tokens.surface;
+    final hairlineColor = tokens.border;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -300,13 +300,13 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
         elevation: 0,
         title: Text(
           isGroup ? 'تفاصيل الجلسة الجماعية' : 'تفاصيل الجلسة الخاصة',
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
         ),
         actions: [
           if (session != null)
             IconButton(
               tooltip: 'محادثة الجلسة',
-              icon: const Icon(Icons.chat_bubble_outline_rounded),
+              icon: Icon(Icons.chat_bubble_outline_rounded),
               onPressed: () => SessionChatSheet.show(
                 context,
                 session,
@@ -324,15 +324,9 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
             Container(
               decoration: BoxDecoration(
                 color: surfaceColor,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: AppRadii.cardRadius,
                 border: Border.all(color: hairlineColor),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
+                boxShadow: tokens.floatingShadow,
               ),
               padding: const EdgeInsets.all(18),
               child: Column(
@@ -345,7 +339,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
                           color: primaryColor.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: AppRadii.controlRadius,
                         ),
                         child: Text(
                           courseName,
@@ -355,19 +349,15 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
-                          color: isGroup
-                              ? (isDark ? const Color(0xFF0369A1).withValues(alpha: 0.3) : const Color(0xFFE0F2FE))
-                              : (isDark ? const Color(0xFF7C3AED).withValues(alpha: 0.3) : const Color(0xFFEDE9FE)),
-                          borderRadius: BorderRadius.circular(8),
+                          color: isGroup ? tokens.brandContainer : tokens.surfaceAlt,
+                          borderRadius: AppRadii.controlRadius,
                         ),
                         child: Text(
                           isGroup ? 'جلسة جماعية' : 'جلسة خاصة',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
-                            color: isGroup
-                                ? (isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7))
-                                : (isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED)),
+                            color: isGroup ? tokens.brand : tokens.textMedium,
                           ),
                         ),
                       ),
@@ -376,7 +366,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                   const SizedBox(height: 12),
                   Text(
                     topic,
-                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold, height: 1.3),
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, height: 1.3),
                   ),
                   const SizedBox(height: 12),
                   Row(
@@ -397,9 +387,9 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                             isTeacher ? 'الزميل الشارح: $teacherName (أنت)' : 'الزميل الشارح: $teacherName',
                             style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
                           ),
-                          const Text(
+                          Text(
                             'جلسة عبر الإنترنت • نظام الضمان مفعل',
-                            style: TextStyle(fontSize: 10.5, color: AppColors.textSecondary),
+                            style: TextStyle(fontSize: 10.5, color: tokens.textMedium),
                           ),
                         ],
                       ),
@@ -414,21 +404,17 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
             // 2. زر الانضمام المباشر للاجتماع (Google Meet / Zoom Button)
             Container(
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: isDark
-                      ? [const Color(0xFF064E3B), const Color(0xFF022C22)]
-                      : [const Color(0xFFE8F5E9), const Color(0xFFC8E6C9)],
-                ),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: AppColors.success.withValues(alpha: 0.4)),
+                color: tokens.successContainer,
+                borderRadius: AppRadii.cardRadius,
+                border: Border.all(color: tokens.success),
               ),
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Row(
+                  Row(
                     children: [
-                      Icon(Icons.videocam_rounded, color: AppColors.success, size: 22),
+                      Icon(Icons.videocam_rounded, color: context.tokens.success, size: 22),
                       SizedBox(width: 8),
                       Text(
                         'قاعة البث المباشر (Google Meet)',
@@ -442,7 +428,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                       meetingUrl,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(fontSize: 11.5, color: isDark ? Colors.white70 : AppColors.textSecondary),
+                      style: TextStyle(fontSize: 11.5, color: tokens.textMedium),
                     ),
                     const SizedBox(height: 12),
                     Row(
@@ -451,12 +437,12 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                           child: FilledButton.icon(
                             onPressed: () => _launchMeeting(meetingUrl),
                             style: FilledButton.styleFrom(
-                              backgroundColor: AppColors.success,
+                              backgroundColor: context.tokens.success,
                               padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
                             ),
-                            icon: const Icon(Icons.open_in_new_rounded, size: 18),
-                            label: const Text(
+                            icon: Icon(Icons.open_in_new_rounded, size: 18),
+                            label: Text(
                               'انضم للاجتماع الآن',
                               style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                             ),
@@ -488,11 +474,11 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                       FilledButton.icon(
                         onPressed: () => _showUpdateMeetingUrlDialog(null),
                         style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.success,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          backgroundColor: context.tokens.success,
+                          shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
                         ),
-                        icon: const Icon(Icons.add_link_rounded, size: 18),
-                        label: const Text(
+                        icon: Icon(Icons.add_link_rounded, size: 18),
+                        label: Text(
                           'تعيين رابط الاجتماع (Google Meet / Zoom)',
                           style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                         ),
@@ -514,7 +500,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
             Container(
               decoration: BoxDecoration(
                 color: surfaceColor,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: AppRadii.cardRadius,
                 border: Border.all(color: hairlineColor),
               ),
               padding: const EdgeInsets.all(16),
@@ -530,18 +516,18 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                       Expanded(
                         child: Text(
                           '$scheduledDay، $scheduledTime',
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                         ),
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                         decoration: BoxDecoration(
-                          color: AppColors.success.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(6),
+                          color: context.tokens.success.withValues(alpha: 0.15),
+                          borderRadius: AppRadii.controlRadius,
                         ),
                         child: Text(
                           status == 'completed' ? 'مكتملة' : 'حجز مؤكد',
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.success),
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: context.tokens.success),
                         ),
                       ),
                     ],
@@ -556,7 +542,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
               Container(
                 decoration: BoxDecoration(
                   color: surfaceColor,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: AppRadii.cardRadius,
                   border: Border.all(color: hairlineColor),
                 ),
                 padding: const EdgeInsets.all(16),
@@ -566,13 +552,13 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('قائمة الزملاء المشاركين', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                        Text('قائمة الزملاء المشاركين', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                         Text('${attendees.length} من $maxAttendees زميل', style: TextStyle(fontWeight: FontWeight.bold, color: primaryColor)),
                       ],
                     ),
                     const SizedBox(height: 10),
                     if (attendees.isEmpty)
-                      const Text('لا يوجد مشاركون حتى الآن', style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary))
+                      Text('لا يوجد مشاركون حتى الآن', style: TextStyle(fontSize: 11.5, color: tokens.textMedium))
                     else
                       Wrap(
                         spacing: 8,
@@ -583,13 +569,13 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                             avatar: CircleAvatar(
                               radius: 10,
                               backgroundColor: isMe ? primaryColor : Colors.grey,
-                              child: Text(isMe ? 'أ' : 'ز', style: const TextStyle(fontSize: 9, color: Colors.white)),
+                              child: Text(isMe ? 'أ' : 'ز', style: TextStyle(fontSize: 9, color: Colors.white)),
                             ),
                             label: Text(
                               isMe ? 'أنت' : 'زميل منضم',
                               style: TextStyle(fontSize: 11, fontWeight: isMe ? FontWeight.bold : FontWeight.normal),
                             ),
-                            backgroundColor: isMe ? primaryColor.withValues(alpha: isDark ? 0.3 : 0.1) : null,
+                            backgroundColor: isMe ? tokens.brandContainer : null,
                           );
                         }).toList(),
                       ),
@@ -606,12 +592,12 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                 height: 48,
                 child: OutlinedButton.icon(
                   onPressed: () => context.push('/session-chat', extra: session),
-                  icon: const Icon(Icons.chat_bubble_outline_rounded),
-                  label: const Text('فتح المحادثة الفورية مع الزميل', style: TextStyle(fontWeight: FontWeight.bold)),
+                  icon: Icon(Icons.chat_bubble_outline_rounded),
+                  label: Text('فتح المحادثة الفورية مع الزميل', style: TextStyle(fontWeight: FontWeight.bold)),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: primaryColor,
                     side: BorderSide(color: primaryColor),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
                   ),
                 ),
               ),
@@ -629,7 +615,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                   label: const Text('إنهاء الجلسة وصرف العملات للمحفظة', style: TextStyle(fontWeight: FontWeight.bold)),
                   style: FilledButton.styleFrom(
                     backgroundColor: primaryColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
                   ),
                 ),
               ),
@@ -641,16 +627,16 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                   icon: const Icon(Icons.star_rounded),
                   label: const Text('تأكيد انتهاء الشرح وتقييم الزميل', style: TextStyle(fontWeight: FontWeight.bold)),
                   style: FilledButton.styleFrom(
-                    backgroundColor: Colors.amber[700],
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    backgroundColor: tokens.coin, foregroundColor: tokens.onCoin,
+                    shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
                   ),
                 ),
               ),
               const SizedBox(height: 10),
               TextButton.icon(
                 onPressed: _isProcessing ? null : () => _cancelSessionAsLearner(session),
-                icon: const Icon(Icons.cancel_outlined, color: AppColors.error, size: 18),
-                label: const Text('إلغاء حجز الجلسة واسترداد العملة', style: TextStyle(color: AppColors.error, fontSize: 12)),
+                icon: Icon(Icons.cancel_outlined, color: context.tokens.danger, size: 18),
+                label: Text('إلغاء حجز الجلسة واسترداد العملة', style: TextStyle(color: context.tokens.danger, fontSize: 12)),
               ),
             ],
 

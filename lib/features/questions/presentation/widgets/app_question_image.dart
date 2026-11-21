@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:material_ui/material_ui.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_tokens.dart';
 
 /// ويدجت ذكي لعرض صور الأسئلة والحلول سواء كانت روابط سحابية (https://)
 /// أو بيانات مشفرة Base64 Data URL (data:image/...) مع دعم التحميل وحالات الخطأ والتكبير
@@ -67,7 +67,7 @@ class AppQuestionImage extends StatelessWidget {
                   value: loadingProgress.expectedTotalBytes != null
                       ? loadingProgress.cumulativeBytesLoaded / (loadingProgress.expectedTotalBytes ?? 1)
                       : null,
-                  color: AppColors.primary,
+                  color: context.tokens.brand,
                 ),
               ),
             ),
@@ -97,7 +97,7 @@ class AppQuestionImage extends StatelessWidget {
       width: width ?? double.infinity,
       decoration: BoxDecoration(
         color: Colors.grey.withValues(alpha: 0.1),
-        borderRadius: borderRadius ?? BorderRadius.circular(8),
+        borderRadius: borderRadius ?? AppRadii.controlRadius,
       ),
       child: const Center(
         child: Column(
@@ -129,7 +129,7 @@ class AppQuestionImage extends StatelessWidget {
                 child: AppQuestionImage(
                   imageUrl: url,
                   fit: BoxFit.contain,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: AppRadii.controlRadius,
                 ),
               ),
             ),

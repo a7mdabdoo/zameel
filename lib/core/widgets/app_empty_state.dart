@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
-import '../theme/app_colors.dart';
+import '../theme/app_tokens.dart';
 
-/// ويدجت الحالة الفارغة (Empty State) بتصميم متناسق مع هوية زَميل
+/// ويدجت الحالة الفارغة (Empty State) بتصميم متناسق مع هوية زميل
 class AppEmptyState extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -20,8 +20,7 @@ class AppEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final tokens = context.tokens;
 
     return Center(
       child: Padding(
@@ -35,17 +34,17 @@ class AppEmptyState extends StatelessWidget {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt,
+                color: tokens.surfaceAlt,
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: isDark ? AppColors.darkHairline : AppColors.hairline,
+                  color: tokens.border,
                   width: 1.5,
                 ),
               ),
               child: Icon(
                 icon,
                 size: 38,
-                color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                color: tokens.textMedium,
               ),
             ),
             const SizedBox(height: 20),
@@ -55,7 +54,7 @@ class AppEmptyState extends StatelessWidget {
               style: TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                color: tokens.textHigh,
               ),
             ),
             if (subtitle != null) ...[
@@ -65,25 +64,25 @@ class AppEmptyState extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 13,
-                  height: 1.45,
-                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                  height: 1.5,
+                  color: tokens.textMedium,
                 ),
               ),
             ],
             if (actionLabel != null && onAction != null) ...[
               const SizedBox(height: 24),
-              ElevatedButton.icon(
+              FilledButton.icon(
                 onPressed: onAction,
-                icon: const Icon(Icons.add_rounded, size: 18),
+                icon: Icon(Icons.add_rounded, size: 18),
                 label: Text(
                   actionLabel!,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: isDark ? AppColors.darkPrimary : AppColors.primary,
-                  foregroundColor: isDark ? AppColors.darkOnPrimary : AppColors.onPrimary,
+                style: FilledButton.styleFrom(
+                  backgroundColor: tokens.brand,
+                  foregroundColor: tokens.onBrand,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AppRadii.controlRadius,
                   ),
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 ),

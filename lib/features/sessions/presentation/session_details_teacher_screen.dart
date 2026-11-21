@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/models/app_models.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../auth/data/auth_service.dart';
 import '../../timebank/application/timebank_pure_logic.dart';
 import '../../timebank/data/timebank_repository.dart';
@@ -58,7 +58,7 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('الاعتذار عن الجلسة'),
+        title: Text('الاعتذار عن الجلسة'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,7 +81,7 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('تراجع')),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(backgroundColor: context.tokens.danger),
             child: const Text('تأكيد الاعتذار', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -176,14 +176,14 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: const Text('رابط جلسة الشرح الأونلاين', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          title: Text('رابط جلسة الشرح الأونلاين', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+              Text(
                 'أدخل رابط Google Meet أو Zoom ليتمكن زميلك من الانضمام للجلسة:',
-                style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+                style: TextStyle(fontSize: 12, color: context.tokens.textMedium, height: 1.4),
               ),
               const SizedBox(height: 12),
               TextField(
@@ -192,7 +192,7 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                 decoration: InputDecoration(
                   hintText: 'https://meet.google.com/xyz-abcd-efg',
                   errorText: errorText,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  border: OutlineInputBorder(borderRadius: AppRadii.controlRadius),
                 ),
               ),
             ],
@@ -231,7 +231,7 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                   setDialogState(() => errorText = 'تعذر الحفظ: $e');
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+              style: ElevatedButton.styleFrom(backgroundColor: context.tokens.brand),
               child: const Text('حفظ الرابط', style: TextStyle(color: Colors.white)),
             ),
           ],
@@ -253,7 +253,7 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('إلغاء الجلسة من قِبل الشارح'),
+        title: Text('إلغاء الجلسة من قِبل الشارح'),
         content: const Text(
           'إذا قمت بإلغاء الجلسة كمعلم، فسيتم استرداد عملة الوقت بالكامل إلى محفظة المتعلّم فوراً.\nهل أنت متأكد من الإلغاء؟',
           style: TextStyle(fontSize: 13, height: 1.4),
@@ -265,7 +265,7 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(backgroundColor: context.tokens.danger),
             child: const Text('تأكيد الإلغاء', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -318,14 +318,13 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
     final isReleased = escrowStatus == 'released_to_teacher';
     final isRefunded = escrowStatus == 'refunded_to_learner';
 
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final cardColor = isDark ? AppColors.darkSurface : Colors.white;
-    final hairline = isDark ? AppColors.darkHairline : AppColors.hairline;
-    final onSurface = theme.colorScheme.onSurface;
-    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
-    final primaryContainer = isDark ? AppColors.darkPrimaryContainer : AppColors.primaryContainer;
-    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final tokens = context.tokens;
+    final cardColor = tokens.surface;
+    final hairline = tokens.border;
+    final onSurface = tokens.textHigh;
+    final primaryColor = tokens.brand;
+    final primaryContainer = tokens.brandContainer;
+    final textSecondary = tokens.textMedium;
 
     return Scaffold(
       appBar: AppBar(
@@ -352,7 +351,7 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: cardColor,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: AppRadii.cardRadius,
                   border: Border.all(color: hairline),
                 ),
                 child: Row(
@@ -384,13 +383,13 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: isReleased
-                      ? primaryColor.withValues(alpha: 0.15)
-                      : (isRefunded ? AppColors.error.withValues(alpha: 0.1) : AppColors.pointsAmber.withValues(alpha: 0.15)),
-                  borderRadius: BorderRadius.circular(14),
+                      ? tokens.successContainer
+                      : (isRefunded ? tokens.dangerContainer : tokens.warningContainer),
+                  borderRadius: AppRadii.cardRadius,
                   border: Border.all(
                     color: isReleased
-                        ? primaryColor.withValues(alpha: 0.3)
-                        : (isRefunded ? AppColors.error.withValues(alpha: 0.3) : AppColors.pointsAmber.withValues(alpha: 0.3)),
+                        ? tokens.success
+                        : (isRefunded ? tokens.danger : tokens.warning),
                   ),
                 ),
                 child: Row(
@@ -399,7 +398,7 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                       isReleased
                           ? Icons.check_circle_rounded
                           : (isRefunded ? Icons.info_outline_rounded : Icons.stars_rounded),
-                      color: isReleased ? primaryColor : (isRefunded ? AppColors.error : AppColors.pointsAmber),
+                      color: isReleased ? tokens.success : (isRefunded ? tokens.danger : tokens.warning),
                       size: 24,
                     ),
                     const SizedBox(width: 12),
@@ -412,7 +411,7 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                                 : 'الجلسة مؤكدة ومحجوزة في الضمان. بعد انتهاء الشرح وتأكيد المتعلم، ستضاف 1 عملة وقت إلى محفظتك فوراً.'),
                         style: TextStyle(
                           fontSize: 13,
-                          color: isReleased ? primaryColor : (isRefunded ? AppColors.error : (isDark ? const Color(0xFFFFD54F) : const Color(0xFF664700))),
+                          color: isReleased ? tokens.success : (isRefunded ? tokens.danger : tokens.textHigh),
                           height: 1.4,
                           fontWeight: FontWeight.w600,
                         ),
@@ -429,7 +428,7 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   color: cardColor,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: AppRadii.cardRadius,
                   border: Border.all(color: hairline),
                 ),
                 child: Column(
@@ -452,9 +451,9 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                      color: tokens.brandContainer.withValues(alpha: 0.4),
+                      borderRadius: AppRadii.cardRadius,
+                      border: Border.all(color: tokens.brand),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -462,28 +461,28 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Row(
+                            Row(
                               children: [
-                                Icon(Icons.videocam_rounded, color: AppColors.primary, size: 20),
+                                Icon(Icons.videocam_rounded, color: tokens.brand, size: 20),
                                 SizedBox(width: 8),
                                 Text(
                                   'رابط جلسة الشرح الأونلاين',
-                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primary),
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: tokens.brand),
                                 ),
                               ],
                             ),
                             if (isHeld)
                               TextButton.icon(
                                 onPressed: () => _showEditMeetingUrlDialog(session),
-                                icon: const Icon(Icons.edit_outlined, size: 16),
-                                label: const Text('تعديل', style: TextStyle(fontSize: 12)),
+                                icon: Icon(Icons.edit_outlined, size: 16),
+                                label: Text('تعديل', style: TextStyle(fontSize: 12)),
                               ),
                           ],
                         ),
                         const SizedBox(height: 8),
                         SelectableText(
                           session.meetingUrl!,
-                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                          style: TextStyle(fontSize: 12, color: tokens.textMedium),
                         ),
                         const SizedBox(height: 10),
                         ElevatedButton.icon(
@@ -493,11 +492,11 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                               const SnackBar(content: Text('تم نسخ رابط الاجتماع بنجاح.')),
                             );
                           },
-                          icon: const Icon(Icons.copy_rounded, size: 16, color: Colors.white),
-                          label: const Text('نسخ رابط الاجتماع', style: TextStyle(color: Colors.white, fontSize: 13)),
+                          icon: Icon(Icons.copy_rounded, size: 16, color: Colors.white),
+                          label: Text('نسخ رابط الاجتماع', style: TextStyle(color: Colors.white, fontSize: 13)),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            backgroundColor: tokens.brand,
+                            shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
                           ),
                         ),
                       ],
@@ -507,38 +506,38 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: Colors.amber.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+                      color: tokens.warningContainer,
+                      borderRadius: AppRadii.cardRadius,
+                      border: Border.all(color: tokens.warning),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Row(
+                        Row(
                           children: [
-                            Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 22),
+                            Icon(Icons.warning_amber_rounded, color: tokens.warning, size: 22),
                             SizedBox(width: 10),
                             Expanded(
                               child: Text(
                                 'هذه الجلسة أونلاين ولكنك لم تقم بإضافة رابط اللقاء بعد!',
-                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                                style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: tokens.textHigh),
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        const Text(
+                        Text(
                           'يرجى إنشاء رابط Google Meet أو Zoom وإضافته هنا ليتمكن زميلك من الانضمام للجلسة.',
-                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+                          style: TextStyle(fontSize: 12, color: context.tokens.textMedium, height: 1.4),
                         ),
                         const SizedBox(height: 10),
                         ElevatedButton.icon(
                           onPressed: () => _showEditMeetingUrlDialog(session!),
-                          icon: const Icon(Icons.add_link_rounded, size: 18, color: Colors.white),
-                          label: const Text('أضف رابط الاجتماع الآن', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                          icon: Icon(Icons.add_link_rounded, size: 18, color: Colors.white),
+                          label: Text('أضف رابط الاجتماع الآن', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            backgroundColor: tokens.brand,
+                            shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
                           ),
                         ),
                       ],
@@ -555,14 +554,14 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                   height: 48,
                   child: OutlinedButton.icon(
                     onPressed: () => context.push('/session-chat', extra: session),
-                    icon: const Icon(Icons.forum_outlined, color: AppColors.primary),
+                    icon: Icon(Icons.forum_outlined, color: tokens.brand),
                     label: Text(
                       'محادثة لتنسيق الجلسة مع $learnerName',
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: tokens.brand),
                     ),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.primary),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      side: BorderSide(color: tokens.brand),
+                      shape: RoundedRectangleBorder(borderRadius: AppRadii.cardRadius),
                     ),
                   ),
                 ),
@@ -573,18 +572,18 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: AppColors.error.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                    color: tokens.dangerContainer,
+                    borderRadius: AppRadii.controlRadius,
+                    border: Border.all(color: tokens.danger),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.gavel_rounded, color: AppColors.error, size: 24),
+                      Icon(Icons.gavel_rounded, color: tokens.danger, size: 24),
                       SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           'هذه الجلسة قيد النزاع بناءً على اعتراض المتعلم. العملة محتجزة في الضمان لحين المراجعة اليدوية من الإدارة.',
-                          style: TextStyle(fontSize: 13, color: AppColors.textPrimary, fontWeight: FontWeight.bold, height: 1.4),
+                          style: TextStyle(fontSize: 13, color: tokens.textHigh, fontWeight: FontWeight.bold, height: 1.4),
                         ),
                       ),
                     ],
@@ -598,14 +597,14 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                   height: 52,
                   child: ElevatedButton.icon(
                     onPressed: _isProcessingAction ? null : () => _acceptSession(session),
-                    icon: const Icon(Icons.check_circle_outline_rounded, color: Colors.white),
+                    icon: Icon(Icons.check_circle_outline_rounded, color: Colors.white),
                     label: Text(
                       _isProcessingAction ? 'جاري القبول...' : 'قبول الجلسة وتأكيد الموعد',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      backgroundColor: tokens.brand,
+                      shape: RoundedRectangleBorder(borderRadius: AppRadii.cardRadius),
                     ),
                   ),
                 ),
@@ -614,14 +613,14 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                   height: 48,
                   child: OutlinedButton.icon(
                     onPressed: _isProcessingAction ? null : () => _rejectSession(session),
-                    icon: const Icon(Icons.close_rounded, color: AppColors.error),
+                    icon: Icon(Icons.close_rounded, color: tokens.danger),
                     label: Text(
                       _isProcessingAction ? 'جاري معالجة الطلب...' : 'اعتذار عن الجلسة وإعادة العملة',
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.error),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: tokens.danger),
                     ),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.error),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      side: BorderSide(color: tokens.danger),
+                      shape: RoundedRectangleBorder(borderRadius: AppRadii.cardRadius),
                     ),
                   ),
                 ),
@@ -632,18 +631,18 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                        color: tokens.brand.withValues(alpha: 0.1),
+                        borderRadius: AppRadii.controlRadius,
+                        border: Border.all(color: tokens.brand),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.check_circle_outline_rounded, color: AppColors.primary, size: 20),
+                          Icon(Icons.check_circle_outline_rounded, color: tokens.brand, size: 20),
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'تم تسجيل الجلسة كمنجزة، بانتظار تأكيد وتقييم المتعلم.',
-                              style: TextStyle(fontSize: 12, color: AppColors.textPrimary, fontWeight: FontWeight.bold),
+                              style: TextStyle(fontSize: 12, color: tokens.textHigh, fontWeight: FontWeight.bold),
                             ),
                           ),
                         ],
@@ -660,14 +659,14 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                         height: 52,
                         child: ElevatedButton.icon(
                           onPressed: _isProcessingAction ? null : () => _claimAutoRelease(session),
-                          icon: const Icon(Icons.monetization_on_outlined, color: Colors.white),
+                          icon: Icon(Icons.monetization_on_outlined, color: Colors.white),
                           label: Text(
                             _isProcessingAction ? 'جاري تحرير العملة...' : 'تحرير عملة الوقت',
-                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
                           ),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                            backgroundColor: tokens.brand,
+                            shape: RoundedRectangleBorder(borderRadius: AppRadii.cardRadius),
                           ),
                         ),
                       ),
@@ -678,14 +677,14 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                       height: 52,
                       child: ElevatedButton.icon(
                         onPressed: _isProcessingAction ? null : () => _markDone(session),
-                        icon: const Icon(Icons.school_rounded, color: Colors.white),
+                        icon: Icon(Icons.school_rounded, color: Colors.white),
                         label: Text(
                           _isProcessingAction ? 'جاري التأكيد...' : 'تسجيل إتمام الشرح',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          backgroundColor: tokens.brand,
+                          shape: RoundedRectangleBorder(borderRadius: AppRadii.cardRadius),
                         ),
                       ),
                     ),
@@ -696,14 +695,14 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                   height: 48,
                   child: OutlinedButton.icon(
                     onPressed: _isCancelling ? null : () => session != null ? _cancelSession(session) : null,
-                    icon: const Icon(Icons.cancel_outlined, color: AppColors.error),
+                    icon: Icon(Icons.cancel_outlined, color: tokens.danger),
                     label: Text(
                       _isCancelling ? 'جاري إلغاء الجلسة...' : 'إلغاء الجلسة واعتذار للمتعلم',
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.error),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: tokens.danger),
                     ),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.error),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      side: BorderSide(color: tokens.danger),
+                      shape: RoundedRectangleBorder(borderRadius: AppRadii.cardRadius),
                     ),
                   ),
                 ),
@@ -724,7 +723,7 @@ class _RowItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final tokens = context.tokens;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -745,7 +744,7 @@ class _RowItem extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 13,
-            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+            color: tokens.textMedium,
           ),
         ),
       ],

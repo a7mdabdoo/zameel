@@ -4,7 +4,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../core/state/app_state.dart';
 
 class WeeklyPlanScreen extends ConsumerStatefulWidget {
@@ -37,27 +37,24 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
     final plannerState = ref.watch(plannerProvider);
     final currentDay = _days[_selectedDayIndex];
     final dayBlocks = plannerState.studyBlocks.where((b) => b.day == currentDay).toList();
     final dayLectures = plannerState.lectureSchedule.where((l) => l.day == currentDay).toList();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
-    final hairlineColor = isDark ? const Color(0xFF1E2D3D) : AppColors.hairline;
-    final statAccentColor = isDark ? const Color(0xFF2DD4BF) : AppColors.primary;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: tokens.bg,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).cardTheme.color,
+        backgroundColor: tokens.surface,
         elevation: 0,
         title: Text(
           'الخطة الأسبوعية',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: tokens.textHigh),
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.tune_rounded, color: primaryColor),
+            icon: Icon(Icons.tune_rounded, color: tokens.brand),
             onPressed: () => context.push('/schedule-setup'),
           ),
         ],
@@ -65,11 +62,11 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'fab_weekly_plan',
         onPressed: () => context.push('/schedule-setup'),
-        backgroundColor: primaryColor,
-        icon: Icon(Icons.add, color: isDark ? AppColors.darkOnPrimary : AppColors.onPrimary),
+        backgroundColor: tokens.brand,
+        icon: Icon(Icons.add, color: tokens.onBrand),
         label: Text(
           'إضافة لمواعيدي',
-          style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? AppColors.darkOnPrimary : AppColors.onPrimary),
+          style: TextStyle(fontWeight: FontWeight.bold, color: tokens.onBrand),
         ),
       ),
       body: SafeArea(
@@ -78,7 +75,7 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
             // Days horizontal selector
             Container(
               height: 56,
-              color: Theme.of(context).cardTheme.color,
+              color: tokens.surface,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -92,10 +89,10 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       decoration: BoxDecoration(
                         color: isSelected
-                            ? primaryColor
-                            : (isDark ? const Color(0xFF1E2D3D) : AppColors.surfaceAlt),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: hairlineColor),
+                            ? tokens.brand
+                            : tokens.surfaceAlt,
+                        borderRadius: AppRadii.fullRadius,
+                        border: Border.all(color: tokens.border),
                       ),
                       child: Center(
                         child: Text(
@@ -104,8 +101,8 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
                             fontSize: 13,
                             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
                             color: isSelected
-                                ? (isDark ? AppColors.darkOnPrimary : AppColors.onPrimary)
-                                : (isDark ? Colors.white70 : AppColors.textSecondary),
+                                ? tokens.onBrand
+                                : tokens.textMedium,
                           ),
                         ),
                       ),
@@ -123,15 +120,15 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
               child: Row(
                 children: [
                   Expanded(
-                    child: _buildMiniStatCard('جلسات اليوم', '${dayBlocks.length} جلسات', statAccentColor),
+                    child: _buildMiniStatCard('جلسات اليوم', '${dayBlocks.length} جلسات', tokens.brand),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _buildMiniStatCard('محاضرات رسمية', '${dayLectures.length} محاضرات', statAccentColor),
+                    child: _buildMiniStatCard('محاضرات رسمية', '${dayLectures.length} محاضرات', tokens.brand),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _buildMiniStatCard('إنجاز الأسبوع', '${(plannerState.progressPercentage * 100).round()}%', statAccentColor),
+                    child: _buildMiniStatCard('إنجاز الأسبوع', '${(plannerState.progressPercentage * 100).round()}%', tokens.brand),
                   ),
                 ],
               ),
@@ -161,7 +158,7 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
                       title: 'مذاكرة: ${block.courseName}',
                       time: '${block.startTime} – ${block.endTime}',
                       location: '${block.room} • ${block.topic}',
-                      ribbonColor: block.isCompleted ? AppColors.success : block.ribbonColor,
+                      ribbonColor: block.isCompleted ? tokens.success : block.ribbonColor,
                       type: block.isCompleted ? 'مكتملة' : 'جلسة مذاكرة',
                       isInteractive: true,
                       onTap: () => context.push('/study-block-details', extra: block),
@@ -175,40 +172,43 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
                         child: currentDay == 'الجمعة'
                             ? Column(
                                 children: [
-                                  Icon(Icons.weekend_rounded, size: 48, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+                                  Icon(Icons.weekend_rounded, size: 48, color: tokens.textLow),
                                   const SizedBox(height: 12),
-                                  const Text(
+                                  Text(
                                     'عطلة نهاية الأسبوع • استراحة أسبوعية',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: tokens.textHigh),
                                   ),
-                                  SizedBox(height: 8),
+                                  const SizedBox(height: 8),
                                   Text(
                                     'يوم الجمعة مخصص للراحة وتجديد النشاط والعبادة. لا توجد جلسات مذاكرة أو محاضرات مقررة.',
-                                    style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                                    style: TextStyle(fontSize: 13, color: tokens.textMedium),
                                     textAlign: TextAlign.center,
                                   ),
                                 ],
                               )
                             : Column(
                                 children: [
-                                  const Icon(Icons.calendar_month_outlined, size: 48, color: AppColors.textSecondary),
+                                  Icon(Icons.calendar_month_outlined, size: 48, color: tokens.textLow),
                                   const SizedBox(height: 12),
-                                  const Text(
+                                  Text(
                                     'لا توجد مواعيد مسجلة لهذا اليوم',
-                                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: tokens.textHigh),
                                   ),
                                   const SizedBox(height: 6),
-                                  const Text(
+                                  Text(
                                     'يمكنك إضافة محاضراتك لتوليد خطة المذاكرة الأسبوعية تلقائياً.',
-                                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                    style: TextStyle(fontSize: 12, color: tokens.textMedium),
                                     textAlign: TextAlign.center,
                                   ),
                                   const SizedBox(height: 14),
                                   ElevatedButton.icon(
                                     onPressed: () => context.push('/schedule-setup'),
-                                    icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
-                                    label: const Text('إعداد جدول المحاضرات', style: TextStyle(color: Colors.white, fontSize: 13)),
-                                    style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
+                                    icon: Icon(Icons.add_rounded, size: 18, color: tokens.onBrand),
+                                    label: Text('إعداد جدول المحاضرات', style: TextStyle(color: tokens.onBrand, fontSize: 13)),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: tokens.brand,
+                                      shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -226,21 +226,18 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
   }
 
   Widget _buildMiniStatCard(String label, String value, Color color) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.surface;
-    final hairlineColor = isDark ? const Color(0xFF1E2D3D) : AppColors.hairline;
-    final statLabelColor = isDark ? const Color(0xFF94A3B8) : AppColors.textSecondary;
+    final tokens = context.tokens;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
       decoration: BoxDecoration(
-        color: surfaceColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: hairlineColor),
+        color: tokens.surface,
+        borderRadius: AppRadii.controlRadius,
+        border: Border.all(color: tokens.border),
       ),
       child: Column(
         children: [
-          Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: statLabelColor)),
+          Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: tokens.textLow)),
           const SizedBox(height: 2),
           Text(value, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: color)),
         ],
@@ -257,35 +254,23 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
     bool isInteractive = false,
     VoidCallback? onTap,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.surface;
-    final hairlineColor = isDark ? const Color(0xFF1E2D3D) : AppColors.hairline;
-    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
-    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
-    final textTertiaryColor = isDark ? AppColors.darkTextTertiary : AppColors.textTertiary;
-    final unifiedAccentColor = isDark ? AppColors.darkPrimary : AppColors.primary;
+    final tokens = context.tokens;
+    final unifiedAccentColor = tokens.brand;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: surfaceColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: hairlineColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: tokens.surface,
+        borderRadius: AppRadii.controlRadius,
+        border: Border.all(color: tokens.border),
       ),
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: AppRadii.controlRadius,
         onTap: onTap ?? () {
           context.push('/study-block-details');
         },
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: AppRadii.controlRadius,
           child: IntrinsicHeight(
             child: Row(
               children: [
@@ -302,15 +287,15 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: unifiedAccentColor.withValues(alpha: isDark ? 0.2 : 0.12),
-                                borderRadius: BorderRadius.circular(10),
+                                color: tokens.brandContainer.withValues(alpha: 0.5),
+                                borderRadius: AppRadii.controlRadius,
                               ),
                               child: Text(
                                 type,
                                 style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: unifiedAccentColor),
                               ),
                             ),
-                            Text(time, style: TextStyle(fontSize: 11, color: textTertiaryColor)),
+                            Text(time, style: TextStyle(fontSize: 11, color: tokens.textLow)),
                           ],
                         ),
                         const SizedBox(height: 6),
@@ -319,23 +304,23 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: textPrimaryColor,
+                            color: tokens.textHigh,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            Icon(Icons.location_on_outlined, size: 13, color: textTertiaryColor),
+                            Icon(Icons.location_on_outlined, size: 13, color: tokens.textLow),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
                                 location,
-                                style: TextStyle(fontSize: 11, color: textSecondaryColor),
+                                style: TextStyle(fontSize: 11, color: tokens.textMedium),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
-                            Icon(Icons.arrow_back_ios_rounded, size: 12, color: textTertiaryColor),
+                            Icon(Icons.arrow_back_ios_rounded, size: 12, color: tokens.textLow),
                           ],
                         ),
                       ],

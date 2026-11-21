@@ -3,7 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../auth/data/auth_service.dart';
 import '../data/question_model.dart';
 import '../data/question_repository.dart';
@@ -63,7 +63,7 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
       context: context,
       backgroundColor: Theme.of(context).cardTheme.color,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+        borderRadius: AppRadii.sheetTopRadius,
       ),
       builder: (ctx) => SafeArea(
         child: Padding(
@@ -72,7 +72,7 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.camera_alt_rounded, color: AppColors.primary),
+                leading: Icon(Icons.camera_alt_rounded, color: context.tokens.brand),
                 title: const Text('التقاط صورة للحل بالكاميرا'),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -80,7 +80,7 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.photo_library_rounded, color: AppColors.primary),
+                leading: Icon(Icons.photo_library_rounded, color: context.tokens.brand),
                 title: const Text('اختيار صورة الحل من المعرض'),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -133,7 +133,7 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('تعذر إرسال الإجابة: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: Text('تعذر إرسال الإجابة: $e'), backgroundColor: context.tokens.danger),
         );
       }
     } finally {
@@ -150,13 +150,13 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final cardColor = isDark ? AppColors.darkSurface : Colors.white;
-    final hairline = isDark ? AppColors.darkHairline : AppColors.hairline;
-    final surfaceAlt = isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt;
-    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
-    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
-    final onSurface = theme.colorScheme.onSurface;
+    final tokens = context.tokens;
+    final cardColor = tokens.surface;
+    final hairline = tokens.border;
+    final surfaceAlt = tokens.surfaceAlt;
+    final primaryColor = tokens.brand;
+    final textSecondary = tokens.textMedium;
+    final onSurface = tokens.textHigh;
 
     final currentUser = ref.watch(authServiceProvider).currentUser;
     final currentUserId = currentUser?.uid ?? '';
@@ -202,20 +202,20 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: surfaceAlt,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: AppRadii.controlRadius,
                 ),
                 child: Row(
                   children: [
                     ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: AppRadii.controlRadius,
                       child: Image.file(File(_answerImage!.path), width: 36, height: 36, fit: BoxFit.cover),
                     ),
                     const SizedBox(width: 8),
-                    const Expanded(
+                    Expanded(
                       child: Text('صورة مرفقة للحل', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close_rounded, size: 18),
+                      icon: Icon(Icons.close_rounded, size: 18),
                       onPressed: () => setState(() => _answerImage = null),
                     ),
                   ],
@@ -233,7 +233,7 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                     decoration: BoxDecoration(
                       color: surfaceAlt,
-                      borderRadius: BorderRadius.circular(24),
+                      borderRadius: AppRadii.chipRadius,
                     ),
                     child: TextField(
                       controller: _answerController,
@@ -280,24 +280,14 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: isQuestionAuthor
-                    ? (isDark ? const Color(0xFF132A22) : const Color(0xFFF0FDF4))
+                    ? tokens.brandContainer.withValues(alpha: 0.3)
                     : cardColor,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: AppRadii.cardRadius,
                 border: Border.all(
-                  color: isQuestionAuthor
-                      ? primaryColor.withValues(alpha: isDark ? 0.7 : 0.4)
-                      : hairline,
+                  color: isQuestionAuthor ? primaryColor : hairline,
                   width: isQuestionAuthor ? 1.5 : 1,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: isQuestionAuthor
-                        ? primaryColor.withValues(alpha: isDark ? 0.2 : 0.06)
-                        : Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                boxShadow: tokens.floatingShadow,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -312,7 +302,7 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                               radius: 16,
                               backgroundColor: isQuestionAuthor ? primaryColor : primaryColor.withValues(alpha: 0.15),
                               child: isQuestionAuthor
-                                  ? const Icon(Icons.person_rounded, size: 16, color: Colors.white)
+                                  ? Icon(Icons.person_rounded, size: 16, color: Colors.white)
                                   : Text(
                                       widget.question.authorName.isNotEmpty ? widget.question.authorName.substring(0, 1) : 'ز',
                                       style: TextStyle(fontWeight: FontWeight.bold, color: primaryColor),
@@ -342,8 +332,8 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                                           decoration: BoxDecoration(
-                                            color: primaryColor.withValues(alpha: isDark ? 0.3 : 0.15),
-                                            borderRadius: BorderRadius.circular(8),
+                                            color: tokens.brandContainer,
+                                            borderRadius: AppRadii.controlRadius,
                                           ),
                                           child: Text(
                                             'سؤالك',
@@ -364,8 +354,8 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: AppColors.primaryContainer.withValues(alpha: isDark ? 0.3 : 0.6),
-                          borderRadius: BorderRadius.circular(20),
+                          color: tokens.brandContainer,
+                          borderRadius: AppRadii.chipRadius,
                         ),
                         child: Text(
                           widget.question.academicYear,
@@ -394,7 +384,7 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                     GestureDetector(
                       onTap: () => _showFullImage(widget.question.imageUrl!),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: AppRadii.controlRadius,
                         child: Stack(
                           alignment: Alignment.bottomLeft,
                           children: [
@@ -409,9 +399,9 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
                                 color: Colors.black54,
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: AppRadii.controlRadius,
                               ),
-                              child: const Row(
+                              child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(Icons.zoom_in_rounded, color: Colors.white, size: 14),
@@ -444,7 +434,7 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: surfaceAlt,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AppRadii.controlRadius,
                     ),
                     child: Text(
                       '${list.length} حلول',
@@ -461,7 +451,7 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
             // قائمة الإجابات
             answersAsync.when(
               loading: () => const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator())),
-              error: (e, _) => Center(child: Text('تعذر تحميل الحلول: $e', style: TextStyle(color: AppColors.error, fontSize: 12))),
+              error: (e, _) => Center(child: Text('تعذر تحميل الحلول: $e', style: TextStyle(color: tokens.danger, fontSize: 12))),
               data: (answers) {
                 if (answers.isEmpty) {
                   return Container(
@@ -469,7 +459,7 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                     margin: const EdgeInsets.only(top: 10),
                     decoration: BoxDecoration(
                       color: cardColor,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: AppRadii.cardRadius,
                       border: Border.all(color: hairline),
                     ),
                     child: Column(
@@ -497,15 +487,15 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(
                         color: isMyAnswer
-                            ? (isDark ? const Color(0xFF132A22) : const Color(0xFFF0FDF4))
+                            ? tokens.brandContainer.withValues(alpha: 0.25)
                             : (answer.isAcceptedSolution
-                                ? (isDark ? const Color(0xFF132A1C) : const Color(0xFFF0FDF4))
+                                ? tokens.successContainer.withValues(alpha: 0.35)
                                 : cardColor),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: AppRadii.cardRadius,
                         border: Border.all(
                           color: answer.isAcceptedSolution
-                              ? AppColors.success
-                              : (isMyAnswer ? primaryColor.withValues(alpha: isDark ? 0.6 : 0.4) : hairline),
+                              ? tokens.success
+                              : (isMyAnswer ? primaryColor.withValues(alpha: 0.6) : hairline),
                           width: (answer.isAcceptedSolution || isMyAnswer) ? 1.5 : 1,
                         ),
                       ),
@@ -519,17 +509,17 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: AppColors.success.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(20),
+                                  color: tokens.success.withValues(alpha: 0.15),
+                                  borderRadius: AppRadii.chipRadius,
                                 ),
-                                child: const Row(
+                                child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.check_circle_rounded, color: AppColors.success, size: 14),
+                                    Icon(Icons.check_circle_rounded, color: tokens.success, size: 14),
                                     SizedBox(width: 4),
                                     Text(
                                       'حل معتمد من صاحب السؤال',
-                                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.success),
+                                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: tokens.success),
                                     ),
                                   ],
                                 ),
@@ -550,7 +540,7 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                                             ? primaryColor
                                             : primaryColor.withValues(alpha: 0.12),
                                         child: isMyAnswer
-                                            ? const Icon(Icons.person_rounded, size: 14, color: Colors.white)
+                                            ? Icon(Icons.person_rounded, size: 14, color: Colors.white)
                                             : Text(
                                                 answer.authorName.isNotEmpty ? answer.authorName.substring(0, 1) : 'ز',
                                                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: primaryColor),
@@ -574,8 +564,8 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                                           decoration: BoxDecoration(
-                                            color: primaryColor.withValues(alpha: isDark ? 0.3 : 0.15),
-                                            borderRadius: BorderRadius.circular(6),
+                                            color: tokens.brandContainer,
+                                            borderRadius: AppRadii.controlRadius,
                                           ),
                                           child: Text(
                                             'إجابتك',
@@ -587,12 +577,12 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                                           decoration: BoxDecoration(
-                                            color: Colors.amber.withValues(alpha: isDark ? 0.25 : 0.15),
-                                            borderRadius: BorderRadius.circular(6),
+                                            color: tokens.warningContainer,
+                                            borderRadius: AppRadii.controlRadius,
                                           ),
-                                          child: const Text(
+                                          child: Text(
                                             'صاحب السؤال',
-                                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.amber),
+                                            style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: tokens.warning),
                                           ),
                                         ),
                                       ],
@@ -608,7 +598,7 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                                 // زر اعتماد الحل (يظهر لصاحب السؤال فقط)
                                 if (isQuestionAuthor)
                                   InkWell(
-                                    borderRadius: BorderRadius.circular(10),
+                                    borderRadius: AppRadii.controlRadius,
                                     onTap: () {
                                       ref.read(questionRepositoryProvider).toggleAcceptedSolution(
                                         questionId: widget.question.id,
@@ -624,7 +614,7 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                                           Icon(
                                             answer.isAcceptedSolution ? Icons.star_rounded : Icons.star_border_rounded,
                                             size: 16,
-                                            color: answer.isAcceptedSolution ? AppColors.pointsAmber : textSecondary,
+                                            color: answer.isAcceptedSolution ? tokens.coin : textSecondary,
                                           ),
                                           const SizedBox(width: 4),
                                           Text(
@@ -632,7 +622,7 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                                             style: TextStyle(
                                               fontSize: 11,
                                               fontWeight: FontWeight.bold,
-                                              color: answer.isAcceptedSolution ? AppColors.pointsAmber : textSecondary,
+                                              color: answer.isAcceptedSolution ? tokens.coin : textSecondary,
                                             ),
                                           ),
                                         ],
@@ -657,7 +647,7 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                                   height: 160,
                                   width: double.infinity,
                                   fit: BoxFit.cover,
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: AppRadii.controlRadius,
                                 ),
                               ),
                             ],

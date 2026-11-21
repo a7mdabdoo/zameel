@@ -4,7 +4,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../auth/data/auth_service.dart';
 
 class OnboardingProfileScreen extends ConsumerStatefulWidget {
@@ -50,22 +50,16 @@ class _OnboardingProfileScreenState extends ConsumerState<OnboardingProfileScree
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.surface;
-    final hairlineColor = isDark ? AppColors.darkHairline : AppColors.hairline;
-    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
-    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
-    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
+    final tokens = context.tokens;
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: tokens.bg,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
           'الخطوة 1 من 3',
-          style: TextStyle(fontSize: 14, color: textSecondaryColor, fontWeight: FontWeight.w600),
+          style: TextStyle(fontSize: 14, color: tokens.textMedium, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
         actions: [
@@ -74,7 +68,7 @@ class _OnboardingProfileScreenState extends ConsumerState<OnboardingProfileScree
             child: Text(
               'تخطي',
               style: TextStyle(
-                color: primaryColor,
+                color: tokens.brand,
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
               ),
@@ -92,11 +86,11 @@ class _OnboardingProfileScreenState extends ConsumerState<OnboardingProfileScree
               // Progress indicator
               Row(
                 children: [
-                  Expanded(child: Container(height: 4, decoration: BoxDecoration(color: primaryColor, borderRadius: BorderRadius.circular(2)))),
+                  Expanded(child: Container(height: 4, decoration: BoxDecoration(color: tokens.brand, borderRadius: AppRadii.controlRadius))),
                   const SizedBox(width: 6),
-                  Expanded(child: Container(height: 4, decoration: BoxDecoration(color: hairlineColor, borderRadius: BorderRadius.circular(2)))),
+                  Expanded(child: Container(height: 4, decoration: BoxDecoration(color: tokens.border, borderRadius: AppRadii.controlRadius))),
                   const SizedBox(width: 6),
-                  Expanded(child: Container(height: 4, decoration: BoxDecoration(color: hairlineColor, borderRadius: BorderRadius.circular(2)))),
+                  Expanded(child: Container(height: 4, decoration: BoxDecoration(color: tokens.border, borderRadius: AppRadii.controlRadius))),
                 ],
               ),
               const SizedBox(height: 24),
@@ -106,7 +100,7 @@ class _OnboardingProfileScreenState extends ConsumerState<OnboardingProfileScree
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: textPrimaryColor,
+                  color: tokens.textHigh,
                 ),
               ),
               const SizedBox(height: 8),
@@ -114,7 +108,7 @@ class _OnboardingProfileScreenState extends ConsumerState<OnboardingProfileScree
                 'لتخصيص المواد ومطابقة مواعيدك مع زملاء دفعتك',
                 style: TextStyle(
                   fontSize: 14,
-                  color: textSecondaryColor,
+                  color: tokens.textMedium,
                 ),
               ),
               const SizedBox(height: 28),
@@ -122,24 +116,24 @@ class _OnboardingProfileScreenState extends ConsumerState<OnboardingProfileScree
               // Faculty
               Text(
                 'الكلية',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimaryColor),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: tokens.textHigh),
               ),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
-                  color: surfaceColor,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: hairlineColor),
+                  color: tokens.surface,
+                  borderRadius: AppRadii.controlRadius,
+                  border: Border.all(color: tokens.border),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.school_outlined, color: primaryColor, size: 22),
+                    Icon(Icons.school_outlined, color: tokens.brand, size: 22),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         _selectedFaculty,
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimaryColor),
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: tokens.textHigh),
                       ),
                     ),
                   ],
@@ -151,24 +145,24 @@ class _OnboardingProfileScreenState extends ConsumerState<OnboardingProfileScree
               // Year
               Text(
                 'السنة الدراسية',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimaryColor),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: tokens.textHigh),
               ),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
-                  color: surfaceColor,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: hairlineColor),
+                  color: tokens.surface,
+                  borderRadius: AppRadii.controlRadius,
+                  border: Border.all(color: tokens.border),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.date_range_outlined, color: AppColors.sage, size: 22),
+                    Icon(Icons.date_range_outlined, color: tokens.brand, size: 22),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         _selectedYear,
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimaryColor),
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: tokens.textHigh),
                       ),
                     ),
                   ],
@@ -180,26 +174,26 @@ class _OnboardingProfileScreenState extends ConsumerState<OnboardingProfileScree
               // Department Dropdown
               Text(
                 'القسم الأكاديمي',
-                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: textPrimaryColor),
+                style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: tokens.textHigh),
               ),
               const SizedBox(height: 8),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
-                  color: surfaceColor,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: hairlineColor),
+                  color: tokens.surface,
+                  borderRadius: AppRadii.controlRadius,
+                  border: Border.all(color: tokens.border),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: _selectedDepartment,
                     isExpanded: true,
-                    dropdownColor: surfaceColor,
-                    icon: Icon(Icons.keyboard_arrow_down_rounded, color: textSecondaryColor),
+                    dropdownColor: tokens.surface,
+                    icon: Icon(Icons.keyboard_arrow_down_rounded, color: tokens.textMedium),
                     items: _departments.map((dept) {
                       return DropdownMenuItem<String>(
                         value: dept,
-                        child: Text(dept, style: TextStyle(fontSize: 14, color: textPrimaryColor)),
+                        child: Text(dept, style: TextStyle(fontSize: 14, color: tokens.textHigh)),
                       );
                     }).toList(),
                     onChanged: (val) {
@@ -216,14 +210,15 @@ class _OnboardingProfileScreenState extends ConsumerState<OnboardingProfileScree
                 height: 52,
                 child: ElevatedButton.icon(
                   onPressed: _proceedToCourses,
-                  icon: Icon(Icons.arrow_back_rounded, color: isDark ? AppColors.darkOnPrimary : AppColors.onPrimary, size: 20),
+                  icon: Icon(Icons.arrow_back_rounded, color: tokens.onBrand, size: 20),
                   label: Text(
                     'التالي: اختيار المواد',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isDark ? AppColors.darkOnPrimary : AppColors.onPrimary),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: tokens.onBrand),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    backgroundColor: tokens.brand,
+                    foregroundColor: tokens.onBrand,
+                    shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
                   ),
                 ),
               ),

@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/models/app_models.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../auth/data/auth_service.dart';
 import '../../timebank/application/timebank_pure_logic.dart';
 import '../../timebank/data/timebank_repository.dart';
@@ -29,7 +29,7 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('إلغاء حجز الجلسة'),
+        title: Text('إلغاء حجز الجلسة'),
         content: const Text(
           'قواعد استرداد الضمان:\n'
           '• إذا ألغيت قبل الموعد بأكثر من ساعتين: يتم استرداد عملة الوقت كاملة لمحفظتك.\n'
@@ -44,7 +44,7 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(backgroundColor: context.tokens.danger),
             child: const Text('تأكيد الإلغاء', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -116,7 +116,7 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('فتح نزاع واعتراض'),
+        title: Text('فتح نزاع واعتراض'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -139,7 +139,7 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('تراجع')),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            style: ElevatedButton.styleFrom(backgroundColor: context.tokens.danger),
             child: const Text('فتح النزاع', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -186,14 +186,13 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
     final isReleased = escrowStatus == 'released_to_teacher';
     final isRefunded = escrowStatus == 'refunded_to_learner';
 
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final cardColor = isDark ? AppColors.darkSurface : Colors.white;
-    final hairline = isDark ? AppColors.darkHairline : AppColors.hairline;
-    final onSurface = theme.colorScheme.onSurface;
-    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
-    final primaryContainer = isDark ? AppColors.darkPrimaryContainer : AppColors.primaryContainer;
-    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final tokens = context.tokens;
+    final cardColor = tokens.surface;
+    final hairline = tokens.border;
+    final onSurface = tokens.textHigh;
+    final primaryColor = tokens.brand;
+    final primaryContainer = tokens.brandContainer;
+    final textSecondary = tokens.textMedium;
 
     return Scaffold(
       appBar: AppBar(
@@ -220,7 +219,7 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: cardColor,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: AppRadii.cardRadius,
                   border: Border.all(color: hairline),
                 ),
                 child: Row(
@@ -252,13 +251,13 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: isReleased
-                      ? primaryColor.withValues(alpha: 0.15)
-                      : (isRefunded ? AppColors.error.withValues(alpha: 0.1) : AppColors.sage.withValues(alpha: 0.15)),
-                  borderRadius: BorderRadius.circular(14),
+                      ? tokens.successContainer
+                      : (isRefunded ? tokens.dangerContainer : tokens.warningContainer),
+                  borderRadius: AppRadii.cardRadius,
                   border: Border.all(
                     color: isReleased
-                        ? primaryColor.withValues(alpha: 0.3)
-                        : (isRefunded ? AppColors.error.withValues(alpha: 0.3) : AppColors.sage.withValues(alpha: 0.3)),
+                        ? tokens.success
+                        : (isRefunded ? tokens.danger : tokens.warning),
                   ),
                 ),
                 child: Row(
@@ -267,7 +266,7 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                       isReleased
                           ? Icons.stars_rounded
                           : (isRefunded ? Icons.undo_rounded : Icons.lock_clock_rounded),
-                      color: isReleased ? primaryColor : (isRefunded ? AppColors.error : AppColors.deepSage),
+                      color: isReleased ? tokens.success : (isRefunded ? tokens.danger : tokens.textHigh),
                       size: 24,
                     ),
                     const SizedBox(width: 12),
@@ -280,7 +279,7 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                                 : 'الجلسة معلقة بالضمان (1 عملة محجوزة). بعد انتهاء الشرح، اضغط لتأكيد الإتمام وتقييم الزميل.'),
                         style: TextStyle(
                           fontSize: 13,
-                          color: isReleased ? primaryColor : (isRefunded ? AppColors.error : AppColors.deepSage),
+                          color: isReleased ? tokens.success : (isRefunded ? tokens.danger : tokens.textHigh),
                           height: 1.4,
                           fontWeight: FontWeight.w600,
                         ),
@@ -297,7 +296,7 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   color: cardColor,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: AppRadii.cardRadius,
                   border: Border.all(color: hairline),
                 ),
                 child: Column(
@@ -320,27 +319,27 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                      color: tokens.brandContainer.withValues(alpha: 0.4),
+                      borderRadius: AppRadii.cardRadius,
+                      border: Border.all(color: tokens.brand),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Row(
+                        Row(
                           children: [
-                            Icon(Icons.videocam_rounded, color: AppColors.primary, size: 20),
+                            Icon(Icons.videocam_rounded, color: tokens.brand, size: 20),
                             SizedBox(width: 8),
                             Text(
                               'رابط جلسة الشرح الأونلاين',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primary),
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: tokens.brand),
                             ),
                           ],
                         ),
                         const SizedBox(height: 8),
                         SelectableText(
                           session.meetingUrl!,
-                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                          style: TextStyle(fontSize: 12, color: tokens.textMedium),
                         ),
                         const SizedBox(height: 10),
                         ElevatedButton.icon(
@@ -350,11 +349,11 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                               const SnackBar(content: Text('تم نسخ رابط الاجتماع بنجاح.')),
                             );
                           },
-                          icon: const Icon(Icons.copy_rounded, size: 16, color: Colors.white),
-                          label: const Text('نسخ رابط الاجتماع', style: TextStyle(color: Colors.white, fontSize: 13)),
+                          icon: Icon(Icons.copy_rounded, size: 16, color: Colors.white),
+                          label: Text('نسخ رابط الاجتماع', style: TextStyle(color: Colors.white, fontSize: 13)),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            backgroundColor: tokens.brand,
+                            shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
                           ),
                         ),
                       ],
@@ -364,18 +363,18 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: Colors.amber.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+                      color: tokens.warningContainer,
+                      borderRadius: AppRadii.cardRadius,
+                      border: Border.all(color: tokens.warning),
                     ),
-                    child: const Row(
+                    child: Row(
                       children: [
-                        Icon(Icons.info_outline_rounded, color: Colors.amber, size: 20),
+                        Icon(Icons.info_outline_rounded, color: tokens.warning, size: 20),
                         SizedBox(width: 10),
                         Expanded(
                           child: Text(
                             'الجلسة أونلاين. سيقوم الشارح بإضافة رابط الاجتماع (Google Meet / Zoom) قبل موعد الجلسة.',
-                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.4),
+                            style: TextStyle(fontSize: 12, color: context.tokens.textMedium, height: 1.4),
                           ),
                         ),
                       ],
@@ -392,14 +391,14 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                   height: 48,
                   child: OutlinedButton.icon(
                     onPressed: () => context.push('/session-chat', extra: session),
-                    icon: const Icon(Icons.forum_outlined, color: AppColors.primary),
+                    icon: Icon(Icons.forum_outlined, color: tokens.brand),
                     label: Text(
                       'محادثة لتنسيق الجلسة مع $teacherName',
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: tokens.brand),
                     ),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.primary),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      side: BorderSide(color: tokens.brand),
+                      shape: RoundedRectangleBorder(borderRadius: AppRadii.cardRadius),
                     ),
                   ),
                 ),
@@ -410,18 +409,18 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: AppColors.error.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                    color: tokens.dangerContainer,
+                    borderRadius: AppRadii.controlRadius,
+                    border: Border.all(color: tokens.danger),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.gavel_rounded, color: AppColors.error, size: 24),
+                      Icon(Icons.gavel_rounded, color: tokens.danger, size: 24),
                       SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           'هذه الجلسة قيد النزاع بناءً على طلبك. عملتك محتجزة بأمان في الضمان ولن يتم تحريرها حتى تراجع الإدارة المشكلة.',
-                          style: TextStyle(fontSize: 13, color: AppColors.textPrimary, fontWeight: FontWeight.bold, height: 1.4),
+                          style: TextStyle(fontSize: 13, color: tokens.textHigh, fontWeight: FontWeight.bold, height: 1.4),
                         ),
                       ),
                     ],
@@ -435,18 +434,18 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.pointsAmber.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.pointsAmber.withValues(alpha: 0.3)),
+                    color: tokens.warningContainer,
+                    borderRadius: AppRadii.controlRadius,
+                    border: Border.all(color: tokens.warning),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
-                      Icon(Icons.hourglass_top_rounded, color: AppColors.pointsAmber, size: 20),
+                      Icon(Icons.hourglass_top_rounded, color: tokens.warning, size: 20),
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'الطلب بانتظار موافقة الزميل الشارح. عملتك محتجزة بأمان في الضمان.',
-                          style: TextStyle(fontSize: 12, color: AppColors.textPrimary, height: 1.3),
+                          style: TextStyle(fontSize: 12, color: tokens.textHigh, height: 1.3),
                         ),
                       ),
                     ],
@@ -464,14 +463,14 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                     height: 52,
                     child: ElevatedButton.icon(
                       onPressed: _isCancelling ? null : () => _claimExpiredRefund(session),
-                      icon: const Icon(Icons.undo_rounded, color: Colors.white),
+                      icon: Icon(Icons.undo_rounded, color: Colors.white),
                       label: Text(
                         _isCancelling ? 'جاري الاسترداد...' : 'استرداد العملة (انتهاء المهلة)',
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        backgroundColor: tokens.brand,
+                        shape: RoundedRectangleBorder(borderRadius: AppRadii.cardRadius),
                       ),
                     ),
                   ),
@@ -481,14 +480,14 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                     height: 48,
                     child: OutlinedButton.icon(
                       onPressed: _isCancelling ? null : () => _cancelSession(session),
-                      icon: const Icon(Icons.cancel_outlined, color: AppColors.error),
+                      icon: Icon(Icons.cancel_outlined, color: tokens.danger),
                       label: Text(
                         _isCancelling ? 'جاري إلغاء الطلب...' : 'إلغاء الطلب واسترداد العملة فوراً',
-                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.error),
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: tokens.danger),
                       ),
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.error),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        side: BorderSide(color: tokens.danger),
+                        shape: RoundedRectangleBorder(borderRadius: AppRadii.cardRadius),
                       ),
                     ),
                   ),
@@ -501,14 +500,14 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                     height: 48,
                     child: OutlinedButton.icon(
                       onPressed: _isCancelling ? null : () => _showDisputeDialog(session),
-                      icon: const Icon(Icons.report_problem_outlined, color: AppColors.error),
-                      label: const Text(
+                      icon: Icon(Icons.report_problem_outlined, color: tokens.danger),
+                      label: Text(
                         'فتح نزاع (الشارح لم يحضر)',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.error),
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: tokens.danger),
                       ),
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.error),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        side: BorderSide(color: tokens.danger),
+                        shape: RoundedRectangleBorder(borderRadius: AppRadii.cardRadius),
                       ),
                     ),
                   ),
@@ -518,14 +517,14 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                   height: 52,
                   child: ElevatedButton.icon(
                     onPressed: () => context.push('/session-rating', extra: session),
-                    icon: const Icon(Icons.verified_rounded, color: Colors.white),
-                    label: const Text(
+                    icon: Icon(Icons.verified_rounded, color: Colors.white),
+                    label: Text(
                       'أؤكد إتمام الجلسة وتقييم الزميل',
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      backgroundColor: tokens.brand,
+                      shape: RoundedRectangleBorder(borderRadius: AppRadii.cardRadius),
                     ),
                   ),
                 ),
@@ -534,14 +533,14 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                   height: 48,
                   child: OutlinedButton.icon(
                     onPressed: _isCancelling ? null : () => session != null ? _cancelSession(session) : null,
-                    icon: const Icon(Icons.cancel_outlined, color: AppColors.error),
+                    icon: Icon(Icons.cancel_outlined, color: tokens.danger),
                     label: Text(
                       _isCancelling ? 'جاري إلغاء الجلسة...' : 'إلغاء الجلسة',
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.error),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: tokens.danger),
                     ),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.error),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      side: BorderSide(color: tokens.danger),
+                      shape: RoundedRectangleBorder(borderRadius: AppRadii.cardRadius),
                     ),
                   ),
                 ),
@@ -562,7 +561,7 @@ class _RowItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final tokens = context.tokens;
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -583,7 +582,7 @@ class _RowItem extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 13,
-            color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+            color: tokens.textMedium,
           ),
         ),
       ],

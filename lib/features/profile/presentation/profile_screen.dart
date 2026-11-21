@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../auth/data/auth_service.dart';
 import '../../../core/state/app_state.dart';
 import '../../timebank/application/timebank_pure_logic.dart';
@@ -25,16 +25,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
     final themeMode = ref.watch(themeModeProvider);
     final isDark = themeMode == ThemeMode.dark;
-    final scaffoldBgColor = isDark ? AppColors.darkBackground : AppColors.background;
-    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.surface;
-    final surfaceAltColor = isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt;
-    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
-    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
-    final hairlineColor = isDark ? AppColors.darkHairline : AppColors.hairline;
-    final primaryContainerColor = isDark ? AppColors.darkPrimaryContainer : AppColors.primaryContainer;
-    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
 
     final user = ref.watch(authServiceProvider).currentUser;
     final userProfileAsync = ref.watch(userProfileStreamProvider);
@@ -87,13 +80,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final userRatings = _getUserRatings(userDoc, userCourses);
 
     return Scaffold(
-      backgroundColor: scaffoldBgColor,
+      backgroundColor: tokens.bg,
       appBar: AppBar(
-        backgroundColor: surfaceColor,
+        backgroundColor: tokens.surface,
         elevation: 0,
         title: Text(
           'الملف الشخصي',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textPrimaryColor),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: tokens.textHigh),
         ),
       ),
       body: SafeArea(
@@ -106,16 +99,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: surfaceColor,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: hairlineColor),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
+                  color: tokens.surface,
+                  borderRadius: AppRadii.sheetRadius,
+                  border: Border.all(color: tokens.border),
                 ),
                 child: Column(
                   children: [
@@ -124,10 +110,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       children: [
                         CircleAvatar(
                           radius: 38,
-                          backgroundColor: primaryContainerColor,
+                          backgroundColor: tokens.brandContainer,
                           child: Text(
                             userName.isNotEmpty ? userName.substring(0, 1) : 'أ',
-                            style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: primaryColor),
+                            style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: tokens.brand),
                           ),
                         ),
                         Positioned(
@@ -135,15 +121,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           right: 0,
                           child: InkWell(
                             onTap: () => _showEditProfileModal(context, userDoc),
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: AppRadii.controlRadius,
                             child: Container(
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
-                                color: primaryColor,
+                                color: tokens.brand,
                                 shape: BoxShape.circle,
-                                border: Border.all(color: surfaceColor, width: 2),
+                                border: Border.all(color: tokens.surface, width: 2),
                               ),
-                              child: const Icon(Icons.edit_rounded, size: 13, color: Colors.white),
+                              child: Icon(Icons.edit_rounded, size: 13, color: tokens.onBrand),
                             ),
                           ),
                         ),
@@ -152,12 +138,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     const SizedBox(height: 12),
                     Text(
                       userName,
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textPrimaryColor),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: tokens.textHigh),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       userHandle,
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: primaryColor),
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: tokens.brand),
                     ),
                     const SizedBox(height: 6),
                     // Teacher Rating Badge (0.0 / جديد if unrated)
@@ -165,13 +151,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                       decoration: BoxDecoration(
                         color: hasRating
-                            ? Colors.amber.withValues(alpha: isDark ? 0.25 : 0.15)
-                            : (isDark ? surfaceAltColor : Colors.black.withValues(alpha: 0.05)),
-                        borderRadius: BorderRadius.circular(16),
+                            ? tokens.warningContainer
+                            : tokens.surfaceAlt,
+                        borderRadius: AppRadii.cardRadius,
                         border: Border.all(
                           color: hasRating
-                              ? Colors.amber.withValues(alpha: 0.4)
-                              : hairlineColor,
+                              ? tokens.warning.withValues(alpha: 0.4)
+                              : tokens.border,
                         ),
                       ),
                       child: Row(
@@ -180,7 +166,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           Icon(
                             Icons.star_rounded,
                             size: 14,
-                            color: hasRating ? Colors.amber : (isDark ? Colors.white60 : Colors.black45),
+                            color: hasRating ? tokens.warning : tokens.textLow,
                           ),
                           const SizedBox(width: 4),
                           Text(
@@ -190,7 +176,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: hasRating ? (isDark ? const Color(0xFFFFD54F) : const Color(0xFFB45309)) : textSecondaryColor,
+                              color: hasRating ? tokens.warning : tokens.textMedium,
                             ),
                           ),
                         ],
@@ -200,7 +186,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     // Bio text (or prompt to add bio)
                     InkWell(
                       onTap: () => _showEditProfileModal(context, userDoc),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: AppRadii.controlRadius,
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         child: Text(
@@ -209,7 +195,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           style: TextStyle(
                             fontSize: 12,
                             fontStyle: userBio.isNotEmpty ? FontStyle.italic : FontStyle.normal,
-                            color: userBio.isNotEmpty ? textSecondaryColor : primaryColor,
+                            color: userBio.isNotEmpty ? tokens.textMedium : tokens.brand,
                             fontWeight: userBio.isNotEmpty ? FontWeight.normal : FontWeight.w600,
                           ),
                         ),
@@ -219,12 +205,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                       decoration: BoxDecoration(
-                        color: surfaceAltColor,
-                        borderRadius: BorderRadius.circular(16),
+                        color: tokens.surfaceAlt,
+                        borderRadius: AppRadii.cardRadius,
                       ),
                       child: Text(
                         '$faculty • $year • $term • $department',
-                        style: TextStyle(fontSize: 11, color: textSecondaryColor, fontWeight: FontWeight.w600),
+                        style: TextStyle(fontSize: 11, color: tokens.textMedium, fontWeight: FontWeight.w600),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -234,22 +220,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       children: [
                         OutlinedButton.icon(
                           onPressed: () => _showEditProfileModal(context, userDoc),
-                          icon: Icon(Icons.person_outline_rounded, size: 14, color: primaryColor),
-                          label: Text('تعديل الملف الشخصي', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryColor)),
+                          icon: Icon(Icons.person_outline_rounded, size: 14, color: tokens.brand),
+                          label: Text('تعديل الملف الشخصي', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: tokens.brand)),
                           style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: primaryColor.withValues(alpha: 0.3)),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            side: BorderSide(color: tokens.brand.withValues(alpha: 0.3)),
+                            shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           ),
                         ),
                         const SizedBox(width: 8),
                         OutlinedButton.icon(
                           onPressed: () => context.push('/academic-setup?edit=true'),
-                          icon: Icon(Icons.school_outlined, size: 14, color: primaryColor),
-                          label: Text('البيانات الأكاديمية', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryColor)),
+                          icon: Icon(Icons.school_outlined, size: 14, color: tokens.brand),
+                          label: Text('البيانات الأكاديمية', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: tokens.brand)),
                           style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: primaryColor.withValues(alpha: 0.3)),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            side: BorderSide(color: tokens.brand.withValues(alpha: 0.3)),
+                            shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                           ),
                         ),
@@ -265,15 +251,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               Row(
                 children: [
                   Expanded(
-                    child: _buildBadgeCard('رصيد الوقت', '$availableCoins عملة', Icons.toll_rounded, AppColors.pointsAmber, isDark, surfaceColor, hairlineColor, textSecondaryColor),
+                    child: _buildBadgeCard('رصيد الوقت', '$availableCoins عملة', Icons.toll_rounded, tokens.coin, tokens),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _buildBadgeCard('ساعات المذاكرة', '$studyHours ساعة', Icons.timer_outlined, primaryColor, isDark, surfaceColor, hairlineColor, textSecondaryColor),
+                    child: _buildBadgeCard('ساعات المذاكرة', '$studyHours ساعة', Icons.timer_outlined, tokens.brand, tokens),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
-                    child: _buildBadgeCard('جلسات مكتملة', '$completedSessions جلسة', Icons.check_circle_outline, AppColors.success, isDark, surfaceColor, hairlineColor, textSecondaryColor),
+                    child: _buildBadgeCard('جلسات مكتملة', '$completedSessions جلسة', Icons.check_circle_outline, tokens.success, tokens),
                   ),
                 ],
               ),
@@ -281,24 +267,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               const SizedBox(height: 18),
 
               // ==========================================
-              // كارت محفظة الوقت (شبه تابة الوضع الليلي مباشرة قبل موادي الدراسية)
+              // كارت محفظة الوقت
               // ==========================================
               Container(
                 decoration: BoxDecoration(
-                  color: surfaceColor,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: hairlineColor),
+                  color: tokens.surface,
+                  borderRadius: AppRadii.cardRadius,
+                  border: Border.all(color: tokens.border),
                 ),
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(18),
+                    borderRadius: AppRadii.cardRadius,
                     onTap: () => context.push('/wallet'),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       child: Row(
                         children: [
-                          const Icon(Icons.toll_rounded, color: AppColors.pointsAmber, size: 26),
+                          Icon(Icons.toll_rounded, color: tokens.coin, size: 26),
                           const SizedBox(width: 14),
                           Expanded(
                             child: Column(
@@ -306,12 +292,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               children: [
                                 Text(
                                   'محفظة عملات الوقت',
-                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimaryColor),
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: tokens.textHigh),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
                                   'رصيدك المتاح: $availableCoins عملة • الإجمالي: $totalCoins عملة',
-                                  style: TextStyle(fontSize: 12, color: textSecondaryColor),
+                                  style: TextStyle(fontSize: 12, color: tokens.textMedium),
                                 ),
                               ],
                             ),
@@ -322,20 +308,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: AppColors.pointsAmber.withValues(alpha: isDark ? 0.25 : 0.12),
-                                  borderRadius: BorderRadius.circular(20),
+                                  color: tokens.coin.withValues(alpha: 0.15),
+                                  borderRadius: AppRadii.fullRadius,
                                 ),
                                 child: Text(
                                   '$availableCoins عملة',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
-                                    color: AppColors.pointsAmber,
+                                    color: tokens.coin,
                                   ),
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              Icon(Icons.arrow_back_ios_rounded, size: 14, color: textSecondaryColor),
+                              Icon(Icons.arrow_back_ios_rounded, size: 14, color: tokens.textMedium),
                             ],
                           ),
                         ],
@@ -348,24 +334,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               const SizedBox(height: 12),
 
               // ==========================================
-              // كارت موادي الدراسية (تحت محفظة الوقت مباشرة بنفس الستايل تماماً)
+              // كارت موادي الدراسية
               // ==========================================
               Container(
                 decoration: BoxDecoration(
-                  color: surfaceColor,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: hairlineColor),
+                  color: tokens.surface,
+                  borderRadius: AppRadii.cardRadius,
+                  border: Border.all(color: tokens.border),
                 ),
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(18),
-                    onTap: () => _showCoursesBottomSheet(context, userCourses, userRatings, isDark),
+                    borderRadius: AppRadii.cardRadius,
+                    onTap: () => _showCoursesBottomSheet(context, userCourses, userRatings),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       child: Row(
                         children: [
-                          Icon(Icons.menu_book_outlined, color: primaryColor, size: 26),
+                          Icon(Icons.menu_book_outlined, color: tokens.brand, size: 26),
                           const SizedBox(width: 14),
                           Expanded(
                             child: Column(
@@ -373,12 +359,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               children: [
                                 Text(
                                   'المواد الدراسية (${userCourses.length})',
-                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimaryColor),
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: tokens.textHigh),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
                                   'المقررات المسجلة للفرقة والترم الحالي • اضغط للإدارة والتعديل',
-                                  style: TextStyle(fontSize: 12, color: textSecondaryColor),
+                                  style: TextStyle(fontSize: 12, color: tokens.textMedium),
                                 ),
                               ],
                             ),
@@ -389,20 +375,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: primaryColor.withValues(alpha: isDark ? 0.25 : 0.12),
-                                  borderRadius: BorderRadius.circular(20),
+                                  color: tokens.brandContainer.withValues(alpha: 0.5),
+                                  borderRadius: AppRadii.fullRadius,
                                 ),
                                 child: Text(
                                   '${userCourses.length} مواد',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
-                                    color: primaryColor,
+                                    color: tokens.brand,
                                   ),
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              Icon(Icons.arrow_back_ios_rounded, size: 14, color: textSecondaryColor),
+                              Icon(Icons.arrow_back_ios_rounded, size: 14, color: tokens.textMedium),
                             ],
                           ),
                         ],
@@ -420,12 +406,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 children: [
                   TextButton.icon(
                     onPressed: () => context.push('/schedule-setup'),
-                    icon: Icon(Icons.tune_rounded, size: 16, color: primaryColor),
-                    label: Text('إعداد وتعديل', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: primaryColor)),
+                    icon: Icon(Icons.tune_rounded, size: 16, color: tokens.brand),
+                    label: Text('إعداد وتعديل', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: tokens.brand)),
                   ),
                   Text(
                     'جدول المحاضرات (${plannerLectures.length})',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textPrimaryColor),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: tokens.textHigh),
                   ),
                 ],
               ),
@@ -433,9 +419,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
               Container(
                 decoration: BoxDecoration(
-                  color: surfaceColor,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: hairlineColor),
+                  color: tokens.surface,
+                  borderRadius: AppRadii.cardRadius,
+                  border: Border.all(color: tokens.border),
                 ),
                 child: plannerLectures.isEmpty
                     ? Padding(
@@ -443,15 +429,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         child: Center(
                           child: TextButton.icon(
                             onPressed: () => context.push('/schedule-setup'),
-                            icon: Icon(Icons.add_circle_outline_rounded, color: primaryColor),
-                            label: Text('أضف جدول محاضراتك لتوليد خطة المذاكرة الذكية', style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold, fontSize: 13)),
+                            icon: Icon(Icons.add_circle_outline_rounded, color: tokens.brand),
+                            label: Text('أضف جدول محاضراتك لتوليد خطة المذاكرة الذكية', style: TextStyle(color: tokens.brand, fontWeight: FontWeight.bold, fontSize: 13)),
                           ),
                         ),
                       )
                     : Column(
                         children: [
                           for (int i = 0; i < plannerLectures.length; i++) ...[
-                            if (i > 0) Divider(height: 1, color: hairlineColor),
+                            if (i > 0) Divider(height: 1, color: tokens.border),
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                               child: Row(
@@ -468,12 +454,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       children: [
                                         Text(
                                           plannerLectures[i].courseName,
-                                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimaryColor),
+                                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: tokens.textHigh),
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
                                           '${plannerLectures[i].day} • ${plannerLectures[i].startTime} – ${plannerLectures[i].endTime} • ${plannerLectures[i].room}',
-                                          style: TextStyle(fontSize: 11, color: textSecondaryColor),
+                                          style: TextStyle(fontSize: 11, color: tokens.textMedium),
                                         ),
                                       ],
                                     ),
@@ -491,24 +477,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               // Settings List
               Text(
                 'إعدادات التطبيق',
-                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textPrimaryColor),
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: tokens.textHigh),
               ),
               const SizedBox(height: 10),
 
               Container(
                 decoration: BoxDecoration(
-                  color: surfaceColor,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: hairlineColor),
+                  color: tokens.surface,
+                  borderRadius: AppRadii.cardRadius,
+                  border: Border.all(color: tokens.border),
                 ),
                 child: Column(
                   children: [
                     SwitchListTile(
-                      title: Text('الوضع الداكن (Dark Theme)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimaryColor)),
-                      subtitle: Text('تبديل مظهر الشاشات للألوان الداكنة وحفظ التفضيل', style: TextStyle(fontSize: 12, color: textSecondaryColor)),
-                      secondary: Icon(Icons.dark_mode_outlined, color: primaryColor),
+                      title: Text('الوضع الداكن (Dark Theme)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: tokens.textHigh)),
+                      subtitle: Text('تبديل مظهر الشاشات للألوان الداكنة وحفظ التفضيل', style: TextStyle(fontSize: 12, color: tokens.textMedium)),
+                      secondary: Icon(Icons.dark_mode_outlined, color: tokens.brand),
                       value: isDark,
-                      activeTrackColor: primaryColor,
+                      activeTrackColor: tokens.brand,
                       onChanged: (val) {
                         ref.read(themeModeProvider.notifier).toggleTheme(val);
                         ScaffoldMessenger.of(context).hideCurrentSnackBar();
@@ -516,45 +502,37 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           SnackBar(
                             content: Text(val ? 'تم تفعيل الوضع الداكن بنجاح.' : 'تم تفعيل الوضع الفاتح بنجاح.'),
                             duration: const Duration(seconds: 2),
-                            backgroundColor: val ? AppColors.darkSurfaceAlt : AppColors.primary,
+                            backgroundColor: val ? tokens.surfaceAlt : tokens.brand,
                           ),
                         );
                       },
                     ),
-                    Divider(height: 1, color: hairlineColor),
+                    Divider(height: 1, color: tokens.border),
                     SwitchListTile(
-                      title: Text('الإشعارات والتنبيهات', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimaryColor)),
-                      subtitle: Text('تنبيهات قبل بدء مواعيد المذاكرة والجلسات بـ 15 دقيقة', style: TextStyle(fontSize: 12, color: textSecondaryColor)),
-                      secondary: Icon(Icons.notifications_none_rounded, color: primaryColor),
+                      title: Text('الإشعارات والتنبيهات', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: tokens.textHigh)),
+                      subtitle: Text('تنبيهات قبل بدء مواعيد المذاكرة والجلسات بـ 15 دقيقة', style: TextStyle(fontSize: 12, color: tokens.textMedium)),
+                      secondary: Icon(Icons.notifications_none_rounded, color: tokens.brand),
                       value: _notifications,
-                      activeTrackColor: primaryColor,
+                      activeTrackColor: tokens.brand,
                       onChanged: (val) => setState(() => _notifications = val),
                     ),
-                    Divider(height: 1, color: hairlineColor),
+                    Divider(height: 1, color: tokens.border),
                     ListTile(
-                      leading: Icon(Icons.help_outline_rounded, color: primaryColor),
-                      title: Text('المساعدة والدعم', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimaryColor)),
-                      subtitle: Text('الأسئلة الشائعة والتواصل مع فريق زميل', style: TextStyle(fontSize: 12, color: textSecondaryColor)),
-                      trailing: Icon(Icons.arrow_back_ios_rounded, size: 14, color: textSecondaryColor),
-                      onTap: () => _showSupportDialog(
-                        context,
-                        isDark: isDark,
-                        surfaceColor: surfaceColor,
-                        hairlineColor: hairlineColor,
-                        textPrimaryColor: textPrimaryColor,
-                        textSecondaryColor: textSecondaryColor,
-                        primaryColor: primaryColor,
-                      ),
+                      leading: Icon(Icons.help_outline_rounded, color: tokens.brand),
+                      title: Text('المساعدة والدعم', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: tokens.textHigh)),
+                      subtitle: Text('الأسئلة الشائعة والتواصل مع فريق زميل', style: TextStyle(fontSize: 12, color: tokens.textMedium)),
+                      trailing: Icon(Icons.arrow_back_ios_rounded, size: 14, color: tokens.textMedium),
+                      onTap: () => _showSupportDialog(context),
                     ),
-                    Divider(height: 1, color: hairlineColor),
+                    Divider(height: 1, color: tokens.border),
                     ListTile(
-                      leading: const Icon(Icons.logout_rounded, color: AppColors.error),
-                      title: const Text(
+                      leading: Icon(Icons.logout_rounded, color: tokens.danger),
+                      title: Text(
                         'تسجيل الخروج',
-                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.error),
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: tokens.danger),
                       ),
-                      subtitle: Text('إنهاء الجلسة الحالية من هذا الجهاز', style: TextStyle(fontSize: 12, color: textSecondaryColor)),
-                      trailing: const Icon(Icons.arrow_back_ios_rounded, size: 14, color: AppColors.error),
+                      subtitle: Text('إنهاء الجلسة الحالية من هذا الجهاز', style: TextStyle(fontSize: 12, color: tokens.textMedium)),
+                      trailing: Icon(Icons.arrow_back_ios_rounded, size: 14, color: tokens.danger),
                       onTap: () => _confirmSignOut(context),
                     ),
                   ],
@@ -569,32 +547,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  void _showSupportDialog(
-    BuildContext context, {
-    required bool isDark,
-    required Color surfaceColor,
-    required Color hairlineColor,
-    required Color textPrimaryColor,
-    required Color textSecondaryColor,
-    required Color primaryColor,
-  }) {
+  void _showSupportDialog(BuildContext context) {
+    final tokens = context.tokens;
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: surfaceColor,
+        backgroundColor: tokens.surface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(color: hairlineColor),
+          borderRadius: AppRadii.sheetRadius,
+          side: BorderSide(color: tokens.border),
         ),
         title: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: primaryColor.withValues(alpha: 0.15),
+                color: tokens.brand.withValues(alpha: 0.15),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.support_agent_rounded, color: primaryColor, size: 22),
+              child: Icon(Icons.support_agent_rounded, color: tokens.brand, size: 22),
             ),
             const SizedBox(width: 10),
             Text(
@@ -602,7 +574,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: textPrimaryColor,
+                color: tokens.textHigh,
               ),
             ),
           ],
@@ -613,19 +585,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           children: [
             Text(
               'فريق تطبيق زميل هنا لمساعدتك! إذا واجهت أي استفسار، مشكلة تقنية، أو رغبت في مشاركة اقتراحاتك لتطوير التطبيق، يمكنك التواصل معنا مباشرة عبر البريد الإلكتروني:',
-              style: TextStyle(fontSize: 13, height: 1.4, color: textSecondaryColor),
+              style: TextStyle(fontSize: 13, height: 1.4, color: tokens.textMedium),
             ),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E2D3D) : AppColors.surfaceAlt,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: hairlineColor),
+                color: tokens.surfaceAlt,
+                borderRadius: AppRadii.controlRadius,
+                border: Border.all(color: tokens.border),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.email_outlined, color: primaryColor, size: 20),
+                  Icon(Icons.email_outlined, color: tokens.brand, size: 20),
                   const SizedBox(width: 8),
                   Expanded(
                     child: SelectableText(
@@ -633,21 +605,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
-                        color: textPrimaryColor,
+                        color: tokens.textHigh,
                       ),
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.copy_rounded, size: 18),
+                    icon: Icon(Icons.copy_rounded, size: 18),
                     tooltip: 'نسخ الإيميل',
-                    color: primaryColor,
+                    color: tokens.brand,
                     onPressed: () {
                       Clipboard.setData(const ClipboardData(text: AppConstants.supportEmail));
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
+                        SnackBar(
                           content: Text('تم نسخ البريد الإلكتروني بنجاح.'),
-                          backgroundColor: AppColors.success,
-                          duration: Duration(seconds: 2),
+                          backgroundColor: tokens.success,
+                          duration: const Duration(seconds: 2),
                         ),
                       );
                     },
@@ -660,13 +632,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('إغلاق', style: TextStyle(color: textSecondaryColor)),
+            child: Text('إغلاق', style: TextStyle(color: tokens.textMedium)),
           ),
           FilledButton.icon(
             style: FilledButton.styleFrom(
-              backgroundColor: primaryColor,
-              foregroundColor: isDark ? AppColors.darkOnPrimary : AppColors.onPrimary,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              backgroundColor: tokens.brand,
+              foregroundColor: tokens.onBrand,
+              shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
             ),
             onPressed: () async {
               final uri = Uri.parse('mailto:${AppConstants.supportEmail}?subject=${Uri.encodeComponent("استفسار ودعم - تطبيق زميل")}');
@@ -675,9 +647,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 if (!launched && context.mounted) {
                   Clipboard.setData(const ClipboardData(text: AppConstants.supportEmail));
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
                       content: Text('تم نسخ البريد الإلكتروني إلى الحافظة.'),
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: tokens.brand,
                     ),
                   );
                 }
@@ -685,9 +657,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 Clipboard.setData(const ClipboardData(text: AppConstants.supportEmail));
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
                       content: Text('تم نسخ البريد الإلكتروني إلى الحافظة.'),
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: tokens.brand,
                     ),
                   );
                 }
@@ -701,13 +673,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildBadgeCard(String label, String value, IconData icon, Color color, bool isDark, Color surfaceColor, Color hairlineColor, Color textSecondaryColor) {
+  Widget _buildBadgeCard(String label, String value, IconData icon, Color color, AppTokens tokens) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
       decoration: BoxDecoration(
-        color: surfaceColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: hairlineColor),
+        color: tokens.surface,
+        borderRadius: AppRadii.controlRadius,
+        border: Border.all(color: tokens.border),
       ),
       child: Column(
         children: [
@@ -715,7 +687,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           const SizedBox(height: 4),
           Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color)),
           const SizedBox(height: 2),
-          Text(label, style: TextStyle(fontSize: 10, color: textSecondaryColor)),
+          Text(label, style: TextStyle(fontSize: 10, color: tokens.textMedium)),
         ],
       ),
     );
@@ -751,22 +723,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     return map;
   }
 
-  Widget _buildCourseRow(CourseSeed course, int rating, bool isDark, Color textPrimaryColor, Color textSecondaryColor, Color surfaceAltColor) {
+  Widget _buildCourseRow(CourseSeed course, int rating, AppTokens tokens) {
     String ratingLabel;
     Color ratingColor;
     switch (rating) {
       case 1:
         ratingLabel = 'أحتاج مساعدة';
-        ratingColor = Colors.orange.shade700;
+        ratingColor = tokens.warning;
         break;
       case 3:
         ratingLabel = 'مستعد للشرح';
-        ratingColor = isDark ? AppColors.darkPrimary : AppColors.deepSage;
+        ratingColor = tokens.success;
         break;
       case 2:
       default:
         ratingLabel = 'متوسط';
-        ratingColor = isDark ? AppColors.darkPrimary : AppColors.primary;
+        ratingColor = tokens.brand;
         break;
     }
 
@@ -786,12 +758,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               children: [
                 Text(
                   course.name,
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimaryColor),
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: tokens.textHigh),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   course.code,
-                  style: TextStyle(fontSize: 11, color: textSecondaryColor),
+                  style: TextStyle(fontSize: 11, color: tokens.textMedium),
                 ),
               ],
             ),
@@ -799,15 +771,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: course.creditHours >= 3 ? AppColors.pointsAmber.withValues(alpha: 0.15) : surfaceAltColor,
-              borderRadius: BorderRadius.circular(6),
+              color: course.creditHours >= 3 ? tokens.warningContainer : tokens.surfaceAlt,
+              borderRadius: AppRadii.controlRadius,
             ),
             child: Text(
               '${course.creditHours} ساعات',
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.bold,
-                color: course.creditHours >= 3 ? (isDark ? const Color(0xFFFFD54F) : const Color(0xFF664700)) : textSecondaryColor,
+                color: course.creditHours >= 3 ? tokens.warning : tokens.textMedium,
               ),
             ),
           ),
@@ -816,7 +788,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
               color: ratingColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: AppRadii.controlRadius,
             ),
             child: Text(
               ratingLabel,
@@ -832,20 +804,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     BuildContext context,
     List<CourseSeed> currentCourses,
     Map<String, int> currentRatings,
-    bool isDark,
   ) {
+    final tokens = context.tokens;
     final nameController = TextEditingController();
     final codeController = TextEditingController();
     int selectedCreditHours = 3;
     int selectedRating = 2;
     bool isSaving = false;
-
-    final modalSurface = isDark ? AppColors.darkSurface : Colors.white;
-    final modalSurfaceAlt = isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt;
-    final modalTextPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
-    final modalTextSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
-    final modalPrimary = isDark ? AppColors.darkPrimary : AppColors.primary;
-    final modalPrimaryContainer = isDark ? AppColors.darkPrimaryContainer : AppColors.primaryContainer;
 
     showModalBottomSheet(
       context: context,
@@ -861,8 +826,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               bottom: MediaQuery.of(context).viewInsets.bottom + 24,
             ),
             decoration: BoxDecoration(
-              color: modalSurface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              color: tokens.surface,
+              borderRadius: AppRadii.sheetTopRadius,
             ),
             child: SingleChildScrollView(
               child: Column(
@@ -874,10 +839,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     children: [
                       Text(
                         'إضافة مادة جديدة',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: modalTextPrimary),
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: tokens.textHigh),
                       ),
                       IconButton(
-                        icon: Icon(Icons.close_rounded, color: modalTextSecondary),
+                        icon: Icon(Icons.close_rounded, color: tokens.textMedium),
                         onPressed: () => Navigator.pop(ctx),
                       ),
                     ],
@@ -885,46 +850,46 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   const SizedBox(height: 6),
                   Text(
                     'ستتم إضافتها إلى خطة مذاكرتك وبنك الوقت مع زملائك',
-                    style: TextStyle(fontSize: 12, color: modalTextSecondary),
+                    style: TextStyle(fontSize: 12, color: tokens.textMedium),
                   ),
                   const SizedBox(height: 20),
 
                   // Course Name
-                  Text('اسم المادة', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: modalTextPrimary)),
+                  Text('اسم المادة', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: tokens.textHigh)),
                   const SizedBox(height: 6),
                   TextField(
                     controller: nameController,
-                    style: TextStyle(color: modalTextPrimary),
+                    style: TextStyle(color: tokens.textHigh),
                     decoration: InputDecoration(
                       hintText: 'مثال: الذكاء الاصطناعي (AI)',
-                      hintStyle: TextStyle(color: modalTextSecondary),
+                      hintStyle: TextStyle(color: tokens.textMedium),
                       filled: true,
-                      fillColor: modalSurfaceAlt,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      prefixIcon: Icon(Icons.book_outlined, color: modalPrimary),
+                      fillColor: tokens.surfaceAlt,
+                      border: OutlineInputBorder(borderRadius: AppRadii.controlRadius, borderSide: BorderSide.none),
+                      prefixIcon: Icon(Icons.book_outlined, color: tokens.brand),
                     ),
                   ),
                   const SizedBox(height: 16),
 
                   // Course Code
-                  Text('كود المادة (اختياري)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: modalTextPrimary)),
+                  Text('كود المادة (اختياري)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: tokens.textHigh)),
                   const SizedBox(height: 6),
                   TextField(
                     controller: codeController,
-                    style: TextStyle(color: modalTextPrimary),
+                    style: TextStyle(color: tokens.textHigh),
                     decoration: InputDecoration(
                       hintText: 'مثال: AI301',
-                      hintStyle: TextStyle(color: modalTextSecondary),
+                      hintStyle: TextStyle(color: tokens.textMedium),
                       filled: true,
-                      fillColor: modalSurfaceAlt,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      prefixIcon: Icon(Icons.tag_rounded, color: modalPrimary),
+                      fillColor: tokens.surfaceAlt,
+                      border: OutlineInputBorder(borderRadius: AppRadii.controlRadius, borderSide: BorderSide.none),
+                      prefixIcon: Icon(Icons.tag_rounded, color: tokens.brand),
                     ),
                   ),
                   const SizedBox(height: 16),
 
                   // Credit Hours
-                  Text('الساعات المعتمدة للمادة (الأهمية)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: modalTextPrimary)),
+                  Text('الساعات المعتمدة للمادة (الأهمية)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: tokens.textHigh)),
                   const SizedBox(height: 8),
                   Row(
                     children: [
@@ -933,12 +898,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         label: 'ساعتان (2h)',
                         subtitle: 'وزن أساسي',
                         selected: selectedCreditHours == 2,
-                        isDark: isDark,
-                        modalPrimary: modalPrimary,
-                        modalPrimaryContainer: modalPrimaryContainer,
-                        modalSurfaceAlt: modalSurfaceAlt,
-                        modalTextPrimary: modalTextPrimary,
-                        modalTextSecondary: modalTextSecondary,
+                        tokens: tokens,
                         onTap: () => setModalState(() => selectedCreditHours = 2),
                       ),
                       const SizedBox(width: 8),
@@ -947,12 +907,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         label: '3 ساعات (3h)',
                         subtitle: 'أولوية عالية',
                         selected: selectedCreditHours == 3,
-                        isDark: isDark,
-                        modalPrimary: modalPrimary,
-                        modalPrimaryContainer: modalPrimaryContainer,
-                        modalSurfaceAlt: modalSurfaceAlt,
-                        modalTextPrimary: modalTextPrimary,
-                        modalTextSecondary: modalTextSecondary,
+                        tokens: tokens,
                         onTap: () => setModalState(() => selectedCreditHours = 3),
                       ),
                       const SizedBox(width: 8),
@@ -961,12 +916,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         label: '4 ساعات (4h)',
                         subtitle: 'أولوية قصوى',
                         selected: selectedCreditHours == 4,
-                        isDark: isDark,
-                        modalPrimary: modalPrimary,
-                        modalPrimaryContainer: modalPrimaryContainer,
-                        modalSurfaceAlt: modalSurfaceAlt,
-                        modalTextPrimary: modalTextPrimary,
-                        modalTextSecondary: modalTextSecondary,
+                        tokens: tokens,
                         onTap: () => setModalState(() => selectedCreditHours = 4),
                       ),
                     ],
@@ -974,19 +924,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   const SizedBox(height: 16),
 
                   // Rating in this course
-                  Text('تقييم مستواك في المادة', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: modalTextPrimary)),
+                  Text('تقييم مستواك في المادة', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: tokens.textHigh)),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      _buildRateChip('أحتاج مساعدة', 1, selectedRating == 1, Colors.orange.shade700, modalSurfaceAlt, modalTextSecondary, () {
+                      _buildRateChip('أحتاج مساعدة', 1, selectedRating == 1, tokens.warning, tokens, () {
                         setModalState(() => selectedRating = 1);
                       }),
                       const SizedBox(width: 8),
-                      _buildRateChip('متوسط', 2, selectedRating == 2, modalPrimary, modalSurfaceAlt, modalTextSecondary, () {
+                      _buildRateChip('متوسط', 2, selectedRating == 2, tokens.brand, tokens, () {
                         setModalState(() => selectedRating = 2);
                       }),
                       const SizedBox(width: 8),
-                      _buildRateChip('مستعد للشرح', 3, selectedRating == 3, isDark ? AppColors.darkPrimary : AppColors.deepSage, modalSurfaceAlt, modalTextSecondary, () {
+                      _buildRateChip('مستعد للشرح', 3, selectedRating == 3, tokens.success, tokens, () {
                         setModalState(() => selectedRating = 3);
                       }),
                     ],
@@ -1017,7 +967,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           id: newId,
                           name: name,
                           code: code,
-                          color: AppColors.courseTeal,
+                          color: tokens.courseTeal,
                           creditHours: selectedCreditHours,
                         );
 
@@ -1050,25 +1000,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text('تمت إضافة مادة "$name" بنجاح.'),
-                              backgroundColor: AppColors.success,
+                              backgroundColor: tokens.success,
                             ),
                           );
                         }
                       },
                       icon: isSaving
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 20,
                               height: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              child: CircularProgressIndicator(strokeWidth: 2, color: tokens.onBrand),
                             )
-                          : const Icon(Icons.add_task_rounded, color: Colors.white),
+                          : Icon(Icons.add_task_rounded, color: tokens.onBrand),
                       label: Text(
                         isSaving ? 'جارٍ الحفظ...' : 'إضافة المادة وحفظها',
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: tokens.onBrand),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: modalPrimary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        backgroundColor: tokens.brand,
+                        foregroundColor: tokens.onBrand,
+                        shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
                       ),
                     ),
                   ),
@@ -1085,18 +1036,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     BuildContext context,
     List<CourseSeed> currentCourses,
     Map<String, int> currentRatings,
-    bool isDark,
   ) {
+    final tokens = context.tokens;
     List<CourseSeed> editableCourses = List<CourseSeed>.from(currentCourses);
     Map<String, int> editableRatings = Map<String, int>.from(currentRatings);
     bool isSaving = false;
-
-    final modalSurface = isDark ? AppColors.darkSurface : Colors.white;
-    final modalSurfaceAlt = isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt;
-    final modalTextPrimary = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
-    final modalTextSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
-    final modalHairline = isDark ? AppColors.darkHairline : AppColors.hairline;
-    final modalPrimary = isDark ? AppColors.darkPrimary : AppColors.primary;
 
     showModalBottomSheet(
       context: context,
@@ -1108,8 +1052,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             height: MediaQuery.of(context).size.height * 0.75,
             padding: const EdgeInsets.only(left: 20, right: 20, top: 24, bottom: 20),
             decoration: BoxDecoration(
-              color: modalSurface,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              color: tokens.surface,
+              borderRadius: AppRadii.sheetTopRadius,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1119,10 +1063,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   children: [
                     Text(
                       'تعديل المواد المقررة والتقييمات',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: modalTextPrimary),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: tokens.textHigh),
                     ),
                     IconButton(
-                      icon: Icon(Icons.close_rounded, color: modalTextSecondary),
+                      icon: Icon(Icons.close_rounded, color: tokens.textMedium),
                       onPressed: () => Navigator.pop(ctx),
                     ),
                   ],
@@ -1130,7 +1074,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 const SizedBox(height: 4),
                 Text(
                   'يمكنك تعديل تقييمك وساعات كل مادة أو حذفها، وسيتم تحديث جدول مذاكرتك وبنك الوقت فوراً',
-                  style: TextStyle(fontSize: 12, color: modalTextSecondary),
+                  style: TextStyle(fontSize: 12, color: tokens.textMedium),
                 ),
                 const SizedBox(height: 16),
 
@@ -1145,9 +1089,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         margin: const EdgeInsets.only(bottom: 12),
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: modalSurfaceAlt.withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: modalHairline),
+                          color: tokens.surfaceAlt.withValues(alpha: 0.5),
+                          borderRadius: AppRadii.controlRadius,
+                          border: Border.all(color: tokens.border),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1163,28 +1107,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 Expanded(
                                   child: Text(
                                     course.name,
-                                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: modalTextPrimary),
+                                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: tokens.textHigh),
                                   ),
                                 ),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: course.creditHours >= 3 ? AppColors.pointsAmber.withValues(alpha: 0.2) : modalSurface,
-                                    borderRadius: BorderRadius.circular(6),
+                                    color: course.creditHours >= 3 ? tokens.warningContainer : tokens.surface,
+                                    borderRadius: AppRadii.controlRadius,
                                   ),
                                   child: Text(
                                     '${course.creditHours} ساعات',
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold,
-                                      color: course.creditHours >= 3 ? (isDark ? const Color(0xFFFFD54F) : const Color(0xFF664700)) : modalTextSecondary,
+                                      color: course.creditHours >= 3 ? tokens.warning : tokens.textMedium,
                                     ),
                                   ),
                                 ),
                                 const SizedBox(width: 4),
                                 if (editableCourses.length > 1)
                                   IconButton(
-                                    icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 20),
+                                    icon: Icon(Icons.delete_outline_rounded, color: tokens.danger, size: 20),
                                     onPressed: () {
                                       setModalState(() {
                                         editableCourses.removeAt(index);
@@ -1198,15 +1142,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             // Quick Rating Row
                             Row(
                               children: [
-                                _buildRateChip('أحتاج مساعدة', 1, rating == 1, Colors.orange.shade700, modalSurfaceAlt, modalTextSecondary, () {
+                                _buildRateChip('أحتاج مساعدة', 1, rating == 1, tokens.warning, tokens, () {
                                   setModalState(() => editableRatings[course.id] = 1);
                                 }),
                                 const SizedBox(width: 6),
-                                _buildRateChip('متوسط', 2, rating == 2, modalPrimary, modalSurfaceAlt, modalTextSecondary, () {
+                                _buildRateChip('متوسط', 2, rating == 2, tokens.brand, tokens, () {
                                   setModalState(() => editableRatings[course.id] = 2);
                                 }),
                                 const SizedBox(width: 6),
-                                _buildRateChip('مستعد للشرح', 3, rating == 3, isDark ? AppColors.darkPrimary : AppColors.deepSage, modalSurfaceAlt, modalTextSecondary, () {
+                                _buildRateChip('مستعد للشرح', 3, rating == 3, tokens.success, tokens, () {
                                   setModalState(() => editableRatings[course.id] = 3);
                                 }),
                               ],
@@ -1250,27 +1194,28 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
+                                SnackBar(
                                   content: Text('تم حفظ التعديلات وتحديث الخطة بنجاح.'),
-                                  backgroundColor: AppColors.success,
+                                  backgroundColor: tokens.success,
                                 ),
                               );
                             }
                           },
                     icon: isSaving
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            child: CircularProgressIndicator(strokeWidth: 2, color: tokens.onBrand),
                           )
-                        : const Icon(Icons.check_circle_outline_rounded, color: Colors.white),
+                        : Icon(Icons.check_circle_outline_rounded, color: tokens.onBrand),
                     label: Text(
                       isSaving ? 'جارٍ حفظ التعديلات...' : 'حفظ التعديلات في حسابي',
-                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: tokens.onBrand),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: modalPrimary,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      backgroundColor: tokens.brand,
+                      foregroundColor: tokens.onBrand,
+                      shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
                     ),
                   ),
                 ),
@@ -1287,12 +1232,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     required String label,
     required String subtitle,
     required bool selected,
-    required bool isDark,
-    required Color modalPrimary,
-    required Color modalPrimaryContainer,
-    required Color modalSurfaceAlt,
-    required Color modalTextPrimary,
-    required Color modalTextSecondary,
+    required AppTokens tokens,
     required VoidCallback onTap,
   }) {
     return Expanded(
@@ -1301,10 +1241,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
           decoration: BoxDecoration(
-            color: selected ? modalPrimaryContainer.withValues(alpha: 0.6) : modalSurfaceAlt,
-            borderRadius: BorderRadius.circular(10),
+            color: selected ? tokens.brandContainer.withValues(alpha: 0.6) : tokens.surfaceAlt,
+            borderRadius: AppRadii.controlRadius,
             border: Border.all(
-              color: selected ? modalPrimary : Colors.transparent,
+              color: selected ? tokens.brand : Colors.transparent,
               width: 1.5,
             ),
           ),
@@ -1312,12 +1252,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             children: [
               Text(
                 label,
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: selected ? modalPrimary : modalTextPrimary),
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: selected ? tokens.brand : tokens.textHigh),
               ),
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: TextStyle(fontSize: 9, color: selected ? modalPrimary : modalTextSecondary),
+                style: TextStyle(fontSize: 9, color: selected ? tokens.brand : tokens.textMedium),
               ),
             ],
           ),
@@ -1326,15 +1266,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Widget _buildRateChip(String label, int score, bool selected, Color color, Color modalSurfaceAlt, Color modalTextSecondary, VoidCallback onTap) {
+  Widget _buildRateChip(String label, int score, bool selected, Color color, AppTokens tokens, VoidCallback onTap) {
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: selected ? color.withValues(alpha: 0.15) : modalSurfaceAlt,
-            borderRadius: BorderRadius.circular(8),
+            color: selected ? color.withValues(alpha: 0.15) : tokens.surfaceAlt,
+            borderRadius: AppRadii.controlRadius,
             border: Border.all(color: selected ? color : Colors.transparent, width: 1.5),
           ),
           child: Text(
@@ -1343,7 +1283,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             style: TextStyle(
               fontSize: 11,
               fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-              color: selected ? color : modalTextSecondary,
+              color: selected ? color : tokens.textMedium,
             ),
           ),
         ),
@@ -1352,18 +1292,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _confirmSignOut(BuildContext context) async {
+    final tokens = context.tokens;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('تسجيل الخروج'),
-        content: const Text('هل أنت متأكد من رغبتك في تسجيل الخروج من تطبيق زميل؟'),
+        backgroundColor: tokens.surface,
+        title: Text('تسجيل الخروج', style: TextStyle(color: tokens.textHigh)),
+        content: Text('هل أنت متأكد من رغبتك في تسجيل الخروج من تطبيق زميل؟', style: TextStyle(color: tokens.textMedium)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('إلغاء'),
+            child: Text('إلغاء', style: TextStyle(color: tokens.textMedium)),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            style: FilledButton.styleFrom(backgroundColor: tokens.danger),
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('نعم، تسجيل الخروج'),
           ),
@@ -1384,14 +1326,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     BuildContext context,
     List<CourseSeed> currentCourses,
     Map<String, int> currentRatings,
-    bool isDark,
   ) {
-    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.surface;
-    final surfaceAltColor = isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt;
-    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
-    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
-    final hairlineColor = isDark ? AppColors.darkHairline : AppColors.hairline;
-    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
+    final tokens = context.tokens;
 
     showModalBottomSheet(
       context: context,
@@ -1404,9 +1340,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               maxHeight: MediaQuery.of(context).size.height * 0.75,
             ),
             decoration: BoxDecoration(
-              color: surfaceColor,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              border: Border.all(color: hairlineColor),
+              color: tokens.surface,
+              borderRadius: AppRadii.sheetTopRadius,
+              border: Border.all(color: tokens.border),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1416,8 +1352,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: hairlineColor,
-                    borderRadius: BorderRadius.circular(2),
+                    color: tokens.border,
+                    borderRadius: AppRadii.controlRadius,
                   ),
                 ),
                 Padding(
@@ -1427,11 +1363,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.menu_book_outlined, color: primaryColor, size: 22),
+                          Icon(Icons.menu_book_outlined, color: tokens.brand, size: 22),
                           const SizedBox(width: 10),
                           Text(
                             'المواد الدراسية (${currentCourses.length})',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimaryColor),
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: tokens.textHigh),
                           ),
                         ],
                       ),
@@ -1440,22 +1376,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           InkWell(
                             onTap: () {
                               Navigator.pop(ctx);
-                              _showAddCourseModal(context, currentCourses, currentRatings, isDark);
+                              _showAddCourseModal(context, currentCourses, currentRatings);
                             },
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: AppRadii.controlRadius,
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                               decoration: BoxDecoration(
-                                color: primaryColor.withValues(alpha: isDark ? 0.25 : 0.12),
-                                borderRadius: BorderRadius.circular(8),
+                                color: tokens.brandContainer.withValues(alpha: 0.5),
+                                borderRadius: AppRadii.controlRadius,
                               ),
                               child: Row(
                                 children: [
-                                  Icon(Icons.add_circle_outline_rounded, size: 14, color: primaryColor),
+                                  Icon(Icons.add_circle_outline_rounded, size: 14, color: tokens.brand),
                                   const SizedBox(width: 4),
                                   Text(
                                     'إضافة',
-                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryColor),
+                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: tokens.brand),
                                   ),
                                 ],
                               ),
@@ -1465,22 +1401,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           InkWell(
                             onTap: () {
                               Navigator.pop(ctx);
-                              _showManageCoursesModal(context, currentCourses, currentRatings, isDark);
+                              _showManageCoursesModal(context, currentCourses, currentRatings);
                             },
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: AppRadii.controlRadius,
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                               decoration: BoxDecoration(
-                                color: surfaceAltColor,
-                                borderRadius: BorderRadius.circular(8),
+                                color: tokens.surfaceAlt,
+                                borderRadius: AppRadii.controlRadius,
                               ),
                               child: Row(
                                 children: [
-                                  Icon(Icons.tune_rounded, size: 14, color: textSecondaryColor),
+                                  Icon(Icons.tune_rounded, size: 14, color: tokens.textMedium),
                                   const SizedBox(width: 4),
                                   Text(
                                     'تعديل',
-                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: textSecondaryColor),
+                                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: tokens.textMedium),
                                   ),
                                 ],
                               ),
@@ -1491,30 +1427,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ],
                   ),
                 ),
-                Divider(height: 1, color: hairlineColor),
+                Divider(height: 1, color: tokens.border),
                 Flexible(
                   child: currentCourses.isEmpty
                       ? Padding(
                           padding: const EdgeInsets.all(24),
                           child: Center(
-                            child: Text('لا توجد مواد مسجلة حالياً', style: TextStyle(color: textSecondaryColor)),
+                            child: Text('لا توجد مواد مسجلة حالياً', style: TextStyle(color: tokens.textMedium)),
                           ),
                         )
                       : ListView.separated(
                           shrinkWrap: true,
                           padding: const EdgeInsets.symmetric(vertical: 8),
                           itemCount: currentCourses.length,
-                          separatorBuilder: (_, _) => Divider(height: 1, color: hairlineColor),
+                          separatorBuilder: (_, _) => Divider(height: 1, color: tokens.border),
                           itemBuilder: (context, index) {
                             final course = currentCourses[index];
                             final rating = currentRatings[course.id] ?? 2;
                             return _buildCourseRow(
                               course,
                               rating,
-                              isDark,
-                              textPrimaryColor,
-                              textSecondaryColor,
-                              surfaceAltColor,
+                              tokens,
                             );
                           },
                         ),
@@ -1628,6 +1561,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
   }
 
   Future<void> _save() async {
+    final tokens = context.tokens;
     final name = _nameController.text.trim();
     final username = _usernameController.text.trim().replaceAll('@', '');
     final bio = _bioController.text.trim();
@@ -1665,9 +1599,9 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('تم تحديث بيانات الملف الشخصي بنجاح.'),
-            backgroundColor: AppColors.success,
+            backgroundColor: tokens.success,
           ),
         );
       }
@@ -1683,13 +1617,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final surfaceColor = isDark ? AppColors.darkSurface : Colors.white;
-    final surfaceAltColor = isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt;
-    final textPrimaryColor = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
-    final textSecondaryColor = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
-    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
+    final tokens = context.tokens;
 
     return Container(
       padding: EdgeInsets.only(
@@ -1699,8 +1627,8 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
         bottom: MediaQuery.of(context).viewInsets.bottom + 24,
       ),
       decoration: BoxDecoration(
-        color: surfaceColor,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        color: tokens.surface,
+        borderRadius: AppRadii.sheetTopRadius,
       ),
       child: SingleChildScrollView(
         child: Column(
@@ -1712,8 +1640,8 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: textSecondaryColor.withValues(alpha: 0.3),
-                  borderRadius: BorderRadius.circular(2),
+                  color: tokens.border,
+                  borderRadius: AppRadii.controlRadius,
                 ),
               ),
             ),
@@ -1723,10 +1651,10 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
               children: [
                 Text(
                   'تعديل الملف الشخصي',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textPrimaryColor),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: tokens.textHigh),
                 ),
                 IconButton(
-                  icon: Icon(Icons.close_rounded, color: textSecondaryColor),
+                  icon: Icon(Icons.close_rounded, color: tokens.textMedium),
                   onPressed: () => Navigator.pop(context),
                 ),
               ],
@@ -1734,7 +1662,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
             const SizedBox(height: 6),
             Text(
               'يمكنك تحديث بياناتك الشخصية مع مراعاة فترات التهدئة وسياسات الأمان.',
-              style: TextStyle(fontSize: 12, color: textSecondaryColor),
+              style: TextStyle(fontSize: 12, color: tokens.textMedium),
             ),
             const SizedBox(height: 18),
 
@@ -1742,18 +1670,18 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: AppColors.error.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                  color: tokens.dangerContainer,
+                  borderRadius: AppRadii.controlRadius,
+                  border: Border.all(color: tokens.danger.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 18),
+                    Icon(Icons.error_outline_rounded, color: tokens.danger, size: 18),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         _errorMessage!,
-                        style: const TextStyle(fontSize: 12, color: AppColors.error, fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 12, color: tokens.danger, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
@@ -1766,17 +1694,17 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('الاسم الكامل', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimaryColor)),
+                Text('الاسم الكامل', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: tokens.textHigh)),
                 if (_isNameLocked)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.amber.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(6),
+                      color: tokens.warningContainer,
+                      borderRadius: AppRadii.controlRadius,
                     ),
                     child: Text(
                       'متاح التغيير بعد $_nameRemainingDays يوم',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.amber),
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: tokens.warning),
                     ),
                   ),
               ],
@@ -1785,14 +1713,14 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
             TextField(
               controller: _nameController,
               enabled: !_isNameLocked,
-              style: TextStyle(color: _isNameLocked ? textSecondaryColor : textPrimaryColor),
+              style: TextStyle(color: _isNameLocked ? tokens.textMedium : tokens.textHigh),
               decoration: InputDecoration(
                 hintText: 'أدخل اسمك الحقيقي',
-                hintStyle: TextStyle(color: textSecondaryColor),
+                hintStyle: TextStyle(color: tokens.textMedium),
                 filled: true,
-                fillColor: _isNameLocked ? surfaceAltColor.withValues(alpha: 0.5) : surfaceAltColor,
-                prefixIcon: Icon(Icons.badge_outlined, color: _isNameLocked ? textSecondaryColor : primaryColor),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                fillColor: _isNameLocked ? tokens.surfaceAlt.withValues(alpha: 0.5) : tokens.surfaceAlt,
+                prefixIcon: Icon(Icons.badge_outlined, color: _isNameLocked ? tokens.textMedium : tokens.brand),
+                border: OutlineInputBorder(borderRadius: AppRadii.controlRadius, borderSide: BorderSide.none),
               ),
             ),
             const SizedBox(height: 16),
@@ -1801,17 +1729,17 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('اسم المستخدم (@handle)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimaryColor)),
+                Text('اسم المستخدم (@handle)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: tokens.textHigh)),
                 if (_isUsernameLocked)
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.amber.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(6),
+                      color: tokens.warningContainer,
+                      borderRadius: AppRadii.controlRadius,
                     ),
                     child: Text(
                       'متاح التغيير بعد $_usernameRemainingDays يوم',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.amber),
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: tokens.warning),
                     ),
                   ),
               ],
@@ -1820,16 +1748,16 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
             TextField(
               controller: _usernameController,
               enabled: !_isUsernameLocked,
-              style: TextStyle(color: _isUsernameLocked ? textSecondaryColor : textPrimaryColor),
+              style: TextStyle(color: _isUsernameLocked ? tokens.textMedium : tokens.textHigh),
               decoration: InputDecoration(
                 hintText: 'e.g. ahmed_cs',
-                hintStyle: TextStyle(color: textSecondaryColor),
+                hintStyle: TextStyle(color: tokens.textMedium),
                 prefixText: '@ ',
-                prefixStyle: TextStyle(color: primaryColor, fontWeight: FontWeight.bold),
+                prefixStyle: TextStyle(color: tokens.brand, fontWeight: FontWeight.bold),
                 filled: true,
-                fillColor: _isUsernameLocked ? surfaceAltColor.withValues(alpha: 0.5) : surfaceAltColor,
-                prefixIcon: Icon(Icons.alternate_email_rounded, color: _isUsernameLocked ? textSecondaryColor : primaryColor),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                fillColor: _isUsernameLocked ? tokens.surfaceAlt.withValues(alpha: 0.5) : tokens.surfaceAlt,
+                prefixIcon: Icon(Icons.alternate_email_rounded, color: _isUsernameLocked ? tokens.textMedium : tokens.brand),
+                border: OutlineInputBorder(borderRadius: AppRadii.controlRadius, borderSide: BorderSide.none),
               ),
             ),
             const SizedBox(height: 16),
@@ -1838,14 +1766,14 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('النبذة التعريفية (Bio)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: textPrimaryColor)),
+                Text('النبذة التعريفية (Bio)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: tokens.textHigh)),
                 ListenableBuilder(
                   listenable: _bioController,
                   builder: (context, _) => Text(
                     '${_bioController.text.length} / 120',
                     style: TextStyle(
                       fontSize: 11,
-                      color: _bioController.text.length > 120 ? AppColors.error : textSecondaryColor,
+                      color: _bioController.text.length > 120 ? tokens.danger : tokens.textMedium,
                     ),
                   ),
                 ),
@@ -1857,13 +1785,13 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
               maxLines: 3,
               maxLength: 120,
               buildCounter: (_, {required currentLength, required isFocused, maxLength}) => const SizedBox.shrink(),
-              style: TextStyle(color: textPrimaryColor),
+              style: TextStyle(color: tokens.textHigh),
               decoration: InputDecoration(
                 hintText: 'اكتب نبذة قصيرة عن اهتماماتك الأكاديمية وطموحك...',
-                hintStyle: TextStyle(color: textSecondaryColor),
+                hintStyle: TextStyle(color: tokens.textMedium),
                 filled: true,
-                fillColor: surfaceAltColor,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                fillColor: tokens.surfaceAlt,
+                border: OutlineInputBorder(borderRadius: AppRadii.controlRadius, borderSide: BorderSide.none),
               ),
             ),
             const SizedBox(height: 20),
@@ -1872,19 +1800,20 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
             FilledButton(
               onPressed: _isSaving ? null : _save,
               style: FilledButton.styleFrom(
-                backgroundColor: primaryColor,
+                backgroundColor: tokens.brand,
+                foregroundColor: tokens.onBrand,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
               ),
               child: _isSaving
-                  ? const SizedBox(
+                  ? SizedBox(
                       width: 22,
                       height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(strokeWidth: 2, color: tokens.onBrand),
                     )
                   : const Text(
                       'حفظ التغييرات',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     ),
             ),
           ],

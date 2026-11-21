@@ -5,7 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/models/app_models.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../auth/data/auth_service.dart';
 import '../../timebank/data/timebank_repository.dart';
 
@@ -82,8 +82,8 @@ class _RatingScreenState extends ConsumerState<RatingScreen> {
   Widget build(BuildContext context) {
     final session = widget.session;
     final teacherName = session?.teacherName ?? 'الزميل الشارح';
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final hairline = isDark ? AppColors.darkHairline : AppColors.hairline;
+    final tokens = context.tokens;
+    final hairline = tokens.border;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -112,13 +112,13 @@ class _RatingScreenState extends ConsumerState<RatingScreen> {
                   width: 72,
                   height: 72,
                   decoration: BoxDecoration(
-                    color: AppColors.primaryContainer.withValues(alpha: 0.5),
+                    color: tokens.brandContainer,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.school_rounded,
                     size: 38,
-                    color: AppColors.primary,
+                    color: tokens.brand,
                   ),
                 ),
               ),
@@ -129,10 +129,10 @@ class _RatingScreenState extends ConsumerState<RatingScreen> {
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
               ),
               const SizedBox(height: 6),
-              const Text(
+              Text(
                 'تقييمك يساعد زملاءك في التعرف على تميز الشارح ويزيد من موثوقية بنك الوقت.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                style: TextStyle(fontSize: 13, color: tokens.textMedium),
               ),
 
               const SizedBox(height: 28),
@@ -142,7 +142,7 @@ class _RatingScreenState extends ConsumerState<RatingScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 18),
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardTheme.color,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: AppRadii.cardRadius,
                   border: Border.all(color: hairline),
                 ),
                 child: Column(
@@ -156,7 +156,7 @@ class _RatingScreenState extends ConsumerState<RatingScreen> {
                           iconSize: 36,
                           icon: Icon(
                             isFilled ? Icons.star_rounded : Icons.star_border_rounded,
-                            color: isFilled ? AppColors.pointsAmber : AppColors.textTertiary,
+                            color: isFilled ? tokens.coin : tokens.textLow,
                           ),
                           onPressed: () => setState(() => _rating = starValue),
                         );
@@ -173,7 +173,7 @@ class _RatingScreenState extends ConsumerState<RatingScreen> {
                                   : _rating == 2
                                       ? 'مقبول'
                                       : 'بحاجة لتحسين',
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary),
+                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: tokens.brand),
                     ),
                   ],
                 ),
@@ -194,8 +194,8 @@ class _RatingScreenState extends ConsumerState<RatingScreen> {
                   hintText: 'اكتب كلمة شكر أو ملاحظات ساعدتك أثناء الشرح...',
                   filled: true,
                   fillColor: Theme.of(context).cardTheme.color,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: hairline)),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: hairline)),
+                  border: OutlineInputBorder(borderRadius: AppRadii.cardRadius, borderSide: BorderSide(color: hairline)),
+                  enabledBorder: OutlineInputBorder(borderRadius: AppRadii.cardRadius, borderSide: BorderSide(color: hairline)),
                 ),
               ),
 
@@ -205,18 +205,18 @@ class _RatingScreenState extends ConsumerState<RatingScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryContainer.withValues(alpha: 0.35),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                  color: tokens.brandContainer.withValues(alpha: 0.35),
+                  borderRadius: AppRadii.cardRadius,
+                  border: Border.all(color: tokens.brand.withValues(alpha: 0.2)),
                 ),
-                child: const Row(
+                child: Row(
                   children: [
-                    Icon(Icons.shield_rounded, color: AppColors.primary, size: 28),
+                    Icon(Icons.shield_rounded, color: tokens.brand, size: 28),
                     SizedBox(width: 12),
                     Expanded(
                       child: Text(
                         'عند الضغط على الزر، سيتم فك حجز الضمان وتحويل 1 عملة وقت إلى محفظة الشارح فوراً.',
-                        style: TextStyle(fontSize: 12, color: AppColors.primary, height: 1.4),
+                        style: TextStyle(fontSize: 12, color: tokens.brand, height: 1.4),
                       ),
                     ),
                   ],
@@ -236,14 +236,14 @@ class _RatingScreenState extends ConsumerState<RatingScreen> {
                           height: 20,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                         )
-                      : const Icon(Icons.send_rounded, color: Colors.white),
+                      : Icon(Icons.send_rounded, color: Colors.white),
                   label: Text(
                     _isSubmitting ? 'جاري تحرير الضمان والتقييم...' : 'إرسال التقييم وإطلاق عملة الوقت',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    backgroundColor: tokens.brand,
+                    shape: RoundedRectangleBorder(borderRadius: AppRadii.cardRadius),
                   ),
                 ),
               ),

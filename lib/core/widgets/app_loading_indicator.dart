@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
-import '../theme/app_colors.dart';
+import '../theme/app_tokens.dart';
 
-/// مؤشر التحميل المتناسق مع هوية تطبيق «زَميل»
+/// مؤشر التحميل المتناسق مع هوية تطبيق «زميل»
 class AppLoadingIndicator extends StatelessWidget {
   final String? message;
   final double size;
@@ -16,9 +16,8 @@ class AppLoadingIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final primaryColor = color ?? (isDark ? AppColors.darkPrimary : AppColors.primary);
+    final tokens = context.tokens;
+    final primaryColor = color ?? tokens.brand;
 
     return Center(
       child: Padding(
@@ -44,7 +43,7 @@ class AppLoadingIndicator extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                  color: tokens.textMedium,
                 ),
               ),
             ],

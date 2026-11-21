@@ -3,7 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../auth/data/auth_service.dart';
 import '../data/question_repository.dart';
@@ -57,7 +57,7 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
       context: context,
       backgroundColor: Theme.of(context).cardTheme.color,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: AppRadii.sheetTopRadius,
       ),
       builder: (ctx) {
         return SafeArea(
@@ -76,7 +76,7 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
                 ),
                 const SizedBox(height: 16),
                 ListTile(
-                  leading: const Icon(Icons.camera_alt_rounded, color: AppColors.primary),
+                  leading: Icon(Icons.camera_alt_rounded, color: context.tokens.brand),
                   title: const Text('التقاط صورة بالكاميرا'),
                   onTap: () {
                     Navigator.pop(ctx);
@@ -84,7 +84,7 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.photo_library_rounded, color: AppColors.primary),
+                  leading: Icon(Icons.photo_library_rounded, color: context.tokens.brand),
                   title: const Text('اختيار صورة من المعرض'),
                   onTap: () {
                     Navigator.pop(ctx);
@@ -145,9 +145,9 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('تم نشر السؤال في المنتدى بنجاح.'),
-            backgroundColor: AppColors.success,
+            backgroundColor: context.tokens.success,
           ),
         );
         context.pop();
@@ -157,7 +157,7 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('تعذر نشر السؤال: $e'),
-            backgroundColor: AppColors.error,
+            backgroundColor: context.tokens.danger,
           ),
         );
       }
@@ -171,12 +171,12 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final cardColor = isDark ? AppColors.darkSurface : Colors.white;
-    final hairline = isDark ? AppColors.darkHairline : AppColors.hairline;
-    final surfaceAlt = isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt;
-    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
-    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final tokens = context.tokens;
+    final cardColor = tokens.surface;
+    final hairline = tokens.border;
+    final surfaceAlt = tokens.surfaceAlt;
+    final primaryColor = tokens.brand;
+    final textSecondary = tokens.textMedium;
     final onSurface = theme.colorScheme.onSurface;
 
     final userProfileAsync = ref.watch(userProfileStreamProvider);
@@ -229,7 +229,7 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
             onPressed: _isSubmitting ? null : _submitQuestion,
             style: ElevatedButton.styleFrom(
               backgroundColor: primaryColor,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(borderRadius: AppRadii.cardRadius),
             ),
             child: _isSubmitting
                 ? const SizedBox(
@@ -264,7 +264,7 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: primaryColor.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: AppRadii.cardRadius,
                     border: Border.all(color: primaryColor.withValues(alpha: 0.2)),
                   ),
                   child: Row(
@@ -290,7 +290,7 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   decoration: BoxDecoration(
                     color: surfaceAlt,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AppRadii.controlRadius,
                     border: Border.all(color: hairline),
                   ),
                   child: DropdownButtonHideUnderline(
@@ -338,9 +338,9 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
                     hintStyle: TextStyle(fontSize: 13, color: textSecondary),
                     filled: true,
                     fillColor: surfaceAlt,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hairline)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hairline)),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primaryColor, width: 1.5)),
+                    border: OutlineInputBorder(borderRadius: AppRadii.controlRadius, borderSide: BorderSide(color: hairline)),
+                    enabledBorder: OutlineInputBorder(borderRadius: AppRadii.controlRadius, borderSide: BorderSide(color: hairline)),
+                    focusedBorder: OutlineInputBorder(borderRadius: AppRadii.controlRadius, borderSide: BorderSide(color: primaryColor, width: 1.5)),
                   ),
                 ),
 
@@ -361,9 +361,9 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
                     hintStyle: TextStyle(fontSize: 13, color: textSecondary),
                     filled: true,
                     fillColor: surfaceAlt,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hairline)),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hairline)),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primaryColor, width: 1.5)),
+                    border: OutlineInputBorder(borderRadius: AppRadii.controlRadius, borderSide: BorderSide(color: hairline)),
+                    enabledBorder: OutlineInputBorder(borderRadius: AppRadii.controlRadius, borderSide: BorderSide(color: hairline)),
+                    focusedBorder: OutlineInputBorder(borderRadius: AppRadii.controlRadius, borderSide: BorderSide(color: primaryColor, width: 1.5)),
                   ),
                 ),
 
@@ -380,7 +380,7 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
                         height: 180,
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(14),
+                          borderRadius: AppRadii.cardRadius,
                           border: Border.all(color: primaryColor.withValues(alpha: 0.5)),
                           image: DecorationImage(
                             image: FileImage(File(_pickedImage!.path)),
@@ -404,13 +404,13 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
                   )
                 else
                   InkWell(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: AppRadii.cardRadius,
                     onTap: _showImagePickerOptions,
                     child: Container(
                       height: 100,
                       decoration: BoxDecoration(
                         color: surfaceAlt,
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: AppRadii.cardRadius,
                         border: Border.all(color: hairline, style: BorderStyle.solid),
                       ),
                       child: Column(

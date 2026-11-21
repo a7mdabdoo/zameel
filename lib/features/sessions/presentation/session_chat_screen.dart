@@ -2,7 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../core/models/app_models.dart';
 import '../../../core/services/notification_service.dart';
 import '../../auth/data/auth_service.dart';
@@ -91,7 +91,7 @@ class _SessionChatScreenState extends ConsumerState<SessionChatScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('تعذر إرسال الرسالة: $e'),
-            backgroundColor: AppColors.error,
+            backgroundColor: context.tokens.danger,
           ),
         );
       }
@@ -102,8 +102,7 @@ class _SessionChatScreenState extends ConsumerState<SessionChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final tokens = context.tokens;
     final currentUserId = ref.watch(authServiceProvider).currentUser?.uid ?? '';
     final isTeacher = currentUserId == widget.session.teacherId;
     final peerName = isTeacher ? widget.session.learnerName : widget.session.teacherName;
@@ -138,10 +137,10 @@ class _SessionChatScreenState extends ConsumerState<SessionChatScreen> {
           children: [
             CircleAvatar(
               radius: 18,
-              backgroundColor: AppColors.primaryContainer,
+              backgroundColor: tokens.brandContainer,
               child: Text(
                 peerName.isNotEmpty ? peerName.substring(0, 1) : 'ز',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.primary),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: tokens.brand),
               ),
             ),
             const SizedBox(width: 10),
@@ -151,14 +150,14 @@ class _SessionChatScreenState extends ConsumerState<SessionChatScreen> {
                 children: [
                   Text(
                     peerName,
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                     overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     '${widget.session.courseName} • ${widget.session.isGroupSession ? "جلسة جماعية" : (isTeacher ? "المتعلّم" : "المعلم")}',
                     style: TextStyle(
                       fontSize: 11,
-                      color: isDark ? Colors.white70 : Colors.black54,
+                      color: tokens.textMedium,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -173,7 +172,7 @@ class _SessionChatScreenState extends ConsumerState<SessionChatScreen> {
               padding: const EdgeInsets.only(left: 8.0),
               child: IconButton(
                 tooltip: 'رابط الاجتماع',
-                icon: const Icon(Icons.videocam_rounded, color: AppColors.primary),
+                icon: Icon(Icons.videocam_rounded, color: tokens.brand),
                 onPressed: () {
                   showDialog(
                     context: context,
@@ -210,29 +209,29 @@ class _SessionChatScreenState extends ConsumerState<SessionChatScreen> {
             // شريط حالة الجلسة
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
+              color: tokens.surfaceAlt,
               child: Row(
                 children: [
                   Icon(
                     widget.session.mode == 'online' ? Icons.laptop_mac_rounded : Icons.location_on_rounded,
                     size: 16,
-                    color: AppColors.primary,
+                    color: tokens.brand,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     widget.session.mode == 'online' ? 'جلسة أونلاين' : widget.session.location,
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                   ),
                   const Spacer(),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(12),
+                      color: tokens.brandContainer,
+                      borderRadius: AppRadii.controlRadius,
                     ),
                     child: Text(
                       widget.session.time,
-                      style: const TextStyle(fontSize: 11, color: AppColors.primary, fontWeight: FontWeight.bold),
+                      style: TextStyle(fontSize: 11, color: tokens.brand, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ],
@@ -244,7 +243,7 @@ class _SessionChatScreenState extends ConsumerState<SessionChatScreen> {
               child: messagesAsync.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (err, _) => Center(
-                  child: Text('خطأ في تحميل الرسائل: $err', style: const TextStyle(color: AppColors.error)),
+                  child: Text('خطأ في تحميل الرسائل: $err', style: TextStyle(color: tokens.danger)),
                 ),
                 data: (messages) {
                   if (messages.isEmpty) {
@@ -252,16 +251,16 @@ class _SessionChatScreenState extends ConsumerState<SessionChatScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.chat_bubble_outline_rounded, size: 52, color: AppColors.textSecondary.withValues(alpha: 0.5)),
+                          Icon(Icons.chat_bubble_outline_rounded, size: 52, color: tokens.textLow),
                           const SizedBox(height: 12),
-                          const Text(
+                          Text(
                             'لا توجد رسائل بعد',
                             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
                           ),
                           const SizedBox(height: 6),
-                          const Text(
+                          Text(
                             'ابدأ المحادثة لتنسيق تفاصيل اللقاء والموضوعات',
-                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                            style: TextStyle(fontSize: 12, color: tokens.textMedium),
                           ),
                         ],
                       ),
@@ -286,14 +285,12 @@ class _SessionChatScreenState extends ConsumerState<SessionChatScreen> {
                           margin: const EdgeInsets.only(bottom: 8),
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                           decoration: BoxDecoration(
-                            color: isMe
-                                ? AppColors.primary
-                                : (isDark ? const Color(0xFF242728) : const Color(0xFFEFF1F2)),
+                            color: isMe ? tokens.brand : tokens.surfaceAlt,
                             borderRadius: BorderRadius.only(
-                              topLeft: const Radius.circular(16),
-                              topRight: const Radius.circular(16),
-                              bottomLeft: isMe ? const Radius.circular(16) : const Radius.circular(4),
-                              bottomRight: isMe ? const Radius.circular(4) : const Radius.circular(16),
+                              topLeft: AppRadii.bubbleRadius,
+                              topRight: AppRadii.bubbleRadius,
+                              bottomLeft: isMe ? AppRadii.bubbleRadius : AppRadii.bubbleNipRadius,
+                              bottomRight: isMe ? AppRadii.bubbleNipRadius : AppRadii.bubbleRadius,
                             ),
                           ),
                           child: Column(
@@ -302,10 +299,10 @@ class _SessionChatScreenState extends ConsumerState<SessionChatScreen> {
                               if (!isMe)
                                 Text(
                                   msg.senderName,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
-                                    color: AppColors.primary,
+                                    color: tokens.brand,
                                   ),
                                 ),
                               if (!isMe) const SizedBox(height: 4),
@@ -313,7 +310,7 @@ class _SessionChatScreenState extends ConsumerState<SessionChatScreen> {
                                 msg.text,
                                 style: TextStyle(
                                   fontSize: 14,
-                                  color: isMe ? Colors.white : (isDark ? Colors.white : Colors.black87),
+                                  color: isMe ? tokens.onBrand : tokens.textHigh,
                                   height: 1.35,
                                 ),
                               ),
@@ -322,7 +319,7 @@ class _SessionChatScreenState extends ConsumerState<SessionChatScreen> {
                                 timeStr,
                                 style: TextStyle(
                                   fontSize: 10,
-                                  color: isMe ? Colors.white70 : AppColors.textSecondary,
+                                  color: isMe ? tokens.onBrand.withValues(alpha: 0.7) : tokens.textMedium,
                                 ),
                               ),
                             ],
@@ -347,10 +344,10 @@ class _SessionChatScreenState extends ConsumerState<SessionChatScreen> {
                   return ActionChip(
                     label: Text(
                       _quickChips[i],
-                      style: const TextStyle(fontSize: 11),
+                      style: TextStyle(fontSize: 11),
                     ),
-                    backgroundColor: isDark ? Colors.grey.shade800 : Colors.grey.shade100,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    backgroundColor: tokens.surfaceAlt,
+                    shape: RoundedRectangleBorder(borderRadius: AppRadii.cardRadius),
                     onPressed: () => _sendMessage(_quickChips[i]),
                   );
                 },
@@ -367,29 +364,29 @@ class _SessionChatScreenState extends ConsumerState<SessionChatScreen> {
                   Expanded(
                     child: Container(
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1E2021) : const Color(0xFFF1F3F4),
-                        borderRadius: BorderRadius.circular(24),
+                        color: tokens.surfaceAlt,
+                        borderRadius: AppRadii.chipRadius,
                       ),
                       child: TextField(
                         controller: _textController,
                         textInputAction: TextInputAction.send,
                         onSubmitted: _sendMessage,
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           hintText: 'اكتب رسالتك لزميلك...',
-                          hintStyle: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                          hintStyle: TextStyle(fontSize: 13, color: tokens.textMedium),
                           border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 8),
                   InkWell(
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: AppRadii.chipRadius,
                     onTap: _isSending ? null : () => _sendMessage(_textController.text),
                     child: CircleAvatar(
                       radius: 22,
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: tokens.brand,
                       child: _isSending
                           ? const SizedBox(
                               width: 18,

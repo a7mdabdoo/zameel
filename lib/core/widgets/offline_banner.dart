@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import '../theme/app_colors.dart';
+import '../theme/app_tokens.dart';
 
 /// شريط التنبيه عند فقدان الاتصال بالإنترنت (Offline Banner)
 class OfflineBanner extends StatelessWidget {
@@ -15,27 +15,28 @@ class OfflineBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!isVisible) return const SizedBox.shrink();
+    final tokens = context.tokens;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       width: double.infinity,
-      color: AppColors.warning.withValues(alpha: 0.15),
+      color: tokens.warningContainer,
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.wifi_off_rounded,
             size: 18,
-            color: AppColors.warning,
+            color: tokens.warning,
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: AppColors.warning,
+                color: tokens.warning,
               ),
             ),
           ),

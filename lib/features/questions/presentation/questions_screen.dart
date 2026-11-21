@@ -1,8 +1,11 @@
+// مطور 4
+// فيجما: منتدى الأسئلة الأكاديمية وحلول الزملاء - ذاكر وعلّم
+
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_colors.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../auth/data/auth_service.dart';
 import '../data/question_repository.dart';
 import 'widgets/app_question_image.dart';
@@ -17,8 +20,8 @@ class QuestionsScreen extends ConsumerStatefulWidget {
 class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
   String? _selectedCourseId;
   String _searchQuery = '';
-  bool _showOnlyMyQuestions = false;
   final TextEditingController _searchController = TextEditingController();
+  bool _showOnlyMyQuestions = false;
 
   @override
   void dispose() {
@@ -38,14 +41,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final cardColor = isDark ? AppColors.darkSurface : Colors.white;
-    final hairline = isDark ? AppColors.darkHairline : AppColors.hairline;
-    final surfaceAlt = isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt;
-    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
-    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
-    final onSurface = theme.colorScheme.onSurface;
+    final tokens = context.tokens;
     final currentUserId = ref.watch(authServiceProvider).currentUser?.uid ?? '';
 
     final userProfileAsync = ref.watch(userProfileStreamProvider);
@@ -78,7 +74,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
     )));
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: tokens.bg,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -86,7 +82,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
         automaticallyImplyLeading: false,
         leading: context.canPop()
             ? IconButton(
-                icon: Icon(Icons.arrow_forward_ios_rounded, color: onSurface),
+                icon: Icon(Icons.arrow_forward_ios_rounded, color: tokens.textHigh),
                 onPressed: () => context.pop(),
               )
             : null,
@@ -94,18 +90,18 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
           children: [
             Text(
               'منتدى الأسئلة والحلول',
-              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: onSurface),
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: tokens.textHigh),
             ),
             const SizedBox(height: 2),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: primaryColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
+                color: tokens.brandContainer.withValues(alpha: 0.5),
+                borderRadius: AppRadii.controlRadius,
               ),
               child: Text(
                 'أسئلة ومقررات $academicYear',
-                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: primaryColor),
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: tokens.brand),
               ),
             ),
           ],
@@ -113,11 +109,11 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/ask-question'),
-        backgroundColor: primaryColor,
-        icon: const Icon(Icons.add_comment_rounded, color: Colors.white, size: 20),
-        label: const Text(
+        backgroundColor: tokens.brand,
+        icon: Icon(Icons.add_comment_rounded, color: tokens.onBrand, size: 20),
+        label: Text(
           'اطرح سؤالاً',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+          style: TextStyle(color: tokens.onBrand, fontWeight: FontWeight.bold, fontSize: 13),
         ),
       ),
       body: SafeArea(
@@ -128,20 +124,21 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               child: Container(
                 decoration: BoxDecoration(
-                  color: cardColor,
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: hairline),
+                  color: tokens.surface,
+                  borderRadius: AppRadii.controlRadius,
+                  border: Border.all(color: tokens.border),
                 ),
                 child: TextField(
                   controller: _searchController,
+                  style: TextStyle(color: tokens.textHigh),
                   onChanged: (val) => setState(() => _searchQuery = val.trim()),
                   decoration: InputDecoration(
                     hintText: 'ابحث عن مسألة أو سؤال أو كود...',
-                    hintStyle: TextStyle(fontSize: 13, color: textSecondary),
-                    prefixIcon: Icon(Icons.search_rounded, color: primaryColor),
+                    hintStyle: TextStyle(fontSize: 13, color: tokens.textMedium),
+                    prefixIcon: Icon(Icons.search_rounded, color: tokens.brand),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
-                            icon: const Icon(Icons.clear_rounded, size: 18),
+                            icon: Icon(Icons.clear_rounded, size: 18, color: tokens.textMedium),
                             onPressed: () {
                               _searchController.clear();
                               setState(() => _searchQuery = '');
@@ -170,14 +167,14 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                       onSelected: (selected) {
                         if (selected) setState(() => _selectedCourseId = null);
                       },
-                      selectedColor: primaryColor,
+                      selectedColor: tokens.brand,
                       labelStyle: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
-                        color: _selectedCourseId == null ? Colors.white : onSurface,
+                        color: _selectedCourseId == null ? tokens.onBrand : tokens.textHigh,
                       ),
-                      backgroundColor: cardColor,
-                      side: BorderSide(color: hairline),
+                      backgroundColor: tokens.surface,
+                      side: BorderSide(color: tokens.border),
                     ),
                   ),
                   ...userCourses.map((c) {
@@ -195,14 +192,14 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                         onSelected: (selected) {
                           setState(() => _selectedCourseId = selected ? c.id : null);
                         },
-                        selectedColor: primaryColor,
+                        selectedColor: tokens.brand,
                         labelStyle: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: isSelected ? Colors.white : onSurface,
+                          color: isSelected ? tokens.onBrand : tokens.textHigh,
                         ),
-                        backgroundColor: cardColor,
-                        side: BorderSide(color: hairline),
+                        backgroundColor: tokens.surface,
+                        side: BorderSide(color: tokens.border),
                       ),
                     );
                   }),
@@ -222,17 +219,17 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                     children: [
                       Expanded(
                         child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: AppRadii.controlRadius,
                           onTap: () => setState(() => _showOnlyMyQuestions = false),
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             decoration: BoxDecoration(
                               color: !_showOnlyMyQuestions
-                                  ? primaryColor
-                                  : (isDark ? surfaceAlt : Colors.black.withValues(alpha: 0.04)),
-                              borderRadius: BorderRadius.circular(12),
+                                  ? tokens.brand
+                                  : tokens.surfaceAlt,
+                              borderRadius: AppRadii.controlRadius,
                               border: Border.all(
-                                color: !_showOnlyMyQuestions ? primaryColor : hairline,
+                                color: !_showOnlyMyQuestions ? tokens.brand : tokens.border,
                               ),
                             ),
                             child: Center(
@@ -241,7 +238,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
-                                  color: !_showOnlyMyQuestions ? Colors.white : textSecondary,
+                                  color: !_showOnlyMyQuestions ? tokens.onBrand : tokens.textMedium,
                                 ),
                               ),
                             ),
@@ -251,17 +248,17 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: InkWell(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: AppRadii.controlRadius,
                           onTap: () => setState(() => _showOnlyMyQuestions = true),
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 8),
                             decoration: BoxDecoration(
                               color: _showOnlyMyQuestions
-                                  ? primaryColor
-                                  : (isDark ? surfaceAlt : Colors.black.withValues(alpha: 0.04)),
-                              borderRadius: BorderRadius.circular(12),
+                                  ? tokens.brand
+                                  : tokens.surfaceAlt,
+                              borderRadius: AppRadii.controlRadius,
                               border: Border.all(
-                                color: _showOnlyMyQuestions ? primaryColor : hairline,
+                                color: _showOnlyMyQuestions ? tokens.brand : tokens.border,
                               ),
                             ),
                             child: Center(
@@ -273,7 +270,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
-                                      color: _showOnlyMyQuestions ? Colors.white : textSecondary,
+                                      color: _showOnlyMyQuestions ? tokens.onBrand : tokens.textMedium,
                                     ),
                                   ),
                                   if (myQuestionsCount > 0) ...[
@@ -282,16 +279,16 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                                       decoration: BoxDecoration(
                                         color: _showOnlyMyQuestions
-                                            ? Colors.white.withValues(alpha: 0.25)
-                                            : primaryColor.withValues(alpha: 0.15),
-                                        borderRadius: BorderRadius.circular(10),
+                                            ? tokens.onBrand.withValues(alpha: 0.25)
+                                            : tokens.brandContainer,
+                                        borderRadius: AppRadii.controlRadius,
                                       ),
                                       child: Text(
                                         '$myQuestionsCount',
                                         style: TextStyle(
                                           fontSize: 10,
                                           fontWeight: FontWeight.bold,
-                                          color: _showOnlyMyQuestions ? Colors.white : primaryColor,
+                                          color: _showOnlyMyQuestions ? tokens.onBrand : tokens.brand,
                                         ),
                                       ),
                                     ),
@@ -318,7 +315,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                 error: (err, stack) => Center(
                   child: Text(
                     'تعذر تحميل الأسئلة، يرجى المحاولة لاحقاً',
-                    style: TextStyle(color: AppColors.error, fontSize: 13),
+                    style: TextStyle(color: tokens.danger, fontSize: 13),
                   ),
                 ),
                 data: (allQuestions) {
@@ -344,13 +341,13 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                             Container(
                               padding: const EdgeInsets.all(20),
                               decoration: BoxDecoration(
-                                color: primaryColor.withValues(alpha: 0.1),
+                                color: tokens.brandContainer.withValues(alpha: 0.5),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
                                 _showOnlyMyQuestions ? Icons.person_search_rounded : Icons.help_outline_rounded,
                                 size: 48,
-                                color: primaryColor,
+                                color: tokens.brand,
                               ),
                             ),
                             const SizedBox(height: 16),
@@ -360,7 +357,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                                   : (_searchQuery.isNotEmpty
                                       ? 'لا توجد نتائج تطابق بحثك'
                                       : 'لا توجد أسئلة مطروحة في هذه المادة بعد'),
-                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: onSurface),
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: tokens.textHigh),
                             ),
                             const SizedBox(height: 6),
                             Text(
@@ -368,7 +365,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                                   ? 'استخدم زر "اطرح سؤالاً" بالأسفل لطرح استفساراتك وسيقوم زملاؤك بمساعدتك!'
                                   : 'كن أول من يطرح سؤالاً أو مسألة ليساعدك زملاؤك في دفعتك!',
                               textAlign: TextAlign.center,
-                              style: TextStyle(fontSize: 12, color: textSecondary),
+                              style: TextStyle(fontSize: 12, color: tokens.textMedium),
                             ),
                           ],
                         ),
@@ -387,27 +384,18 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                         margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
                           color: isMyQuestion
-                              ? (isDark ? const Color(0xFF132A22) : const Color(0xFFF0FDF4))
-                              : cardColor,
-                          borderRadius: BorderRadius.circular(16),
+                              ? tokens.brandContainer.withValues(alpha: 0.3)
+                              : tokens.surface,
+                          borderRadius: AppRadii.cardRadius,
                           border: Border.all(
                             color: isMyQuestion
-                                ? primaryColor.withValues(alpha: isDark ? 0.7 : 0.4)
-                                : hairline,
+                                ? tokens.brand.withValues(alpha: 0.5)
+                                : tokens.border,
                             width: isMyQuestion ? 1.5 : 1,
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: isMyQuestion
-                                  ? primaryColor.withValues(alpha: isDark ? 0.2 : 0.06)
-                                  : Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
                         ),
                         child: InkWell(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: AppRadii.cardRadius,
                           onTap: () => context.push('/question-details', extra: question),
                           child: Padding(
                             padding: const EdgeInsets.all(16.0),
@@ -424,10 +412,10 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                                           CircleAvatar(
                                             radius: 14,
                                             backgroundColor: isMyQuestion
-                                                ? primaryColor
-                                                : primaryColor.withValues(alpha: 0.15),
+                                                ? tokens.brand
+                                                : tokens.brandContainer,
                                             child: isMyQuestion
-                                                ? const Icon(Icons.person_rounded, size: 14, color: Colors.white)
+                                                ? Icon(Icons.person_rounded, size: 14, color: tokens.onBrand)
                                                 : Text(
                                                     question.authorName.isNotEmpty
                                                         ? question.authorName.substring(0, 1)
@@ -435,7 +423,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                                                     style: TextStyle(
                                                       fontSize: 12,
                                                       fontWeight: FontWeight.bold,
-                                                      color: primaryColor,
+                                                      color: tokens.brand,
                                                     ),
                                                   ),
                                           ),
@@ -448,14 +436,14 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                                               style: TextStyle(
                                                 fontSize: 12,
                                                 fontWeight: isMyQuestion ? FontWeight.w800 : FontWeight.bold,
-                                                color: isMyQuestion ? primaryColor : onSurface,
+                                                color: isMyQuestion ? tokens.brand : tokens.textHigh,
                                               ),
                                             ),
                                           ),
                                           const SizedBox(width: 6),
                                           Text(
                                             '• ${_formatTimeAgo(question.createdAt)}',
-                                            style: TextStyle(fontSize: 11, color: textSecondary),
+                                            style: TextStyle(fontSize: 11, color: tokens.textMedium),
                                           ),
                                         ],
                                       ),
@@ -468,16 +456,16 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                                           Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                                             decoration: BoxDecoration(
-                                              color: primaryColor.withValues(alpha: isDark ? 0.3 : 0.15),
-                                              borderRadius: BorderRadius.circular(8),
-                                              border: Border.all(color: primaryColor.withValues(alpha: 0.3)),
+                                              color: tokens.brandContainer,
+                                              borderRadius: AppRadii.controlRadius,
+                                              border: Border.all(color: tokens.brand.withValues(alpha: 0.3)),
                                             ),
                                             child: Text(
                                               'سؤالك',
                                               style: TextStyle(
                                                 fontSize: 10,
                                                 fontWeight: FontWeight.bold,
-                                                color: primaryColor,
+                                                color: tokens.brand,
                                               ),
                                             ),
                                           ),
@@ -488,8 +476,8 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                                           child: Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                             decoration: BoxDecoration(
-                                              color: surfaceAlt,
-                                              borderRadius: BorderRadius.circular(10),
+                                              color: tokens.surfaceAlt,
+                                              borderRadius: AppRadii.controlRadius,
                                             ),
                                             child: Text(
                                               question.courseName,
@@ -498,7 +486,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                                               style: TextStyle(
                                                 fontSize: 11,
                                                 fontWeight: FontWeight.bold,
-                                                color: primaryColor,
+                                                color: tokens.brand,
                                               ),
                                             ),
                                           ),
@@ -518,7 +506,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                                   style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.bold,
-                                    color: onSurface,
+                                    color: tokens.textHigh,
                                     height: 1.3,
                                   ),
                                 ),
@@ -530,7 +518,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                                   question.body,
                                   maxLines: 2,
                                   overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(fontSize: 13, color: textSecondary, height: 1.4),
+                                  style: TextStyle(fontSize: 13, color: tokens.textMedium, height: 1.4),
                                 ),
 
                                 // إذا كانت هناك صورة مرفقة تظهر مصغرة
@@ -541,7 +529,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                                     height: 130,
                                     width: double.infinity,
                                     fit: BoxFit.cover,
-                                    borderRadius: BorderRadius.circular(10),
+                                    borderRadius: AppRadii.controlRadius,
                                   ),
                                 ],
 
@@ -555,9 +543,9 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                       decoration: BoxDecoration(
                                         color: question.answersCount > 0
-                                            ? AppColors.primaryContainer.withValues(alpha: isDark ? 0.3 : 0.6)
-                                            : surfaceAlt,
-                                        borderRadius: BorderRadius.circular(20),
+                                            ? tokens.brandContainer.withValues(alpha: 0.5)
+                                            : tokens.surfaceAlt,
+                                        borderRadius: AppRadii.fullRadius,
                                       ),
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
@@ -565,7 +553,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                                           Icon(
                                             Icons.chat_bubble_outline_rounded,
                                             size: 13,
-                                            color: question.answersCount > 0 ? primaryColor : textSecondary,
+                                            color: question.answersCount > 0 ? tokens.brand : tokens.textMedium,
                                           ),
                                           const SizedBox(width: 5),
                                           Text(
@@ -575,7 +563,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                                             style: TextStyle(
                                               fontSize: 11,
                                               fontWeight: FontWeight.bold,
-                                              color: question.answersCount > 0 ? primaryColor : textSecondary,
+                                              color: question.answersCount > 0 ? tokens.brand : tokens.textMedium,
                                             ),
                                           ),
                                         ],
@@ -588,11 +576,11 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                                           style: TextStyle(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w600,
-                                            color: primaryColor,
+                                            color: tokens.brand,
                                           ),
                                         ),
                                         const SizedBox(width: 4),
-                                        Icon(Icons.arrow_back_ios_new_rounded, size: 10, color: primaryColor),
+                                        Icon(Icons.arrow_back_ios_new_rounded, size: 10, color: tokens.brand),
                                       ],
                                     ),
                                   ],

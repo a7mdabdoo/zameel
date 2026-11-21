@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
-import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_tokens.dart';
 
 class MainNavigationShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
@@ -19,12 +19,7 @@ class MainNavigationShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final surfaceColor = isDark ? AppColors.darkSurface : AppColors.surface;
-    final hairlineColor = isDark ? AppColors.darkHairline : AppColors.hairline;
-    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
-    final containerColor = isDark ? AppColors.darkPrimaryContainer : AppColors.primaryContainer;
+    final tokens = context.tokens;
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -33,40 +28,40 @@ class MainNavigationShell extends StatelessWidget {
         bottomNavigationBar: Container(
           decoration: BoxDecoration(
             border: Border(
-              top: BorderSide(color: hairlineColor, width: 1),
+              top: BorderSide(color: tokens.border, width: 1),
             ),
-            color: surfaceColor,
+            color: tokens.surface,
           ),
           child: NavigationBar(
             height: 72,
-            backgroundColor: surfaceColor,
-            indicatorColor: containerColor,
+            backgroundColor: tokens.surface,
+            indicatorColor: tokens.brandContainer,
             selectedIndex: navigationShell.currentIndex,
             onDestinationSelected: _onTap,
             destinations: [
               NavigationDestination(
-                icon: const Icon(Icons.home_outlined),
-                selectedIcon: Icon(Icons.home_rounded, color: primaryColor),
+                icon: Icon(Icons.home_outlined),
+                selectedIcon: Icon(Icons.home_rounded, color: tokens.brand),
                 label: 'الرئيسية',
               ),
               NavigationDestination(
-                icon: const Icon(Icons.calendar_view_week_outlined),
-                selectedIcon: Icon(Icons.calendar_view_week, color: primaryColor),
+                icon: Icon(Icons.calendar_view_week_outlined),
+                selectedIcon: Icon(Icons.calendar_view_week, color: tokens.brand),
                 label: 'الخطة',
               ),
               NavigationDestination(
-                icon: const Icon(Icons.forum_outlined),
-                selectedIcon: Icon(Icons.forum_rounded, color: primaryColor),
+                icon: Icon(Icons.forum_outlined),
+                selectedIcon: Icon(Icons.forum_rounded, color: tokens.brand),
                 label: 'المنتدى',
               ),
               NavigationDestination(
-                icon: const Icon(Icons.handshake_outlined),
-                selectedIcon: Icon(Icons.handshake, color: primaryColor),
+                icon: Icon(Icons.handshake_outlined),
+                selectedIcon: Icon(Icons.handshake, color: tokens.brand),
                 label: 'بنك الوقت',
               ),
               NavigationDestination(
-                icon: const Icon(Icons.person_outline),
-                selectedIcon: Icon(Icons.person, color: primaryColor),
+                icon: Icon(Icons.person_outline),
+                selectedIcon: Icon(Icons.person, color: tokens.brand),
                 label: 'حسابي',
               ),
             ],

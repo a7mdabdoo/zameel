@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import '../theme/app_colors.dart';
+import '../theme/app_tokens.dart';
 
 /// ويدجت عرض الأخطاء (Error State) مع خيار إعادة المحاولة
 class AppErrorWidget extends StatelessWidget {
@@ -18,8 +18,7 @@ class AppErrorWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
+    final tokens = context.tokens;
 
     return Center(
       child: Padding(
@@ -33,13 +32,13 @@ class AppErrorWidget extends StatelessWidget {
               width: 72,
               height: 72,
               decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha: 0.12),
+                color: tokens.dangerContainer,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.error_outline_rounded,
                 size: 36,
-                color: AppColors.error,
+                color: tokens.danger,
               ),
             ),
             const SizedBox(height: 18),
@@ -49,7 +48,7 @@ class AppErrorWidget extends StatelessWidget {
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+                color: tokens.textHigh,
               ),
             ),
             if (message != null) ...[
@@ -59,8 +58,8 @@ class AppErrorWidget extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 13,
-                  height: 1.4,
-                  color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary,
+                  height: 1.5,
+                  color: tokens.textMedium,
                 ),
               ),
             ],
@@ -68,18 +67,18 @@ class AppErrorWidget extends StatelessWidget {
               const SizedBox(height: 20),
               OutlinedButton.icon(
                 onPressed: onRetry,
-                icon: const Icon(Icons.refresh_rounded, size: 18),
+                icon: Icon(Icons.refresh_rounded, size: 18),
                 label: Text(
                   retryLabel,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                 ),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: isDark ? AppColors.darkPrimary : AppColors.primary,
+                  foregroundColor: tokens.brand,
                   side: BorderSide(
-                    color: isDark ? AppColors.darkPrimary : AppColors.primary,
+                    color: tokens.brand,
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AppRadii.controlRadius,
                   ),
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
                 ),

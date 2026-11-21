@@ -7,7 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/models/app_models.dart';
 import '../../../core/state/app_state.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../auth/data/auth_service.dart';
 import '../application/timebank_pure_logic.dart';
 import '../data/timebank_repository.dart';
@@ -226,8 +226,8 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
       selectedSlotText = '$dayName ${_selectedSlotDateTime!.day}/${_selectedSlotDateTime!.month} • ${OfferTimeSlot.formatMinutes(startMin)} – ${OfferTimeSlot.formatMinutes(endMin)} ($_selectedDuration دقيقة)';
     }
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final hairline = isDark ? AppColors.darkHairline : AppColors.hairline;
+    final tokens = context.tokens;
+    final hairline = tokens.border;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -255,15 +255,15 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardTheme.color,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: AppRadii.cardRadius,
                   border: Border.all(color: hairline),
                 ),
                 child: Row(
                   children: [
                     CircleAvatar(
                       radius: 26,
-                      backgroundColor: AppColors.primaryContainer,
-                      child: Text(teacherInitials, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                      backgroundColor: tokens.brandContainer,
+                      child: Text(teacherInitials, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: tokens.brand)),
                     ),
                     const SizedBox(width: 14),
                     Expanded(
@@ -272,13 +272,13 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                         children: [
                           Text(teacherName, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
                           const SizedBox(height: 2),
-                          const Text('الفرقة الثانية • كلية الحاسبات والذكاء الاصطناعي', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                          Text('الفرقة الثانية • كلية الحاسبات والذكاء الاصطناعي', style: TextStyle(fontSize: 12, color: tokens.textMedium)),
                           const SizedBox(height: 4),
-                          const Row(
+                          Row(
                             children: [
-                              Icon(Icons.star_rounded, size: 16, color: AppColors.pointsAmber),
+                              Icon(Icons.star_rounded, size: 16, color: tokens.coin),
                               SizedBox(width: 4),
-                              Text('تقييم ممتاز في بنك الوقت', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                              Text('تقييم ممتاز في بنك الوقت', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: tokens.brand)),
                             ],
                           ),
                         ],
@@ -293,33 +293,33 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                   margin: const EdgeInsets.only(top: 14),
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+                    color: tokens.brand.withValues(alpha: 0.1),
+                    borderRadius: AppRadii.cardRadius,
+                    border: Border.all(color: tokens.brand.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(10),
+                          color: tokens.brand,
+                          borderRadius: AppRadii.controlRadius,
                         ),
-                        child: const Icon(Icons.groups_rounded, color: Colors.white, size: 20),
+                        child: Icon(Icons.groups_rounded, color: Colors.white, size: 20),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'جلسة شرح جماعية',
-                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary),
+                              style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: tokens.brand),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               'المقاعد المحجوزة: ${offer.enrolledLearnerIds.length} من أصل ${offer.maxLearners ?? 10}',
-                              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                              style: TextStyle(fontSize: 11, color: tokens.textMedium),
                             ),
                           ],
                         ),
@@ -334,33 +334,33 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                   margin: const EdgeInsets.only(top: 14),
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: AppColors.pointsAmber.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.pointsAmber.withValues(alpha: 0.4)),
+                    color: tokens.coin.withValues(alpha: 0.12),
+                    borderRadius: AppRadii.cardRadius,
+                    border: Border.all(color: tokens.coin.withValues(alpha: 0.4)),
                   ),
                   child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: AppColors.pointsAmber,
-                          borderRadius: BorderRadius.circular(10),
+                          color: tokens.coin,
+                          borderRadius: AppRadii.controlRadius,
                         ),
-                        child: const Icon(Icons.access_time_filled_rounded, color: Colors.white, size: 20),
+                        child: Icon(Icons.access_time_filled_rounded, color: Colors.white, size: 20),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'موعد مرن للشرح',
                               style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               'الشارح متاح في النطاق (${offer.timeRangeStart ?? ''} – ${offer.timeRangeEnd ?? ''})، اختر الموعد الأنسب لك أدناه.',
-                              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                              style: TextStyle(fontSize: 11, color: tokens.textMedium),
                             ),
                           ],
                         ),
@@ -377,7 +377,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardTheme.color,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: AppRadii.cardRadius,
                   border: Border.all(color: hairline),
                 ),
                 child: Column(
@@ -394,9 +394,9 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                           child: ChoiceChip(
                             label: const Center(child: Text('60 دقيقة (ساعة كاملة)')),
                             selected: _selectedDuration == 60,
-                            selectedColor: AppColors.primary.withValues(alpha: 0.18),
+                            selectedColor: tokens.brandContainer,
                             labelStyle: TextStyle(
-                              color: _selectedDuration == 60 ? AppColors.primary : Theme.of(context).colorScheme.onSurface,
+                              color: _selectedDuration == 60 ? tokens.brand : Theme.of(context).colorScheme.onSurface,
                               fontWeight: _selectedDuration == 60 ? FontWeight.bold : FontWeight.normal,
                             ),
                             onSelected: (val) {
@@ -409,9 +409,9 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                           child: ChoiceChip(
                             label: const Center(child: Text('30 دقيقة (نصف ساعة)')),
                             selected: _selectedDuration == 30,
-                            selectedColor: AppColors.primary.withValues(alpha: 0.18),
+                            selectedColor: tokens.brandContainer,
                             labelStyle: TextStyle(
-                              color: _selectedDuration == 30 ? AppColors.primary : Theme.of(context).colorScheme.onSurface,
+                              color: _selectedDuration == 30 ? tokens.brand : Theme.of(context).colorScheme.onSurface,
                               fontWeight: _selectedDuration == 30 ? FontWeight.bold : FontWeight.normal,
                             ),
                             onSelected: (val) {
@@ -432,7 +432,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardTheme.color,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: AppRadii.cardRadius,
                   border: Border.all(color: hairline),
                 ),
                 child: Column(
@@ -447,32 +447,32 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                         ),
                         Text(
                           '${availableBookableSlots.length} مواعيد شاغرة',
-                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary),
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: tokens.brand),
                         ),
                       ],
                     ),
                     const SizedBox(height: 6),
-                    const Text(
+                    Text(
                       'المواعيد المستبعدة تلقائياً: ما قبل ساعتين، وما بعد 14 يوماً، وما يتعارض مع محاضراتك.',
-                      style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                      style: TextStyle(fontSize: 11, color: tokens.textMedium),
                     ),
                     const SizedBox(height: 12),
                     if (availableBookableSlots.isEmpty)
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.error.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+                          color: tokens.danger.withValues(alpha: 0.1),
+                          borderRadius: AppRadii.controlRadius,
+                          border: Border.all(color: tokens.danger.withValues(alpha: 0.3)),
                         ),
-                        child: const Row(
+                        child: Row(
                           children: [
-                            Icon(Icons.info_outline, color: AppColors.error, size: 20),
+                            Icon(Icons.info_outline, color: tokens.danger, size: 20),
                             SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 'لا توجد مواعيد متاحة تتوافق مع جدول محاضراتك خلال الـ 14 يوماً القادمة.',
-                                style: TextStyle(fontSize: 12, color: AppColors.error),
+                                style: TextStyle(fontSize: 12, color: tokens.danger),
                               ),
                             ),
                           ],
@@ -483,7 +483,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
                         decoration: BoxDecoration(
                           color: Theme.of(context).scaffoldBackgroundColor,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: AppRadii.controlRadius,
                           border: Border.all(color: hairline),
                         ),
                         child: DropdownButtonHideUnderline(
@@ -517,7 +517,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   color: Theme.of(context).cardTheme.color,
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: AppRadii.cardRadius,
                   border: Border.all(color: hairline),
                 ),
                 child: Column(
@@ -550,26 +550,26 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.pointsAmber.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.pointsAmber.withValues(alpha: 0.3)),
+                  color: tokens.warningContainer,
+                  borderRadius: AppRadii.cardRadius,
+                  border: Border.all(color: tokens.warning),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.shield_outlined, color: AppColors.pointsAmber, size: 28),
+                    Icon(Icons.shield_outlined, color: tokens.warning, size: 28),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'نظام الضمان الآمن (Escrow System)',
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Color(0xFF664700)),
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: tokens.textHigh),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             'رصيدك الحالي: $coins عملات وقت • تكلفة الجلسة: 1 عملة.\nتُعلّق العملة كأمانة، ولا تُحوّل لحساب الزميل إلا بعد انتهاء الشرح وتأكيدك.',
-                            style: const TextStyle(fontSize: 11, color: Color(0xFF855D00), height: 1.4),
+                            style: TextStyle(fontSize: 11, color: tokens.textMedium, height: 1.4),
                           ),
                         ],
                       ),
@@ -618,15 +618,15 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                               height: 20,
                               child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                             )
-                          : const Icon(Icons.send_rounded, color: Colors.white, size: 18),
+                          : Icon(Icons.send_rounded, color: Colors.white, size: 18),
                       label: Text(
                         buttonLabel,
-                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
+                        backgroundColor: tokens.brand,
                         disabledBackgroundColor: Colors.grey.shade400,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        shape: RoundedRectangleBorder(borderRadius: AppRadii.cardRadius),
                       ),
                     ),
                   );
@@ -640,11 +640,12 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
   }
 
   Widget _buildDetailRow(BuildContext context, IconData icon, String label, String value) {
+    final tokens = context.tokens;
     return Row(
       children: [
-        Icon(icon, size: 20, color: AppColors.primary),
+        Icon(icon, size: 20, color: tokens.brand),
         const SizedBox(width: 12),
-        Text(label, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+        Text(label, style: TextStyle(fontSize: 13, color: tokens.textMedium)),
         const Spacer(),
         Expanded(
           flex: 2,

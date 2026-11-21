@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import '../theme/app_tokens.dart';
 
 enum StatusBadgeType {
   pending,
@@ -10,7 +11,7 @@ enum StatusBadgeType {
   info,
 }
 
-/// شارة حالة موحدة واحترافية بدون إيموجيز مع أيقونات Material دائرية
+/// شارة حالة موحدة واحترافية بدون إيموجيز معتمدة على الرموز الدلالية (Tokens)
 class StatusBadge extends StatelessWidget {
   final String? status;
   final String? customLabel;
@@ -49,9 +50,9 @@ class StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final tokens = context.tokens;
     final resolvedType = _resolveType();
-    final config = _getConfig(resolvedType, isDark);
+    final config = _getConfig(resolvedType, tokens);
 
     final text = customLabel ?? config.label;
     final icon = customIcon ?? config.icon;
@@ -60,7 +61,7 @@ class StatusBadge extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         color: config.backgroundColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: AppRadii.chipRadius,
         border: Border.all(color: config.borderColor, width: 1),
       ),
       child: Row(
@@ -99,63 +100,63 @@ class StatusBadge extends StatelessWidget {
     return StatusBadgeType.info;
   }
 
-  _BadgeConfig _getConfig(StatusBadgeType t, bool isDark) {
+  _BadgeConfig _getConfig(StatusBadgeType t, AppTokens tokens) {
     switch (t) {
       case StatusBadgeType.pending:
         return _BadgeConfig(
           label: 'بانتظار الموافقة',
           icon: Icons.schedule_rounded,
-          textColor: isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309),
-          backgroundColor: isDark ? const Color(0xFF2E2211) : const Color(0xFFFEF3C7),
-          borderColor: isDark ? const Color(0xFF78350F) : const Color(0xFFFDE68A),
+          textColor: tokens.warning,
+          backgroundColor: tokens.warningContainer,
+          borderColor: tokens.warning.withValues(alpha: 0.3),
         );
       case StatusBadgeType.confirmed:
         return _BadgeConfig(
           label: 'مؤكدة',
           icon: Icons.check_circle_outline_rounded,
-          textColor: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0F766E),
-          backgroundColor: isDark ? const Color(0xFF132C2A) : const Color(0xFFCCFBF1),
-          borderColor: isDark ? const Color(0xFF115E59) : const Color(0xFF99F6E4),
+          textColor: tokens.brand,
+          backgroundColor: tokens.brandContainer,
+          borderColor: tokens.brand.withValues(alpha: 0.3),
         );
       case StatusBadgeType.completed:
         return _BadgeConfig(
           label: 'مكتملة',
           icon: Icons.task_alt_rounded,
-          textColor: isDark ? const Color(0xFF34D399) : const Color(0xFF047857),
-          backgroundColor: isDark ? const Color(0xFF112E23) : const Color(0xFFD1FAE5),
-          borderColor: isDark ? const Color(0xFF065F46) : const Color(0xFFA7F3D0),
+          textColor: tokens.success,
+          backgroundColor: tokens.successContainer,
+          borderColor: tokens.success.withValues(alpha: 0.3),
         );
       case StatusBadgeType.cancelled:
         return _BadgeConfig(
           label: 'ملغاة',
           icon: Icons.cancel_outlined,
-          textColor: isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C),
-          backgroundColor: isDark ? const Color(0xFF2F1818) : const Color(0xFFFEE2E2),
-          borderColor: isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFECACA),
+          textColor: tokens.danger,
+          backgroundColor: tokens.dangerContainer,
+          borderColor: tokens.danger.withValues(alpha: 0.3),
         );
       case StatusBadgeType.expired:
         return _BadgeConfig(
           label: 'منتهية',
           icon: Icons.timer_off_outlined,
-          textColor: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
-          backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-          borderColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          textColor: tokens.textLow,
+          backgroundColor: tokens.surfaceAlt,
+          borderColor: tokens.border,
         );
       case StatusBadgeType.rejected:
         return _BadgeConfig(
           label: 'معتذر عنها',
           icon: Icons.block_rounded,
-          textColor: isDark ? const Color(0xFFF87171) : const Color(0xFFB91C1C),
-          backgroundColor: isDark ? const Color(0xFF2F1818) : const Color(0xFFFEE2E2),
-          borderColor: isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFECACA),
+          textColor: tokens.danger,
+          backgroundColor: tokens.dangerContainer,
+          borderColor: tokens.danger.withValues(alpha: 0.3),
         );
       case StatusBadgeType.info:
         return _BadgeConfig(
           label: 'معلومات',
           icon: Icons.info_outline_rounded,
-          textColor: isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8),
-          backgroundColor: isDark ? const Color(0xFF172554) : const Color(0xFFDBEAFE),
-          borderColor: isDark ? const Color(0xFF1E40AF) : const Color(0xFFBFDBFE),
+          textColor: tokens.textMedium,
+          backgroundColor: tokens.surfaceAlt,
+          borderColor: tokens.border,
         );
     }
   }

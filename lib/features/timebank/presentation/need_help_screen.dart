@@ -4,7 +4,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 
 class NeedHelpScreen extends StatefulWidget {
   const NeedHelpScreen({super.key});
@@ -27,9 +27,9 @@ class _NeedHelpScreenState extends State<NeedHelpScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final cardColor = isDark ? AppColors.darkSurface : Colors.white;
-    final hairline = isDark ? AppColors.darkHairline : AppColors.hairline;
+    final tokens = context.tokens;
+    final cardColor = tokens.surface;
+    final hairline = tokens.border;
     final onSurface = theme.colorScheme.onSurface;
 
     final effectiveCourse = AppConstants.seedCourses.firstWhere(
@@ -61,18 +61,18 @@ class _NeedHelpScreenState extends State<NeedHelpScreen> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: isDark ? AppColors.darkPrimaryContainer.withValues(alpha: 0.4) : AppColors.primaryContainer.withValues(alpha: 0.4),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: (isDark ? AppColors.darkPrimary : AppColors.primary).withValues(alpha: 0.2)),
+                  color: tokens.brandContainer.withValues(alpha: 0.4),
+                  borderRadius: AppRadii.cardRadius,
+                  border: Border.all(color: tokens.brand.withValues(alpha: 0.2)),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.lightbulb_outline_rounded, color: isDark ? AppColors.darkPrimary : AppColors.primary, size: 22),
+                    Icon(Icons.lightbulb_outline_rounded, color: tokens.brand, size: 22),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         'جلسة الشرح تكلف 1 عملة وقت فقط. بعد انتهاء الجلسة يتم تحويلها للزميل الشارح تلقائياً.',
-                        style: TextStyle(fontSize: 12, color: isDark ? AppColors.darkPrimary : AppColors.primary, height: 1.4),
+                        style: TextStyle(fontSize: 12, color: tokens.brand, height: 1.4),
                       ),
                     ),
                   ],
@@ -88,7 +88,7 @@ class _NeedHelpScreenState extends State<NeedHelpScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
                   color: cardColor,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: AppRadii.controlRadius,
                   border: Border.all(color: hairline),
                 ),
                 child: DropdownButtonHideUnderline(
@@ -126,11 +126,11 @@ class _NeedHelpScreenState extends State<NeedHelpScreen> {
                 style: TextStyle(color: onSurface),
                 decoration: InputDecoration(
                   hintText: 'اكتب ما تواجه صعوبة فيه (مثال: التحويلات الخطية والمصفوفات)',
-                  hintStyle: TextStyle(color: isDark ? AppColors.darkTextTertiary : AppColors.textTertiary),
+                  hintStyle: TextStyle(color: tokens.textLow),
                   filled: true,
                   fillColor: cardColor,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hairline)),
-                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hairline)),
+                  border: OutlineInputBorder(borderRadius: AppRadii.controlRadius, borderSide: BorderSide(color: hairline)),
+                  enabledBorder: OutlineInputBorder(borderRadius: AppRadii.controlRadius, borderSide: BorderSide(color: hairline)),
                 ),
               ),
 
@@ -143,12 +143,12 @@ class _NeedHelpScreenState extends State<NeedHelpScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 decoration: BoxDecoration(
                   color: cardColor,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: AppRadii.controlRadius,
                   border: Border.all(color: hairline),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.access_time_rounded, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary, size: 20),
+                    Icon(Icons.access_time_rounded, color: tokens.textMedium, size: 20),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(_preferredSlot, style: TextStyle(fontSize: 13, color: onSurface)),
@@ -164,14 +164,14 @@ class _NeedHelpScreenState extends State<NeedHelpScreen> {
                 height: 52,
                 child: ElevatedButton.icon(
                   onPressed: () => context.push('/candidates', extra: _selectedCourse),
-                  icon: const Icon(Icons.search_rounded, color: Colors.white),
-                  label: const Text(
+                  icon: Icon(Icons.search_rounded, color: Colors.white),
+                  label: Text(
                     'ابحث عن زميل متاح',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: isDark ? AppColors.darkPrimary : AppColors.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    backgroundColor: tokens.brand,
+                    shape: RoundedRectangleBorder(borderRadius: AppRadii.cardRadius),
                   ),
                 ),
               ),

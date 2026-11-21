@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../data/auth_service.dart';
 
 class EmailVerificationScreen extends ConsumerStatefulWidget {
@@ -99,11 +99,12 @@ class _EmailVerificationScreenState extends ConsumerState<EmailVerificationScree
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
     final user = ref.read(authServiceProvider).currentUser;
     final email = user?.email ?? '';
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: tokens.bg,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 32.0),
@@ -117,34 +118,34 @@ class _EmailVerificationScreenState extends ConsumerState<EmailVerificationScree
                   width: 90,
                   height: 90,
                   decoration: BoxDecoration(
-                    color: AppColors.primaryContainer.withValues(alpha: 0.5),
+                    color: tokens.brandContainer.withValues(alpha: 0.5),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.mark_email_unread_outlined,
                     size: 48,
-                    color: AppColors.primary,
+                    color: tokens.brand,
                   ),
                 ),
               ),
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 'تأكيد البريد الإلكتروني',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
+                  color: tokens.textHigh,
                 ),
               ),
               const SizedBox(height: 12),
               Text(
                 'أرسلنا رابط تأكيد إلى:\n$email\nيرجى تأكيد بريدك لتفعيل الحساب وحماية رصيدك في بنك الوقت.',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   height: 1.5,
-                  color: AppColors.textSecondary,
+                  color: tokens.textMedium,
                 ),
               ),
               const SizedBox(height: 24),
@@ -153,14 +154,12 @@ class _EmailVerificationScreenState extends ConsumerState<EmailVerificationScree
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: _isSuccessMessage
-                        ? AppColors.success.withValues(alpha: 0.1)
-                        : AppColors.error.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    color: _isSuccessMessage ? tokens.successContainer : tokens.dangerContainer,
+                    borderRadius: AppRadii.controlRadius,
                     border: Border.all(
                       color: _isSuccessMessage
-                          ? AppColors.success.withValues(alpha: 0.3)
-                          : AppColors.error.withValues(alpha: 0.3),
+                          ? tokens.success.withValues(alpha: 0.3)
+                          : tokens.danger.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Text(
@@ -168,7 +167,7 @@ class _EmailVerificationScreenState extends ConsumerState<EmailVerificationScree
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 13,
-                      color: _isSuccessMessage ? AppColors.success : AppColors.error,
+                      color: _isSuccessMessage ? tokens.success : tokens.danger,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -178,24 +177,25 @@ class _EmailVerificationScreenState extends ConsumerState<EmailVerificationScree
 
               // Check button
               SizedBox(
-                height: 52,
-                child: ElevatedButton(
+                height: 48,
+                child: FilledButton(
                   onPressed: _isChecking ? null : _checkVerification,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: tokens.brand,
+                    foregroundColor: tokens.onBrand,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: AppRadii.controlRadius,
                     ),
                   ),
                   child: _isChecking
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 24,
                           height: 24,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                          child: CircularProgressIndicator(color: tokens.onBrand, strokeWidth: 2),
                         )
-                      : const Text(
+                      : Text(
                           'لقد قمت بالتأكيد (دخول)',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: tokens.onBrand),
                         ),
                 ),
               ),
@@ -205,10 +205,10 @@ class _EmailVerificationScreenState extends ConsumerState<EmailVerificationScree
               OutlinedButton(
                 onPressed: _isResending ? null : _resendEmail,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.primary,
-                  side: const BorderSide(color: AppColors.hairline),
+                  foregroundColor: tokens.brand,
+                  side: BorderSide(color: tokens.border),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: AppRadii.controlRadius,
                   ),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
@@ -218,9 +218,9 @@ class _EmailVerificationScreenState extends ConsumerState<EmailVerificationScree
                         height: 20,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text(
+                    : Text(
                         'إعادة إرسال رابط التأكيد',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: tokens.brand),
                       ),
               ),
 
@@ -235,10 +235,10 @@ class _EmailVerificationScreenState extends ConsumerState<EmailVerificationScree
                       context.go('/welcome');
                     }
                   },
-                  icon: const Icon(Icons.logout_rounded, size: 18, color: AppColors.textTertiary),
-                  label: const Text(
+                  icon: Icon(Icons.logout_rounded, size: 18, color: tokens.textLow),
+                  label: Text(
                     'تسجيل الخروج واستخدام حساب آخر',
-                    style: TextStyle(fontSize: 13, color: AppColors.textTertiary),
+                    style: TextStyle(fontSize: 13, color: tokens.textLow),
                   ),
                 ),
               ),

@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/models/app_models.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../features/auth/data/auth_service.dart';
 import '../../../features/timebank/application/timebank_pure_logic.dart';
 import '../../../features/timebank/data/timebank_repository.dart';
@@ -87,9 +87,9 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
         );
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('يرجى ملء موضوع الشرح والتأكد من صحة البيانات.'),
-          backgroundColor: AppColors.error,
+          backgroundColor: context.tokens.danger,
         ),
       );
       return;
@@ -124,9 +124,9 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
 
     if (scheduledAt.isBefore(DateTime.now().add(const Duration(minutes: 10)))) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('يرجى اختيار موعد في المستقبل (بعد 15 دقيقة على الأقل)'),
-          backgroundColor: AppColors.error,
+          backgroundColor: context.tokens.danger,
         ),
       );
       return;
@@ -180,9 +180,9 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('تم نشر جلسة الشرح بنجاح.'),
-            backgroundColor: AppColors.success,
+            backgroundColor: context.tokens.success,
           ),
         );
         context.pop();
@@ -192,7 +192,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('تعذر نشر العرض: $e'),
-            backgroundColor: AppColors.error,
+            backgroundColor: context.tokens.danger,
           ),
         );
       }
@@ -206,10 +206,10 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
-    final surfaceColor = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E293B) : Colors.white);
-    final hairlineColor = isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.08);
+    final tokens = context.tokens;
+    final primaryColor = tokens.brand;
+    final surfaceColor = tokens.surface;
+    final hairlineColor = tokens.border;
 
     // قائمة المواد
     final userProfileAsync = ref.watch(userProfileStreamProvider);
@@ -242,7 +242,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
       appBar: AppBar(
         backgroundColor: surfaceColor,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'إنشاء جلسة شرح جديدة',
           style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
         ),
@@ -258,15 +258,15 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: primaryColor.withValues(alpha: isDark ? 0.2 : 0.08),
-                  borderRadius: BorderRadius.circular(16),
+                  color: tokens.brandContainer.withValues(alpha: 0.4),
+                  borderRadius: AppRadii.cardRadius,
                   border: Border.all(color: primaryColor.withValues(alpha: 0.3)),
                 ),
                 child: Row(
                   children: [
                     Icon(Icons.workspace_premium_rounded, color: primaryColor, size: 24),
                     const SizedBox(width: 12),
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'جلسات بنك الوقت أونلاين 100%. حدد الموعد ورابط الاجتماع لتمكين زملائك من الانضمام والاستفادة من خبرتك.',
                         style: TextStyle(fontSize: 12, height: 1.4),
@@ -286,17 +286,17 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                 surfaceColor: surfaceColor,
                 hairlineColor: hairlineColor,
                 children: [
-                  const Text('المادة المراد شرحها:', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
+                  Text('المادة المراد شرحها:', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<CourseSeed>(
                     initialValue: availableCourses.contains(_selectedCourse) ? _selectedCourse : availableCourses.first,
                     isExpanded: true,
                     decoration: InputDecoration(
                       filled: true,
-                      fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                      fillColor: tokens.surfaceAlt,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: AppRadii.controlRadius,
                         borderSide: BorderSide(color: hairlineColor),
                       ),
                     ),
@@ -321,18 +321,18 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                     },
                   ),
                   const SizedBox(height: 14),
-                  const Text('عنوان الموضوع والنقاط الرئيسية:', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
+                  Text('عنوان الموضوع والنقاط الرئيسية:', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _topicController,
                     maxLines: 2,
                     decoration: InputDecoration(
                       hintText: 'مثال: مراجعة شاملة للـ Polymorphism والـ Interfaces وحل شيت المحاضرة',
-                      hintStyle: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : AppColors.textTertiary),
+                      hintStyle: TextStyle(fontSize: 12, color: tokens.textLow),
                       filled: true,
-                      fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                      fillColor: tokens.surfaceAlt,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: AppRadii.controlRadius,
                         borderSide: BorderSide(color: hairlineColor),
                       ),
                     ),
@@ -365,7 +365,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                           subtitle: 'شرح مركز لزميل واحد فقط',
                           icon: Icons.person_rounded,
                           primaryColor: primaryColor,
-                          isDark: isDark,
+                          tokens: tokens,
                         ),
                       ),
                       const SizedBox(width: 10),
@@ -376,7 +376,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                           subtitle: 'ورشة مفتوحة لعدة طلاب',
                           icon: Icons.groups_rounded,
                           primaryColor: primaryColor,
-                          isDark: isDark,
+                          tokens: tokens,
                         ),
                       ),
                     ],
@@ -386,7 +386,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('الحد الأقصى لعدد المشاركين:', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
+                        Text('الحد الأقصى لعدد المشاركين:', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
                         Text('$_maxAttendees زميل', style: TextStyle(fontWeight: FontWeight.bold, color: primaryColor)),
                       ],
                     ),
@@ -403,7 +403,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                     Center(
                       child: Text(
                         'المكافأة المتوقعة: ${TimeBankPureLogic.calculateTeacherReward(type: _sessionType, attendeeCount: _maxAttendees)} عملات وقت',
-                        style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppColors.pointsAmber),
+                        style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: tokens.coin),
                       ),
                     ),
                   ],
@@ -425,12 +425,12 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                       Expanded(
                         child: InkWell(
                           onTap: _selectDate,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: AppRadii.controlRadius,
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                             decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(12),
+                              color: tokens.surfaceAlt,
+                              borderRadius: AppRadii.controlRadius,
                               border: Border.all(color: hairlineColor),
                             ),
                             child: Row(
@@ -440,7 +440,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                                 Expanded(
                                   child: Text(
                                     scheduledDateFormatted,
-                                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600),
+                                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600),
                                   ),
                                 ),
                               ],
@@ -452,12 +452,12 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                       Expanded(
                         child: InkWell(
                           onTap: _selectTime,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: AppRadii.controlRadius,
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                             decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(12),
+                              color: tokens.surfaceAlt,
+                              borderRadius: AppRadii.controlRadius,
                               border: Border.all(color: hairlineColor),
                             ),
                             child: Row(
@@ -467,7 +467,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                                 Expanded(
                                   child: Text(
                                     scheduledTimeFormatted,
-                                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600),
+                                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600),
                                   ),
                                 ),
                               ],
@@ -478,13 +478,13 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  const Text('مدة الجلسة:', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
+                  Text('مدة الجلسة:', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      _buildDurationChoice(45, primaryColor, isDark),
+                      _buildDurationChoice(45, tokens),
                       const SizedBox(width: 10),
-                      _buildDurationChoice(60, primaryColor, isDark),
+                      _buildDurationChoice(60, tokens),
                     ],
                   ),
                 ],
@@ -504,14 +504,14 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                     controller: _meetingUrlController,
                     keyboardType: TextInputType.url,
                     decoration: InputDecoration(
-                      prefixIcon: const Icon(Icons.link_rounded),
+                      prefixIcon: Icon(Icons.link_rounded),
                       hintText: 'https://meet.google.com/xxx-yyyy-zzz',
-                      hintStyle: TextStyle(fontSize: 12, color: isDark ? Colors.white38 : AppColors.textTertiary),
+                      hintStyle: TextStyle(fontSize: 12, color: tokens.textLow),
                       helperText: 'اختياري - يمكنك تركه فارغاً وتعيينه أو مشاركته لاحقاً داخل تفاصيل الجلسة',
                       filled: true,
-                      fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                      fillColor: tokens.surfaceAlt,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: AppRadii.controlRadius,
                         borderSide: BorderSide(color: hairlineColor),
                       ),
                     ),
@@ -537,7 +537,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                   onPressed: _isPublishing ? null : _publishOffer,
                   style: FilledButton.styleFrom(
                     backgroundColor: primaryColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    shape: RoundedRectangleBorder(borderRadius: AppRadii.cardRadius),
                   ),
                   icon: _isPublishing
                       ? const SizedBox(
@@ -570,7 +570,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
     return Container(
       decoration: BoxDecoration(
         color: surfaceColor,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: AppRadii.cardRadius,
         border: Border.all(color: hairlineColor),
       ),
       padding: const EdgeInsets.all(16),
@@ -591,7 +591,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
     required String subtitle,
     required IconData icon,
     required Color primaryColor,
-    required bool isDark,
+    required AppTokens tokens,
   }) {
     final isSelected = _sessionType == type;
     return InkWell(
@@ -600,20 +600,20 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
         if (type == SessionType.individual) _maxAttendees = 1;
         if (type == SessionType.group && _maxAttendees == 1) _maxAttendees = 10;
       }),
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: AppRadii.cardRadius,
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected ? primaryColor.withValues(alpha: isDark ? 0.25 : 0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
+          color: isSelected ? tokens.brandContainer.withValues(alpha: 0.3) : Colors.transparent,
+          borderRadius: AppRadii.cardRadius,
           border: Border.all(
-            color: isSelected ? primaryColor : (isDark ? Colors.white12 : Colors.black12),
+            color: isSelected ? primaryColor : tokens.border,
             width: isSelected ? 1.5 : 1,
           ),
         ),
         child: Column(
           children: [
-            Icon(icon, color: isSelected ? primaryColor : (isDark ? Colors.white54 : AppColors.textSecondary), size: 24),
+            Icon(icon, color: isSelected ? primaryColor : tokens.textMedium, size: 24),
             const SizedBox(height: 6),
             Text(
               title,
@@ -628,7 +628,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
             Text(
               subtitle,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 10, color: isDark ? Colors.white54 : AppColors.textSecondary),
+              style: TextStyle(fontSize: 10, color: tokens.textMedium),
             ),
           ],
         ),
@@ -636,7 +636,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
     );
   }
 
-  Widget _buildDurationChoice(int minutes, Color primaryColor, bool isDark) {
+  Widget _buildDurationChoice(int minutes, AppTokens tokens) {
     final isSelected = _durationMinutes == minutes;
     return Expanded(
       child: ChoiceChip(
@@ -646,16 +646,14 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              color: isSelected
-                  ? (isDark ? AppColors.darkOnPrimary : Colors.white)
-                  : (isDark ? Colors.white70 : AppColors.textPrimary),
+              color: isSelected ? tokens.onBrand : tokens.textHigh,
             ),
           ),
         ),
         selected: isSelected,
-        selectedColor: primaryColor,
-        backgroundColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        selectedColor: tokens.brand,
+        backgroundColor: tokens.surfaceAlt,
+        shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
         onSelected: (_) => setState(() => _durationMinutes = minutes),
       ),
     );

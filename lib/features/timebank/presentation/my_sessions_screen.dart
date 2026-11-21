@@ -4,7 +4,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../features/auth/data/auth_service.dart';
 import '../../../features/timebank/data/timebank_repository.dart';
 
@@ -29,10 +29,10 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
     final learnerSessions = learnerSessionsAsync.value ?? [];
     final teacherSessions = teacherSessionsAsync.value ?? [];
 
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceAlt = isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt;
-    final cardColor = isDark ? AppColors.darkSurface : Colors.white;
-    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
+    final tokens = context.tokens;
+    final surfaceAlt = tokens.surfaceAlt;
+    final cardColor = tokens.surface;
+    final primaryColor = tokens.brand;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -59,7 +59,7 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                 padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   color: surfaceAlt,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: AppRadii.cardRadius,
                 ),
                 child: Row(
                   children: [
@@ -70,9 +70,9 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
                             color: _activeRoleIndex == 0 ? cardColor : Colors.transparent,
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: AppRadii.controlRadius,
                             boxShadow: _activeRoleIndex == 0
-                                ? [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.08), blurRadius: 4)]
+                                ? tokens.floatingShadow
                                 : null,
                           ),
                           child: Text(
@@ -81,7 +81,7 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: _activeRoleIndex == 0 ? FontWeight.bold : FontWeight.normal,
-                              color: _activeRoleIndex == 0 ? primaryColor : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+                              color: _activeRoleIndex == 0 ? primaryColor : tokens.textMedium,
                             ),
                           ),
                         ),
@@ -94,9 +94,9 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 10),
                           decoration: BoxDecoration(
                             color: _activeRoleIndex == 1 ? cardColor : Colors.transparent,
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: AppRadii.controlRadius,
                             boxShadow: _activeRoleIndex == 1
-                                ? [BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.08), blurRadius: 4)]
+                                ? tokens.floatingShadow
                                 : null,
                           ),
                           child: Text(
@@ -105,7 +105,7 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: _activeRoleIndex == 1 ? FontWeight.bold : FontWeight.normal,
-                              color: _activeRoleIndex == 1 ? primaryColor : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+                              color: _activeRoleIndex == 1 ? primaryColor : tokens.textMedium,
                             ),
                           ),
                         ),
@@ -137,16 +137,16 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                         final isPending = session.status == 'pending';
                         
                         String badge = 'مؤكدة';
-                        Color bColor = AppColors.primary;
+                        Color bColor = tokens.brand;
                         if (isPending) {
                           badge = 'بانتظار الموافقة';
-                          bColor = AppColors.pointsAmber;
+                          bColor = tokens.warning;
                         } else if (isCompleted) {
                           badge = 'مكتملة';
-                          bColor = AppColors.primary;
+                          bColor = tokens.brand;
                         } else if (isCancelled) {
                           badge = session.status == 'rejected' ? 'معتذر عنها' : (session.status == 'expired' ? 'منتهية' : 'ملغاة');
-                          bColor = AppColors.error;
+                          bColor = tokens.danger;
                         }
 
                         return _buildSessionCard(
@@ -159,7 +159,7 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                           badgeText: badge,
                           badgeColor: bColor,
                           costText: '-${session.costCoins} عملة وقت',
-                          costColor: AppColors.error,
+                          costColor: tokens.danger,
                           actionLabel: isCompleted
                               ? 'عرض تقييم الجلسة'
                               : (isCancelled ? 'تفاصيل الجلسة' : (isPending ? 'تفاصيل الطلب وإلغاءه' : 'تفاصيل الجلسة وتأكيد الإتمام')),
@@ -181,16 +181,16 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                         final isPending = session.status == 'pending';
 
                         String badge = 'مؤكدة (في الضمان)';
-                        Color bColor = AppColors.primary;
+                        Color bColor = tokens.brand;
                         if (isPending) {
                           badge = 'طلب جديد';
-                          bColor = AppColors.pointsAmber;
+                          bColor = tokens.warning;
                         } else if (isCompleted) {
                           badge = 'مكتملة';
-                          bColor = AppColors.primary;
+                          bColor = tokens.brand;
                         } else if (isCancelled) {
                           badge = session.status == 'rejected' ? 'معتذر عنها' : (session.status == 'expired' ? 'منتهية' : 'ملغاة');
-                          bColor = AppColors.error;
+                          bColor = tokens.danger;
                         }
 
                         final isMissingMeetingLink = session.mode == 'online' &&
@@ -208,7 +208,7 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                           badgeText: badge,
                           badgeColor: bColor,
                           costText: '+${session.costCoins} عملة وقت',
-                          costColor: AppColors.pointsAmber,
+                          costColor: tokens.coin,
                           showMissingMeetingLinkBanner: isMissingMeetingLink,
                           actionLabel: isCompleted
                               ? 'الجلسة مكتملة ومقبوضة'
@@ -241,23 +241,23 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
     required VoidCallback onAction,
     bool showMissingMeetingLinkBanner = false,
   }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final hairline = isDark ? AppColors.darkHairline : AppColors.hairline;
-    final surfaceAlt = isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt;
-    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
-    final primaryContainer = isDark ? AppColors.darkPrimaryContainer : AppColors.primaryContainer;
-    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final tokens = context.tokens;
+    final hairline = tokens.border;
+    final surfaceAlt = tokens.surfaceAlt;
+    final primaryColor = tokens.brand;
+    final primaryContainer = tokens.brandContainer;
+    final textSecondary = tokens.textMedium;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Theme.of(context).cardTheme.color,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: AppRadii.cardRadius,
         border: Border.all(color: hairline),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+            color: tokens.scrim.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 3),
           ),
@@ -272,7 +272,7 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
                 color: Colors.amber.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: AppRadii.controlRadius,
                 border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
               ),
               child: Row(
@@ -305,7 +305,7 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                 decoration: BoxDecoration(
                   color: badgeColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: AppRadii.controlRadius,
                 ),
                 child: Text(
                   badgeText,
@@ -343,7 +343,7 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: surfaceAlt,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: AppRadii.controlRadius,
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -370,7 +370,7 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
               onPressed: onAction,
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryColor,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
               ),
               child: Text(
                 actionLabel,

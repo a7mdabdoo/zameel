@@ -1,11 +1,11 @@
 // مطور 3
-// شاشة إعداد وتخصيص جدول المحاضرات الأسبوعي يدوياً وبناء خطة المذاكرة الذكية بناءً عليه
+// فيجما: إعداد جدول المحاضرات والمذاكرة الأسبوعية الذكية - ذاكر وعلّم
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../core/models/app_models.dart';
 import '../../../core/state/app_state.dart';
 import '../../auth/data/auth_service.dart';
@@ -19,41 +19,30 @@ class ScheduleSetupScreen extends ConsumerStatefulWidget {
 
 class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
   final List<String> _days = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس'];
-  final List<String> _commonStartTimes = [
-    '08:30 ص',
-    '09:00 ص',
-    '10:00 ص',
-    '10:30 ص',
-    '11:30 ص',
-    '12:00 م',
-    '01:00 م',
-    '01:30 م',
-    '02:30 م',
-    '03:00 م',
-    '04:00 م',
-  ];
-  final List<String> _commonEndTimes = [
-    '10:00 ص',
-    '10:30 ص',
-    '11:30 ص',
-    '12:00 م',
-    '01:00 م',
-    '01:30 م',
-    '02:30 م',
-    '03:00 م',
-    '04:00 م',
-    '05:00 م',
-  ];
-
-  late List<ScheduleItemModel> _lectures;
   String _selectedDay = 'السبت';
   String? _selectedCourseId;
   CourseSeed? _selectedCourse;
-  String _startTime = '09:00 ص';
-  String _endTime = '10:30 ص';
+
   final TextEditingController _roomController = TextEditingController(text: 'قاعة 3');
-  bool _isInitialized = false;
+
+  String _startTime = '09:00 ص';
+  String _endTime = '11:00 ص';
+
+  final List<String> _commonStartTimes = [
+    '08:00 ص', '08:30 ص', '09:00 ص', '09:30 ص', '10:00 ص', '10:30 ص',
+    '11:00 ص', '11:30 ص', '12:00 م', '12:30 م', '01:00 م', '01:30 م',
+    '02:00 م', '02:30 م', '03:00 م', '03:30 م', '04:00 م',
+  ];
+
+  final List<String> _commonEndTimes = [
+    '09:00 ص', '09:30 ص', '10:00 ص', '10:30 ص', '11:00 ص', '11:30 ص',
+    '12:00 م', '12:30 م', '01:00 م', '01:30 م', '02:00 م', '02:30 م',
+    '03:00 م', '03:30 م', '04:00 م', '04:30 م', '05:00 م', '06:00 م',
+  ];
+
+  List<ScheduleItemModel> _lectures = [];
   bool _isSaving = false;
+  bool _isInitialized = false;
 
   @override
   void dispose() {
@@ -61,65 +50,48 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
     super.dispose();
   }
 
-  void _initLectures(List<CourseSeed> availableCourses) {
+  void _initLectures(List<CourseSeed> courses) {
     if (_isInitialized) return;
-    final plannerState = ref.read(plannerProvider);
-    _lectures = List<ScheduleItemModel>.from(plannerState.lectureSchedule);
-    if (availableCourses.isNotEmpty) {
-      _selectedCourseId = availableCourses.first.id;
-      _selectedCourse = availableCourses.first;
-    }
     _isInitialized = true;
+
+    final plannerState = ref.read(plannerProvider);
+    if (plannerState.lectureSchedule.isNotEmpty) {
+      _lectures = List<ScheduleItemModel>.from(plannerState.lectureSchedule);
+    } else {
+      _lectures = [];
+    }
   }
 
   List<CourseSeed> _getAvailableCourses(Map<String, dynamic>? userDoc) {
-    List<CourseSeed> rawList;
-    if (userDoc == null) {
-      rawList = List<CourseSeed>.from(AppConstants.seedCourses);
-    } else {
-      final coursesData = userDoc['coursesData'] as List<dynamic>?;
-      if (coursesData != null && coursesData.isNotEmpty) {
-        rawList = coursesData
-            .map((m) => CourseSeed.fromMap(Map<String, dynamic>.from(m as Map)))
-            .toList();
-      } else {
-        final selectedIds = List<String>.from(userDoc['selectedCourses'] ?? []);
-        if (selectedIds.isNotEmpty) {
-          final list = CurriculumConstants.findCoursesByIds(selectedIds);
-          rawList = list.isNotEmpty ? list : List<CourseSeed>.from(AppConstants.seedCourses);
-        } else {
-          rawList = List<CourseSeed>.from(AppConstants.seedCourses);
-        }
-      }
+    if (userDoc != null && userDoc['coursesData'] != null) {
+      final rawList = userDoc['coursesData'] as List<dynamic>;
+      final list = rawList
+          .whereType<Map<String, dynamic>>()
+          .map((m) => CourseSeed.fromMap(m))
+          .toList();
+      if (list.isNotEmpty) return list;
     }
-
-    final uniqueMap = <String, CourseSeed>{};
-    for (final c in rawList) {
-      if (c.id.isNotEmpty) {
-        uniqueMap.putIfAbsent(c.id, () => c);
-      }
-    }
-    return uniqueMap.values.toList();
+    return AppConstants.seedCourses;
   }
 
   int _parseTimeToMinutes(String timeStr) {
+    // تنسيق: "09:00 ص" أو "01:30 م"
     try {
-      final clean = timeStr.trim().replaceAll('–', '-').replaceAll('—', '-');
-      final isPM = clean.contains('م') || clean.toUpperCase().contains('PM');
-      final digits = clean.replaceAll(RegExp(r'[^\d:]'), '');
-      final parts = digits.split(':');
-      if (parts.isEmpty) return 540;
-      var hour = int.tryParse(parts[0]) ?? 9;
-      final minute = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
-      if (isPM && hour < 12) hour += 12;
-      if (!isPM && hour == 12) hour = 0;
-      return hour * 60 + minute;
+      final parts = timeStr.trim().split(' ');
+      final hm = parts[0].split(':');
+      var h = int.parse(hm[0]);
+      final m = int.parse(hm[1]);
+      final isPm = parts.length > 1 && parts[1].contains('م');
+      if (isPm && h != 12) h += 12;
+      if (!isPm && h == 12) h = 0;
+      return h * 60 + m;
     } catch (_) {
-      return 540;
+      return 0;
     }
   }
 
   void _addLectureToList() {
+    final tokens = context.tokens;
     if (_selectedCourse == null) return;
 
     // Rule 1: No Duplicate Course in the Entire Weekly Schedule
@@ -130,7 +102,7 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('لقد قمت بإضافة محاضرة لمادة "${_selectedCourse!.name}" مسبقاً (يوم ${existingLecture.day}). لا يمكن تكرار نفس المادة في جدول الأسبوع.'),
-          backgroundColor: AppColors.error,
+          backgroundColor: tokens.danger,
           duration: const Duration(seconds: 3),
         ),
       );
@@ -143,9 +115,9 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
 
     if (newEndMin <= newStartMin) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text('وقت انتهاء المحاضرة يجب أن يكون بعد وقت البدء.'),
-          backgroundColor: AppColors.warning,
+          backgroundColor: tokens.warning,
         ),
       );
       return;
@@ -162,7 +134,7 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('يوجد تعارض في التوقيت مع محاضرة أخرى مسجلة في يوم $_selectedDay.'),
-          backgroundColor: AppColors.warning,
+          backgroundColor: tokens.warning,
         ),
       );
       return;
@@ -188,13 +160,14 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('تمت إضافة محاضرة "${_selectedCourse!.name}" ليوم $_selectedDay'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: tokens.brand,
         duration: const Duration(seconds: 2),
       ),
     );
   }
 
   void _removeLecture(int index) {
+    final tokens = context.tokens;
     final removed = _lectures[index];
     setState(() {
       _lectures.removeAt(index);
@@ -202,13 +175,14 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('تم حذف محاضرة "${removed.courseName}"'),
-        backgroundColor: AppColors.textSecondary,
+        backgroundColor: tokens.surfaceAlt,
         duration: const Duration(seconds: 2),
       ),
     );
   }
 
   Future<void> _saveAllAndGeneratePlan(List<CourseSeed> courses) async {
+    final tokens = context.tokens;
     setState(() => _isSaving = true);
 
     // 1. تحديث جدول المحاضرات وإعادة توليد خطة المذاكرة حولها
@@ -230,7 +204,7 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('تم حفظ (${_lectures.length}) محاضرات وضبط خطة المذاكرة بنجاح.'),
-          backgroundColor: AppColors.success,
+          backgroundColor: tokens.success,
         ),
       );
       context.pop();
@@ -239,6 +213,7 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tokens = context.tokens;
     final userProfileAsync = ref.watch(userProfileStreamProvider);
     final userDoc = userProfileAsync.value?.data();
     final availableCourses = _getAvailableCourses(userDoc);
@@ -252,27 +227,18 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
         ? availableCourses.firstWhere((c) => c.id == safeSelectedCourseId, orElse: () => availableCourses.first)
         : null;
 
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final cardColor = isDark ? AppColors.darkSurface : Colors.white;
-    final surfaceAlt = isDark ? AppColors.darkSurfaceAlt : AppColors.surfaceAlt;
-    final hairline = isDark ? AppColors.darkHairline : AppColors.hairline;
-    final onSurface = theme.colorScheme.onSurface;
-    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
-    final primaryContainer = isDark ? AppColors.darkPrimaryContainer : AppColors.primaryContainer;
-    final textSecondary = isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
-
     return Scaffold(
+      backgroundColor: tokens.bg,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios_rounded, color: onSurface),
+          icon: Icon(Icons.arrow_back_ios_rounded, color: tokens.textHigh),
           onPressed: () => context.pop(),
         ),
         title: Text(
           'جدول المحاضرات والمذاكرة',
-          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: onSurface),
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: tokens.textHigh),
         ),
         centerTitle: true,
       ),
@@ -287,30 +253,30 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [primaryColor.withValues(alpha: 0.12), cardColor],
+                    colors: [tokens.brand.withValues(alpha: 0.12), tokens.surface],
                     begin: Alignment.topRight,
                     end: Alignment.bottomLeft,
                   ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: primaryColor.withValues(alpha: 0.2)),
+                  borderRadius: AppRadii.cardRadius,
+                  border: Border.all(color: tokens.brand.withValues(alpha: 0.2)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.calendar_month_rounded, color: primaryColor, size: 22),
+                        Icon(Icons.calendar_month_rounded, color: tokens.brand, size: 22),
                         const SizedBox(width: 8),
                         Text(
                           'أدخل جدول محاضراتك بنفسك',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryColor),
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: tokens.brand),
                         ),
                       ],
                     ),
                     const SizedBox(height: 6),
                     Text(
                       'أضف أوقات المحاضرات الأسبوعية، وستقوم الخوارزمية الذكية بتفادي أوقات انشغالك وتوزيع جلسات المذاكرة وفق أهمية وساعات كل مادة.',
-                      style: TextStyle(fontSize: 12, color: textSecondary, height: 1.4),
+                      style: TextStyle(fontSize: 12, color: tokens.textMedium, height: 1.4),
                     ),
                   ],
                 ),
@@ -322,48 +288,41 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: cardColor,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: hairline),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.02),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+                  color: tokens.surface,
+                  borderRadius: AppRadii.cardRadius,
+                  border: Border.all(color: tokens.border),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Row(
                       children: [
-                        Icon(Icons.add_circle_outline_rounded, color: primaryColor, size: 20),
+                        Icon(Icons.add_circle_outline_rounded, color: tokens.brand, size: 20),
                         const SizedBox(width: 6),
                         Text(
                           'إضافة محاضرة للجدول',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: onSurface),
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: tokens.textHigh),
                         ),
                       ],
                     ),
                     const SizedBox(height: 14),
 
                     // اختيار اليوم
-                    Text('اليوم', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: onSurface)),
+                    Text('اليوم', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: tokens.textHigh)),
                     const SizedBox(height: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14),
                       decoration: BoxDecoration(
-                        color: surfaceAlt,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: hairline),
+                        color: tokens.surfaceAlt,
+                        borderRadius: AppRadii.controlRadius,
+                        border: Border.all(color: tokens.border),
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           value: _selectedDay,
                           isExpanded: true,
-                          dropdownColor: cardColor,
-                          items: _days.map((d) => DropdownMenuItem(value: d, child: Text(d, style: TextStyle(fontSize: 13, color: onSurface)))).toList(),
+                          dropdownColor: tokens.surface,
+                          items: _days.map((d) => DropdownMenuItem(value: d, child: Text(d, style: TextStyle(fontSize: 13, color: tokens.textHigh)))).toList(),
                           onChanged: (val) {
                             if (val != null) setState(() => _selectedDay = val);
                           },
@@ -374,20 +333,20 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                     const SizedBox(height: 12),
 
                     // اختيار المادة من مواد المستخدم
-                    Text('المادة الدراسية', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: onSurface)),
+                    Text('المادة الدراسية', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: tokens.textHigh)),
                     const SizedBox(height: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14),
                       decoration: BoxDecoration(
-                        color: surfaceAlt,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: hairline),
+                        color: tokens.surfaceAlt,
+                        borderRadius: AppRadii.controlRadius,
+                        border: Border.all(color: tokens.border),
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
                           value: safeSelectedCourseId,
                           isExpanded: true,
-                          dropdownColor: cardColor,
+                          dropdownColor: tokens.surface,
                           items: availableCourses.map((c) {
                             return DropdownMenuItem<String>(
                               value: c.id,
@@ -402,7 +361,7 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                                   Expanded(
                                     child: Text(
                                       '${c.name} (${c.creditHours} ساعات)',
-                                      style: TextStyle(fontSize: 13, color: onSurface),
+                                      style: TextStyle(fontSize: 13, color: tokens.textHigh),
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
@@ -434,21 +393,21 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('من الساعة', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: onSurface)),
+                              Text('من الساعة', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: tokens.textHigh)),
                               const SizedBox(height: 6),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12),
                                 decoration: BoxDecoration(
-                                  color: surfaceAlt,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: hairline),
+                                  color: tokens.surfaceAlt,
+                                  borderRadius: AppRadii.controlRadius,
+                                  border: Border.all(color: tokens.border),
                                 ),
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
                                     value: _startTime,
                                     isExpanded: true,
-                                    dropdownColor: cardColor,
-                                    items: _commonStartTimes.map((t) => DropdownMenuItem(value: t, child: Text(t, style: TextStyle(fontSize: 12, color: onSurface)))).toList(),
+                                    dropdownColor: tokens.surface,
+                                    items: _commonStartTimes.map((t) => DropdownMenuItem(value: t, child: Text(t, style: TextStyle(fontSize: 12, color: tokens.textHigh)))).toList(),
                                     onChanged: (val) {
                                       if (val != null) setState(() => _startTime = val);
                                     },
@@ -463,21 +422,21 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('إلى الساعة', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: onSurface)),
+                              Text('إلى الساعة', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: tokens.textHigh)),
                               const SizedBox(height: 6),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12),
                                 decoration: BoxDecoration(
-                                  color: surfaceAlt,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: hairline),
+                                  color: tokens.surfaceAlt,
+                                  borderRadius: AppRadii.controlRadius,
+                                  border: Border.all(color: tokens.border),
                                 ),
                                 child: DropdownButtonHideUnderline(
                                   child: DropdownButton<String>(
                                     value: _endTime,
                                     isExpanded: true,
-                                    dropdownColor: cardColor,
-                                    items: _commonEndTimes.map((t) => DropdownMenuItem(value: t, child: Text(t, style: TextStyle(fontSize: 12, color: onSurface)))).toList(),
+                                    dropdownColor: tokens.surface,
+                                    items: _commonEndTimes.map((t) => DropdownMenuItem(value: t, child: Text(t, style: TextStyle(fontSize: 12, color: tokens.textHigh)))).toList(),
                                     onChanged: (val) {
                                       if (val != null) setState(() => _endTime = val);
                                     },
@@ -493,19 +452,19 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                     const SizedBox(height: 12),
 
                     // القاعة / المكان
-                    Text('القاعة أو المعمل', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: onSurface)),
+                    Text('القاعة أو المعمل', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: tokens.textHigh)),
                     const SizedBox(height: 6),
                     TextField(
                       controller: _roomController,
-                      style: TextStyle(color: onSurface),
+                      style: TextStyle(color: tokens.textHigh),
                       decoration: InputDecoration(
                         hintText: 'قاعة 3، مدرج 1، معمل 2...',
-                        hintStyle: TextStyle(color: textSecondary),
+                        hintStyle: TextStyle(color: tokens.textMedium),
                         filled: true,
-                        fillColor: surfaceAlt,
+                        fillColor: tokens.surfaceAlt,
                         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hairline)),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: hairline)),
+                        border: OutlineInputBorder(borderRadius: AppRadii.controlRadius, borderSide: BorderSide(color: tokens.border)),
+                        enabledBorder: OutlineInputBorder(borderRadius: AppRadii.controlRadius, borderSide: BorderSide(color: tokens.border)),
                       ),
                     ),
 
@@ -514,11 +473,11 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                     // زر الإضافة
                     ElevatedButton.icon(
                       onPressed: _addLectureToList,
-                      icon: const Icon(Icons.add, color: Colors.white, size: 18),
-                      label: const Text('إضافة هذه المحاضرة', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                      icon: Icon(Icons.add, color: tokens.onBrand, size: 18),
+                      label: Text('إضافة هذه المحاضرة', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: tokens.onBrand)),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryColor,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        backgroundColor: tokens.brand,
+                        shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
@@ -534,12 +493,12 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                 children: [
                   Text(
                     'المحاضرات المجدولة (${_lectures.length})',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: onSurface),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: tokens.textHigh),
                   ),
                   if (_lectures.isNotEmpty)
                     TextButton(
                       onPressed: () => setState(() => _lectures.clear()),
-                      child: const Text('مسح الكل', style: TextStyle(fontSize: 12, color: AppColors.error)),
+                      child: Text('مسح الكل', style: TextStyle(fontSize: 12, color: tokens.danger)),
                     ),
                 ],
               ),
@@ -549,23 +508,23 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: cardColor,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: hairline),
+                    color: tokens.surface,
+                    borderRadius: AppRadii.cardRadius,
+                    border: Border.all(color: tokens.border),
                   ),
                   child: Center(
                     child: Column(
                       children: [
-                        Icon(Icons.event_busy_rounded, color: isDark ? AppColors.darkTextTertiary : AppColors.textTertiary, size: 36),
+                        Icon(Icons.event_busy_rounded, color: tokens.textLow, size: 36),
                         const SizedBox(height: 8),
                         Text(
                           'لا توجد محاضرات مضافة حتى الآن',
-                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: textSecondary),
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: tokens.textMedium),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           'أضف مواعيدك بالنموذج أعلاه لبناء خطة المذاكرة حولها',
-                          style: TextStyle(fontSize: 12, color: isDark ? AppColors.darkTextTertiary : AppColors.textTertiary),
+                          style: TextStyle(fontSize: 12, color: tokens.textLow),
                         ),
                       ],
                     ),
@@ -580,9 +539,9 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                     margin: const EdgeInsets.only(bottom: 10),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: cardColor,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: hairline),
+                      color: tokens.surface,
+                      borderRadius: AppRadii.controlRadius,
+                      border: Border.all(color: tokens.border),
                     ),
                     child: Row(
                       children: [
@@ -591,7 +550,7 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                           height: 46,
                           decoration: BoxDecoration(
                             color: lecture.color,
-                            borderRadius: BorderRadius.circular(2),
+                            borderRadius: AppRadii.controlRadius,
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -604,19 +563,19 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: primaryContainer.withValues(alpha: 0.6),
-                                      borderRadius: BorderRadius.circular(8),
+                                      color: tokens.brandContainer.withValues(alpha: 0.6),
+                                      borderRadius: AppRadii.controlRadius,
                                     ),
                                     child: Text(
                                       lecture.day,
-                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: primaryColor),
+                                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: tokens.brand),
                                     ),
                                   ),
                                   const SizedBox(width: 6),
                                   Expanded(
                                     child: Text(
                                       lecture.courseName,
-                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: onSurface),
+                                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: tokens.textHigh),
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
@@ -625,13 +584,13 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                               const SizedBox(height: 4),
                               Text(
                                 '${lecture.startTime} – ${lecture.endTime} • ${lecture.room}',
-                                style: TextStyle(fontSize: 11, color: textSecondary),
+                                style: TextStyle(fontSize: 11, color: tokens.textMedium),
                               ),
                             ],
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 20),
+                          icon: Icon(Icons.delete_outline_rounded, color: tokens.danger, size: 20),
                           onPressed: () => _removeLecture(index),
                         ),
                       ],
@@ -647,19 +606,20 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                 child: ElevatedButton.icon(
                   onPressed: _isSaving ? null : () => _saveAllAndGeneratePlan(availableCourses),
                   icon: _isSaving
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: tokens.onBrand),
                         )
-                      : const Icon(Icons.auto_awesome_rounded, color: Colors.white),
+                      : Icon(Icons.auto_awesome_rounded, color: tokens.onBrand),
                   label: Text(
                     _isSaving ? 'جارٍ توليد الخطة...' : 'حفظ وتوليد خطة المذاكرة',
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: tokens.onBrand),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryColor,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    backgroundColor: tokens.brand,
+                    foregroundColor: tokens.onBrand,
+                    shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
                   ),
                 ),
               ),

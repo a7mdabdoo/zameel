@@ -3,7 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'core/theme/app_theme.dart';
-import 'core/theme/app_colors.dart';
+import 'core/theme/app_tokens.dart';
 import 'core/routing/app_router.dart';
 import 'core/constants/app_constants.dart';
 import 'core/state/app_state.dart';
@@ -93,12 +93,14 @@ class _FirebaseInitErrorAppState extends State<FirebaseInitErrorApp> {
   @override
   Widget build(BuildContext context) {
     final displayError = _lastError ?? widget.error.toString();
+    const tokens = AppTokens.light;
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      theme: AppTheme.light(),
       home: Directionality(
         textDirection: TextDirection.rtl,
         child: Scaffold(
-          backgroundColor: AppColors.background,
+          backgroundColor: tokens.bg,
           body: SafeArea(
             child: Center(
               child: SingleChildScrollView(
@@ -111,84 +113,83 @@ class _FirebaseInitErrorAppState extends State<FirebaseInitErrorApp> {
                       width: 88,
                       height: 88,
                       decoration: BoxDecoration(
-                        color: AppColors.error.withValues(alpha: 0.12),
+                        color: tokens.dangerContainer,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.cloud_off_rounded,
                         size: 46,
-                        color: AppColors.error,
+                        color: tokens.danger,
                       ),
                     ),
                     const SizedBox(height: 24),
-                    const Text(
-                      'تعذر الاتصال بخدمات زَميل',
+                    Text(
+                      'تعذر الاتصال بخدمات زميل',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
-                        color: AppColors.textPrimary,
+                        color: tokens.textHigh,
                       ),
                     ),
                     const SizedBox(height: 12),
-                    const Text(
+                    Text(
                       'حدث خطأ غير متوقع أثناء تهيئة خدمات Firebase الأساسية.\nيرجى التأكد من اتصالك بالإنترنت ثم إعادة المحاولة.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 14,
                         height: 1.5,
-                        color: AppColors.textSecondary,
+                        color: tokens.textMedium,
                       ),
                     ),
-                    
                     const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceAlt,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppColors.hairline),
+                        color: tokens.surfaceAlt,
+                        borderRadius: AppRadii.controlRadius,
+                        border: Border.all(color: tokens.border),
                       ),
                       child: Text(
                         displayError,
                         maxLines: 4,
                         overflow: TextOverflow.ellipsis,
                         textDirection: TextDirection.ltr,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 11,
                           fontFamily: 'monospace',
-                          color: AppColors.textSecondary,
+                          color: tokens.textMedium,
                         ),
                       ),
                     ),
                     const SizedBox(height: 28),
                     SizedBox(
                       width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton.icon(
+                      height: 48,
+                      child: FilledButton.icon(
                         onPressed: _isRetrying ? null : _retry,
                         icon: _isRetrying
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 20,
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  color: Colors.white,
+                                  color: tokens.onBrand,
                                 ),
                               )
-                            : const Icon(Icons.refresh_rounded, color: Colors.white),
+                            : Icon(Icons.refresh_rounded),
                         label: Text(
                           _isRetrying ? 'جارٍ إعادة المحاولة...' : 'إعادة المحاولة',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
                           ),
                         ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: tokens.brand,
+                          foregroundColor: tokens.onBrand,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: AppRadii.controlRadius,
                           ),
                         ),
                       ),

@@ -7,7 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/models/app_models.dart';
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_tokens.dart';
 import '../../../features/auth/data/auth_service.dart';
 import '../../../features/timebank/data/timebank_repository.dart';
 
@@ -22,6 +22,7 @@ class TimeBankFeedScreen extends ConsumerStatefulWidget {
 typedef MyOffersScreen = TimeBankFeedScreen;
 
 class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
+  AppTokens get tokens => context.tokens;
   // التاب الافتراضي: 0 = استكشف العروض (Marketplace Discovery)، 1 = جلساتي وعروضي
   int _selectedMainTab = 0;
   // التاب الداخلي لجلساتي: 0 = كمتعلّم، 1 = كشارح
@@ -75,10 +76,10 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
     final myOffers = userOffersAsync.value ?? [];
 
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final primaryColor = isDark ? AppColors.darkPrimary : AppColors.primary;
-    final surfaceColor = theme.cardTheme.color ?? (isDark ? const Color(0xFF1E293B) : Colors.white);
-    final hairlineColor = isDark ? Colors.white.withValues(alpha: 0.1) : Colors.black.withValues(alpha: 0.08);
+    final tokens = context.tokens;
+        final primaryColor = tokens.brand;
+    final surfaceColor = tokens.surface;
+    final hairlineColor = tokens.border;
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -92,7 +93,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
               padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
                 color: primaryColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: AppRadii.controlRadius,
               ),
               child: Icon(Icons.bolt_rounded, color: primaryColor, size: 20),
             ),
@@ -110,7 +111,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
         actions: [
           IconButton(
             tooltip: 'محفظة الوقت',
-            icon: const Icon(Icons.account_balance_wallet_outlined),
+            icon: Icon(Icons.account_balance_wallet_outlined),
             color: primaryColor,
             onPressed: () => context.push('/wallet'),
           ),
@@ -121,12 +122,12 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
         heroTag: 'fab_timebank_create_offer',
         onPressed: () => context.push('/create-offer'),
         backgroundColor: primaryColor,
-        icon: Icon(Icons.add_rounded, color: isDark ? AppColors.darkOnPrimary : Colors.white),
+        icon: Icon(Icons.add_rounded, color: tokens.onBrand),
         label: Text(
           'إنشاء جلسة',
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: isDark ? AppColors.darkOnPrimary : Colors.white,
+            color: tokens.onBrand,
           ),
         ),
       ),
@@ -139,8 +140,8 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Container(
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(14),
+                  color: tokens.surfaceAlt,
+                  borderRadius: AppRadii.cardRadius,
                   border: Border.all(color: hairlineColor),
                 ),
                 padding: const EdgeInsets.all(4),
@@ -151,15 +152,13 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                       title: 'استكشف الجلسات (${allOffers.length})',
                       isSelected: _selectedMainTab == 0,
                       primaryColor: primaryColor,
-                      isDark: isDark,
-                    ),
+                                          ),
                     _buildMainTabItem(
                       index: 1,
                       title: 'جلساتي (${learnerSessions.length + myOffers.length})',
                       isSelected: _selectedMainTab == 1,
                       primaryColor: primaryColor,
-                      isDark: isDark,
-                    ),
+                                          ),
                   ],
                 ),
               ),
@@ -173,8 +172,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                       userId: userId,
                       userCoursesNames: userCoursesNames,
                       userAcademicYear: userAcademicYear,
-                      isDark: isDark,
-                      primaryColor: primaryColor,
+                                            primaryColor: primaryColor,
                       surfaceColor: surfaceColor,
                       hairlineColor: hairlineColor,
                     )
@@ -182,8 +180,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                       learnerSessions: learnerSessions,
                       myOffers: myOffers,
                       userId: userId,
-                      isDark: isDark,
-                      primaryColor: primaryColor,
+                                            primaryColor: primaryColor,
                       surfaceColor: surfaceColor,
                       hairlineColor: hairlineColor,
                     ),
@@ -199,8 +196,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
     required String title,
     required bool isSelected,
     required Color primaryColor,
-    required bool isDark,
-  }) {
+      }) {
     return Expanded(
       child: GestureDetector(
         onTap: () => setState(() => _selectedMainTab = index),
@@ -209,7 +205,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
           padding: const EdgeInsets.symmetric(vertical: 9),
           decoration: BoxDecoration(
             color: isSelected ? primaryColor : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: AppRadii.controlRadius,
             boxShadow: isSelected
                 ? [
                     BoxShadow(
@@ -228,9 +224,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.bold,
-              color: isSelected
-                  ? (isDark ? AppColors.darkOnPrimary : Colors.white)
-                  : (isDark ? Colors.white70 : AppColors.textSecondary),
+              color: isSelected ? tokens.onBrand : tokens.textMedium,
             ),
           ),
         ),
@@ -246,8 +240,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
     required String userId,
     required List<String> userCoursesNames,
     required String? userAcademicYear,
-    required bool isDark,
-    required Color primaryColor,
+        required Color primaryColor,
     required Color surfaceColor,
     required Color hairlineColor,
   }) {
@@ -283,13 +276,13 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
             textInputAction: TextInputAction.search,
             style: TextStyle(
               fontSize: 13,
-              color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
+              color: tokens.textHigh,
             ),
             decoration: InputDecoration(
               hintText: 'ابحث عن موضوع، مادة، أو اسم الشارح...',
               hintStyle: TextStyle(
                 fontSize: 12,
-                color: isDark ? AppColors.darkTextTertiary : AppColors.textTertiary,
+                color: tokens.textLow,
               ),
               prefixIcon: Icon(Icons.search_rounded, size: 20, color: primaryColor),
               suffixIcon: _searchQuery.isNotEmpty
@@ -302,18 +295,18 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                     )
                   : null,
               filled: true,
-              fillColor: isDark ? const Color(0xFF1E2D3D) : AppColors.surfaceAlt,
+              fillColor: tokens.surfaceAlt,
               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: AppRadii.cardRadius,
                 borderSide: BorderSide(color: hairlineColor),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: AppRadii.cardRadius,
                 borderSide: BorderSide(color: hairlineColor),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: AppRadii.cardRadius,
                 borderSide: BorderSide(color: primaryColor, width: 1.5),
               ),
             ),
@@ -329,10 +322,10 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: [
-                _buildFilterChip('الكل', primaryColor, isDark),
+                _buildFilterChip('الكل', primaryColor),
                 for (final course in userCoursesNames) ...[
                   const SizedBox(width: 8),
-                  _buildFilterChip(course, primaryColor, isDark),
+                  _buildFilterChip(course, primaryColor),
                 ],
               ],
             ),
@@ -342,7 +335,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
         // قائمة بطاقات العروض
         Expanded(
           child: filteredOffers.isEmpty
-              ? _buildEmptyOffersPlaceholder(isDark, primaryColor, isSearching: _searchQuery.isNotEmpty)
+              ? _buildEmptyOffersPlaceholder(primaryColor, isSearching: _searchQuery.isNotEmpty)
               : ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: filteredOffers.length,
@@ -352,8 +345,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                     return _buildOfferCard(
                       offer: offer,
                       userId: userId,
-                      isDark: isDark,
-                      primaryColor: primaryColor,
+                                            primaryColor: primaryColor,
                       surfaceColor: surfaceColor,
                       hairlineColor: hairlineColor,
                     );
@@ -364,7 +356,8 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
     );
   }
 
-  Widget _buildFilterChip(String label, Color primaryColor, bool isDark) {
+  Widget _buildFilterChip(String label, Color primaryColor) {
+    final tokens = context.tokens;
     final isSelected = _selectedCourseFilter == label;
     return ChoiceChip(
       label: Text(
@@ -372,18 +365,16 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
         style: TextStyle(
           fontSize: 12,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-          color: isSelected
-              ? (isDark ? AppColors.darkOnPrimary : Colors.white)
-              : (isDark ? Colors.white70 : AppColors.textPrimary),
+          color: isSelected ? tokens.onBrand : tokens.textHigh,
         ),
       ),
       selected: isSelected,
-      selectedColor: primaryColor,
-      backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+      selectedColor: tokens.brand,
+      backgroundColor: tokens.surfaceAlt,
       side: BorderSide(
-        color: isSelected ? primaryColor : (isDark ? Colors.white12 : Colors.black12),
+        color: isSelected ? tokens.brand : tokens.border,
       ),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(borderRadius: AppRadii.chipRadius),
       onSelected: (_) => setState(() => _selectedCourseFilter = label),
     );
   }
@@ -391,8 +382,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
   Widget _buildOfferCard({
     required TimeBankOfferModel offer,
     required String userId,
-    required bool isDark,
-    required Color primaryColor,
+        required Color primaryColor,
     required Color surfaceColor,
     required Color hairlineColor,
   }) {
@@ -403,20 +393,14 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
     return Container(
       decoration: BoxDecoration(
         color: surfaceColor,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: AppRadii.cardRadius,
         border: Border.all(
           color: isEnrolled
-              ? AppColors.success.withValues(alpha: 0.5)
+              ? tokens.success.withValues(alpha: 0.5)
               : (isTeacher ? primaryColor.withValues(alpha: 0.4) : hairlineColor),
           width: isEnrolled || isTeacher ? 1.5 : 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        boxShadow: tokens.floatingShadow,
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -457,9 +441,9 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                           decoration: BoxDecoration(
                             color: offer.teacherRating > 0
-                                ? Colors.amber.withValues(alpha: isDark ? 0.25 : 0.12)
-                                : (isDark ? AppColors.darkSurfaceAlt : Colors.black.withValues(alpha: 0.05)),
-                            borderRadius: BorderRadius.circular(6),
+                                ? tokens.coin.withValues(alpha: 0.2)
+                                : tokens.surfaceAlt,
+                            borderRadius: AppRadii.controlRadius,
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
@@ -467,7 +451,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                               Icon(
                                 Icons.star_rounded,
                                 size: 12,
-                                color: offer.teacherRating > 0 ? Colors.amber : (isDark ? Colors.white60 : Colors.black45),
+                                color: offer.teacherRating > 0 ? tokens.coin : tokens.textLow,
                               ),
                               const SizedBox(width: 2),
                               Text(
@@ -475,7 +459,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                                 style: TextStyle(
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.bold,
-                                  color: offer.teacherRating > 0 ? Colors.amber : (isDark ? Colors.white70 : Colors.black54),
+                                  color: offer.teacherRating > 0 ? tokens.coin : tokens.textMedium,
                                 ),
                               ),
                             ],
@@ -486,14 +470,14 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                     const SizedBox(height: 2),
                     Text(
                       'جلسة أونلاين 100% • مدة ${offer.durationMinutes} دقيقة',
-                      style: TextStyle(fontSize: 10.5, color: isDark ? Colors.white54 : AppColors.textSecondary),
+                      style: TextStyle(fontSize: 10.5, color: tokens.textMedium),
                     ),
                   ],
                 ),
               ),
               const SizedBox(width: 8),
               // شارة نوع الجلسة (SessionType Pill)
-              _buildSessionTypeBadge(offer.sessionType, isDark, primaryColor),
+              _buildSessionTypeBadge(offer.sessionType),
             ],
           ),
 
@@ -503,8 +487,8 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
-              color: primaryColor.withValues(alpha: isDark ? 0.2 : 0.08),
-              borderRadius: BorderRadius.circular(8),
+              color: tokens.brandContainer.withValues(alpha: 0.4),
+              borderRadius: AppRadii.controlRadius,
             ),
             child: Text(
               offer.courseName,
@@ -518,7 +502,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
             offer.topic,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, height: 1.3),
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, height: 1.3),
           ),
 
           const SizedBox(height: 10),
@@ -527,8 +511,8 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(10),
+              color: tokens.surfaceAlt,
+              borderRadius: AppRadii.controlRadius,
               border: Border.all(color: hairlineColor),
             ),
             child: Row(
@@ -538,15 +522,15 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                 Expanded(
                   child: Text(
                     '${offer.day}، ${offer.time}',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                   ),
                 ),
                 if (offer.meetingUrl != null && offer.meetingUrl!.isNotEmpty) ...[
-                  Icon(Icons.videocam_rounded, size: 16, color: AppColors.success),
+                  Icon(Icons.videocam_rounded, size: 16, color: tokens.success),
                   const SizedBox(width: 4),
-                  const Text(
+                  Text(
                     'رابط Meeting متاح',
-                    style: TextStyle(fontSize: 10.5, color: AppColors.success, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: 10.5, color: tokens.success, fontWeight: FontWeight.bold),
                   ),
                 ],
               ],
@@ -575,7 +559,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: offer.isFull ? AppColors.pointsAmber : null,
+                      color: offer.isFull ? tokens.coin : null,
                     ),
                   ),
                 ],
@@ -585,27 +569,27 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
               if (isTeacher) ...[
                 OutlinedButton.icon(
                   onPressed: () => context.push('/create-offer'),
-                  icon: const Icon(Icons.settings_outlined, size: 15),
-                  label: const Text('أنت الشارح', style: TextStyle(fontSize: 11.5)),
+                  icon: Icon(Icons.settings_outlined, size: 15),
+                  label: Text('أنت الشارح', style: TextStyle(fontSize: 11.5)),
                   style: OutlinedButton.styleFrom(
                     visualDensity: VisualDensity.compact,
                     foregroundColor: primaryColor,
                     side: BorderSide(color: primaryColor),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
                   ),
                 ),
               ] else if (isEnrolled) ...[
                 FilledButton.tonalIcon(
                   onPressed: () => _openMeetingOrSession(offer),
-                  icon: const Icon(Icons.check_circle_rounded, size: 16, color: AppColors.success),
-                  label: const Text(
+                  icon: Icon(Icons.check_circle_rounded, size: 16, color: tokens.success),
+                  label: Text(
                     'تم الانضمام',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.success),
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: tokens.success),
                   ),
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.success.withValues(alpha: 0.15),
+                    backgroundColor: tokens.success.withValues(alpha: 0.15),
                     visualDensity: VisualDensity.compact,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
                   ),
                 ),
               ] else if (isFull) ...[
@@ -613,7 +597,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                   onPressed: null,
                   style: FilledButton.styleFrom(
                     visualDensity: VisualDensity.compact,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
                   ),
                   child: const Text('اكتمل العدد', style: TextStyle(fontSize: 12)),
                 ),
@@ -625,7 +609,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                   style: FilledButton.styleFrom(
                     backgroundColor: primaryColor,
                     visualDensity: VisualDensity.compact,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
                   ),
                 ),
               ],
@@ -636,19 +620,16 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
     );
   }
 
-  Widget _buildSessionTypeBadge(SessionType type, bool isDark, Color primaryColor) {
+  Widget _buildSessionTypeBadge(SessionType type) {
+    final tokens = context.tokens;
     final isGroup = type == SessionType.group;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: isGroup
-            ? (isDark ? const Color(0xFF0369A1).withValues(alpha: 0.3) : const Color(0xFFE0F2FE))
-            : (isDark ? const Color(0xFF7C3AED).withValues(alpha: 0.3) : const Color(0xFFEDE9FE)),
-        borderRadius: BorderRadius.circular(8),
+        color: isGroup ? tokens.brandContainer : tokens.surfaceAlt,
+        borderRadius: AppRadii.controlRadius,
         border: Border.all(
-          color: isGroup
-              ? (isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7))
-              : (isDark ? const Color(0xFFA78BFA) : const Color(0xFF8B5CF6)),
+          color: isGroup ? tokens.brand : tokens.border,
           width: 0.8,
         ),
       ),
@@ -658,9 +639,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
           Icon(
             isGroup ? Icons.groups_rounded : Icons.person_rounded,
             size: 13,
-            color: isGroup
-                ? (isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7))
-                : (isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED)),
+            color: isGroup ? tokens.brand : tokens.textMedium,
           ),
           const SizedBox(width: 4),
           Text(
@@ -668,9 +647,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
             style: TextStyle(
               fontSize: 10.5,
               fontWeight: FontWeight.bold,
-              color: isGroup
-                  ? (isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7))
-                  : (isDark ? const Color(0xFFA78BFA) : const Color(0xFF7C3AED)),
+              color: isGroup ? tokens.brand : tokens.textMedium,
             ),
           ),
         ],
@@ -685,8 +662,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
     required List<TimeBankSessionModel> learnerSessions,
     required List<TimeBankOfferModel> myOffers,
     required String userId,
-    required bool isDark,
-    required Color primaryColor,
+        required Color primaryColor,
     required Color surfaceColor,
     required Color hairlineColor,
   }) {
@@ -698,33 +674,33 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
           child: Row(
             children: [
-              _buildSubTabButton(0, 'جلساتي كمتعلّم (${learnerSessions.length})', primaryColor, isDark),
+              _buildSubTabButton(0, 'جلساتي كمتعلّم (${learnerSessions.length})', primaryColor),
               const SizedBox(width: 10),
-              _buildSubTabButton(1, 'عروضي كشارح (${myOffers.length})', primaryColor, isDark),
+              _buildSubTabButton(1, 'عروضي كشارح (${myOffers.length})', primaryColor),
             ],
           ),
         ),
 
         Expanded(
           child: _selectedSubTab == 0
-              ? _buildLearnerSessionsList(learnerSessions, userId, isDark, primaryColor, surfaceColor, hairlineColor)
-              : _buildTeacherOffersList(myOffers, isDark, primaryColor, surfaceColor, hairlineColor),
+              ? _buildLearnerSessionsList(learnerSessions, userId, primaryColor, surfaceColor, hairlineColor)
+              : _buildTeacherOffersList(myOffers, primaryColor, surfaceColor, hairlineColor),
         ),
       ],
     );
   }
 
-  Widget _buildSubTabButton(int index, String title, Color primaryColor, bool isDark) {
+  Widget _buildSubTabButton(int index, String title, Color primaryColor) {
     final isSelected = _selectedSubTab == index;
     return Expanded(
       child: InkWell(
         onTap: () => setState(() => _selectedSubTab = index),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: AppRadii.controlRadius,
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
-            color: isSelected ? primaryColor.withValues(alpha: isDark ? 0.3 : 0.15) : Colors.transparent,
-            borderRadius: BorderRadius.circular(10),
+            color: isSelected ? tokens.brandContainer : Colors.transparent,
+            borderRadius: AppRadii.controlRadius,
             border: Border.all(color: isSelected ? primaryColor : Colors.transparent),
           ),
           alignment: Alignment.center,
@@ -733,7 +709,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.bold,
-              color: isSelected ? primaryColor : (isDark ? Colors.white60 : AppColors.textSecondary),
+              color: isSelected ? tokens.brand : tokens.textMedium,
             ),
           ),
         ),
@@ -744,26 +720,26 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
   Widget _buildLearnerSessionsList(
     List<TimeBankSessionModel> sessions,
     String userId,
-    bool isDark,
     Color primaryColor,
     Color surfaceColor,
     Color hairlineColor,
   ) {
+    final tokens = context.tokens;
     if (sessions.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.school_outlined, size: 56, color: isDark ? Colors.white24 : Colors.black12),
+            Icon(Icons.school_outlined, size: 56, color: tokens.textLow),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'لم تنضم إلى أي جلسة تعليمية بعد',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'استكشف الجلسات المتاحة واحجز جلسة بعملة وقت واحدة.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              style: TextStyle(color: tokens.textMedium, fontSize: 12),
             ),
             const SizedBox(height: 16),
             FilledButton.tonal(
@@ -784,7 +760,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
         return Container(
           decoration: BoxDecoration(
             color: surfaceColor,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: AppRadii.cardRadius,
             border: Border.all(color: hairlineColor),
           ),
           padding: const EdgeInsets.all(14),
@@ -798,25 +774,25 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: primaryColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: AppRadii.controlRadius,
                     ),
                     child: Text(
                       session.courseName,
                       style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryColor),
                     ),
                   ),
-                  _buildSessionStatusBadge(session.status, isDark),
+                  _buildSessionStatusBadge(session.status),
                 ],
               ),
               const SizedBox(height: 8),
               Text(
                 session.topic,
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 6),
               Text(
                 'الشارح: ${session.teacherName} • ${session.day}، ${session.time}',
-                style: TextStyle(fontSize: 11.5, color: isDark ? Colors.white60 : AppColors.textSecondary),
+                style: TextStyle(fontSize: 11.5, color: tokens.textMedium),
               ),
               const SizedBox(height: 12),
               Row(
@@ -825,10 +801,10 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                     Expanded(
                       child: FilledButton.icon(
                         onPressed: () => _launchMeetingUrl(session.meetingUrl!),
-                        icon: const Icon(Icons.videocam_rounded, size: 16),
-                        label: const Text('رابط الاجتماع', style: TextStyle(fontSize: 12)),
+                        icon: Icon(Icons.videocam_rounded, size: 16),
+                        label: Text('رابط الاجتماع', style: TextStyle(fontSize: 12)),
                         style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.success,
+                          backgroundColor: tokens.success,
                           visualDensity: VisualDensity.compact,
                         ),
                       ),
@@ -857,26 +833,26 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
 
   Widget _buildTeacherOffersList(
     List<TimeBankOfferModel> offers,
-    bool isDark,
     Color primaryColor,
     Color surfaceColor,
     Color hairlineColor,
   ) {
+    final tokens = context.tokens;
     if (offers.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.co_present_outlined, size: 56, color: isDark ? Colors.white24 : Colors.black12),
+            Icon(Icons.co_present_outlined, size: 56, color: tokens.textLow),
             const SizedBox(height: 12),
-            const Text(
+            Text(
               'لم تقم بنشر أي عروض للشرح بعد',
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               'شارك الشرح مع زملائك واكتسب عملات وقت.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              style: TextStyle(color: tokens.textMedium, fontSize: 12),
             ),
             const SizedBox(height: 16),
             FilledButton.icon(
@@ -899,7 +875,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
         return Container(
           decoration: BoxDecoration(
             color: surfaceColor,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: AppRadii.cardRadius,
             border: Border.all(color: hairlineColor),
           ),
           padding: const EdgeInsets.all(14),
@@ -913,25 +889,25 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: primaryColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: AppRadii.controlRadius,
                     ),
                     child: Text(
                       offer.courseName,
                       style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryColor),
                     ),
                   ),
-                  _buildSessionTypeBadge(offer.sessionType, isDark, primaryColor),
+                  _buildSessionTypeBadge(offer.sessionType),
                 ],
               ),
               const SizedBox(height: 8),
               Text(
                 offer.topic,
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 6),
               Text(
                 '${offer.day}، ${offer.time} • الحضور: ${offer.attendeesCount} / ${offer.maxAttendees} زميل',
-                style: TextStyle(fontSize: 11.5, color: isDark ? Colors.white60 : AppColors.textSecondary),
+                style: TextStyle(fontSize: 11.5, color: tokens.textMedium),
               ),
               const SizedBox(height: 12),
               Row(
@@ -940,8 +916,8 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                     Expanded(
                       child: FilledButton.icon(
                         onPressed: () => _confirmSettleSession(offer),
-                        icon: const Icon(Icons.check_circle_rounded, size: 16),
-                        label: const Text('إنهاء الجلسة وصرف العملات', style: TextStyle(fontSize: 11.5)),
+                        icon: Icon(Icons.check_circle_rounded, size: 16),
+                        label: Text('إنهاء الجلسة وصرف العملات', style: TextStyle(fontSize: 11.5)),
                         style: FilledButton.styleFrom(
                           backgroundColor: primaryColor,
                           visualDensity: VisualDensity.compact,
@@ -950,24 +926,24 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                     ),
                     const SizedBox(width: 8),
                   ] else ...[
-                    const Expanded(
+                    Expanded(
                       child: Text(
                         'تمت تسوية هذه الجلسة واحتساب المكافأة بنجاح.',
-                        style: TextStyle(fontSize: 11.5, color: AppColors.success, fontWeight: FontWeight.bold),
+                        style: TextStyle(fontSize: 11.5, color: tokens.success, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ],
                   if (offer.meetingUrl != null && offer.meetingUrl!.isNotEmpty) ...[
                     IconButton.filledTonal(
                       tooltip: 'فتح رابط الاجتماع',
-                      icon: const Icon(Icons.videocam_rounded, size: 18),
+                      icon: Icon(Icons.videocam_rounded, size: 18),
                       onPressed: () => _launchMeetingUrl(offer.meetingUrl!),
                     ),
                   ],
                   if (!offer.isCompleted && offer.attendeesCount == 0) ...[
                     IconButton(
                       tooltip: 'حذف العرض',
-                      icon: const Icon(Icons.delete_outline_rounded, color: AppColors.error, size: 18),
+                      icon: Icon(Icons.delete_outline_rounded, color: tokens.danger, size: 18),
                       onPressed: () => _deleteOffer(offer.id),
                     ),
                   ],
@@ -980,22 +956,23 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
     );
   }
 
-  Widget _buildSessionStatusBadge(String status, bool isDark) {
-    Color bg = AppColors.success;
+  Widget _buildSessionStatusBadge(String status) {
+    final tokens = context.tokens;
+    Color bg = tokens.success;
     String label = 'مؤكدة';
     if (status == 'completed' || status == 'completed_auto') {
       label = 'مكتملة';
-      bg = Colors.blue;
+      bg = tokens.brand;
     } else if (status.startsWith('cancelled')) {
       label = 'ملغاة';
-      bg = AppColors.error;
+      bg = tokens.danger;
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color: bg.withValues(alpha: isDark ? 0.25 : 0.12),
-        borderRadius: BorderRadius.circular(6),
+        color: bg.withValues(alpha: 0.12),
+        borderRadius: AppRadii.controlRadius,
       ),
       child: Text(
         label,
@@ -1004,18 +981,19 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
     );
   }
 
-  Widget _buildEmptyOffersPlaceholder(bool isDark, Color primaryColor, {bool isSearching = false}) {
+  Widget _buildEmptyOffersPlaceholder(Color primaryColor, {bool isSearching = false}) {
+    final tokens = context.tokens;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off_rounded, size: 64, color: isDark ? Colors.white24 : Colors.black12),
+            Icon(Icons.search_off_rounded, size: 64, color: tokens.textLow),
             const SizedBox(height: 14),
             Text(
               isSearching ? 'لم يتم العثور على عروض تطابق بحثك' : 'لا توجد عروض شرح متاحة حالياً',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const SizedBox(height: 6),
             Text(
@@ -1023,7 +1001,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                   ? 'جرب البحث بكلمات أخرى أو اختر مادة دراسية أخرى.'
                   : 'كن أول من يبادر بطرح جلسة شرح لزملائك واكتسب عملات وقت.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary, fontSize: 12.5),
+              style: TextStyle(color: tokens.textMedium, fontSize: 12.5),
             ),
             const SizedBox(height: 18),
             if (isSearching)
@@ -1066,7 +1044,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        shape: RoundedRectangleBorder(borderRadius: AppRadii.cardRadius),
         title: const Text('تأكيد الانضمام للجلسة', style: TextStyle(fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1082,7 +1060,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: Colors.amber.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: AppRadii.controlRadius,
               ),
               child: const Row(
                 children: [
@@ -1127,9 +1105,9 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text('تم انضمامك للجلسة بنجاح وحُجزت العملة في الضمان.'),
-            backgroundColor: AppColors.success,
+            backgroundColor: tokens.success,
           ),
         );
         // التبديل إلى تاب الجلسات لعرض الجلسة المحجوزة
@@ -1143,7 +1121,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: AppColors.error,
+            backgroundColor: tokens.danger,
           ),
         );
       }
@@ -1161,7 +1139,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        shape: RoundedRectangleBorder(borderRadius: AppRadii.cardRadius),
         title: const Text('إنهاء الجلسة وتسوية الرصيد'),
         content: Text(
           'هل تم إنهاء شرح الجلسة لزملائك (${offer.attendeesCount} حضور)؟\n'
@@ -1194,14 +1172,14 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('تم إنهاء الجلسة وإيداع $reward عملة في محفظتك بنجاح.'),
-            backgroundColor: AppColors.success,
+            backgroundColor: tokens.success,
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('تعذر إنهاء الجلسة: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: Text('تعذر إنهاء الجلسة: $e'), backgroundColor: tokens.danger),
         );
       }
     } finally {
