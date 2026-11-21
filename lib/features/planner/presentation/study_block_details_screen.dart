@@ -177,8 +177,8 @@ class _StudyBlockDetailsScreenState
             duration: const Duration(seconds: 4),
             content: Text(
               !wasAlreadyAwarded
-                  ? 'أحسنت في مذاكرة ${block.courseName}! حصلت على +1 نقطة وقت 🪙 وأتممت $_sessionsBeforeLongBreak جلسات تركيز 🎉 حان وقت الاستراحة الطويلة ($_longBreakMinutes دقيقة)!'
-                  : 'أحسنت! أتممت $_sessionsBeforeLongBreak جلسات تركيز 🎉 حان وقت الاستراحة الطويلة ($_longBreakMinutes دقيقة)!',
+                  ? 'أحسنت في مذاكرة ${block.courseName}. أتممت $_sessionsBeforeLongBreak جلسات تركيز، حان وقت الاستراحة الطويلة ($_longBreakMinutes دقيقة).'
+                  : 'أحسنت. أتممت $_sessionsBeforeLongBreak جلسات تركيز، حان وقت الاستراحة الطويلة ($_longBreakMinutes دقيقة).',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
@@ -191,8 +191,8 @@ class _StudyBlockDetailsScreenState
             duration: const Duration(seconds: 3),
             content: Text(
               !wasAlreadyAwarded
-                  ? 'أحسنت! أنهيت جلسة تركيز بنجاح وحصلت على +1 نقطة وقت 🪙🎉 متبقي $remainingForLongBreak جلسات على الاستراحة الكبيرة!'
-                  : 'أحسنت! أنهيت جلسة تركيز بنجاح 🎉 متبقي $remainingForLongBreak جلسات على الاستراحة الكبيرة!',
+                  ? 'أحسنت. أنهيت جلسة تركيز بنجاح، متبقي $remainingForLongBreak جلسات للاستراحة الطويلة.'
+                  : 'أحسنت. أنهيت جلسة تركيز بنجاح، متبقي $remainingForLongBreak جلسات للاستراحة الطويلة.',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ),
@@ -205,7 +205,7 @@ class _StudyBlockDetailsScreenState
           backgroundColor: AppColors.primary,
           duration: Duration(seconds: 3),
           content: Text(
-            'انتهت الاستراحة! جاهز لجولة تركيز جديدة؟ 🚀',
+            'انتهت الاستراحة، يمكنك بدء جلسة تركيز جديدة.',
             style: TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
@@ -242,7 +242,7 @@ class _StudyBlockDetailsScreenState
                     onPressed: () => Navigator.pop(ctx),
                   ),
                   const Text(
-                    'دورة التركيز والاستراحة الطويلة 🌴',
+                    'دورة التركيز والاستراحة الطويلة',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ],
@@ -277,7 +277,7 @@ class _StudyBlockDetailsScreenState
                       ),
                     ),
                     child: Text(
-                      isDone ? '✓' : (isCurrent ? '⏳' : '○'),
+                      isDone ? 'منجز' : (isCurrent ? 'حالي' : 'متبقي'),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -344,7 +344,7 @@ class _StudyBlockDetailsScreenState
                 icon: const Icon(Icons.coffee_rounded,
                     color: Colors.white, size: 18),
                 label: Text(
-                  'أخذ استراحة طويلة الآن ($_longBreakMinutes دقيقة) 🌴',
+                  'بدء استراحة طويلة ($_longBreakMinutes دقيقة)',
                   style: const TextStyle(
                       color: Colors.white, fontWeight: FontWeight.bold),
                 ),
@@ -396,7 +396,7 @@ class _StudyBlockDetailsScreenState
                         onPressed: () => Navigator.pop(ctx),
                       ),
                       const Text(
-                        'تحديد مدة المذاكرة والاستراحة ⏱️',
+                        'تحديد مدة المذاكرة والاستراحة',
                         style: TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold),
                       ),
@@ -538,7 +538,7 @@ class _StudyBlockDetailsScreenState
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
-                              'تم حفظ وتطبيق أوقات الجلسات الجديدة بنجاح ⏱️'),
+                              'تم حفظ وتطبيق أوقات الجلسات بنجاح.'),
                           duration: Duration(seconds: 2),
                         ),
                       );
@@ -601,7 +601,7 @@ class _StudyBlockDetailsScreenState
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('تم إنجاز هذه المهمة بالفعل ولا يمكن التراجع عنها ✓'),
+            content: Text('تم إنجاز هذه الجلسة مسبقاً.'),
             backgroundColor: AppColors.primary,
           ),
         );
@@ -627,7 +627,7 @@ class _StudyBlockDetailsScreenState
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('أحسنت! تم تسجيل إتمام مذاكرة "${block.courseName}" بنجاح 🎉'),
+          content: Text('تم تسجيل الجلسة كمنجزة.'),
           backgroundColor: AppColors.success,
         ),
       );
@@ -941,7 +941,7 @@ class _StudyBlockDetailsScreenState
                             Icon(Icons.do_not_disturb_on_rounded, size: 14, color: AppColors.primary),
                             SizedBox(width: 6),
                             Text(
-                              'وضع التركيز وعدم الإزعاج نشط 🔕',
+                              'وضع التركيز وعدم الإزعاج نشط',
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
@@ -1119,7 +1119,7 @@ class _StudyBlockDetailsScreenState
                       onPressed: () => _showLongBreakInfo(context),
                       icon: const Icon(Icons.beach_access_rounded,
                           size: 20, color: Color(0xFF0D9488)),
-                      tooltip: 'كم جلسة متبقية للاستراحة الطويلة؟ 🌴',
+                      tooltip: 'الجلسات المتبقية للاستراحة الطويلة',
                       style: IconButton.styleFrom(
                         backgroundColor:
                             const Color(0xFF0D9488).withValues(alpha: 0.12),
@@ -1181,7 +1181,7 @@ class _StudyBlockDetailsScreenState
             onPressed: isAlreadyCompleted ? null : _markCompleted,
             icon: Icon(isAlreadyCompleted ? Icons.check_circle : Icons.check_circle_outline),
             label: Text(
-              isAlreadyCompleted ? 'تمت المذاكرة بنجاح ✓' : 'تمت المذاكرة',
+              'تمت المذاكرة',
               style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
             ),
             style: FilledButton.styleFrom(

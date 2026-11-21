@@ -46,7 +46,7 @@ class _NeedHelpScreenState extends State<NeedHelpScreen> {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          'طلب مساعدة من زميل 🤝',
+          'طلب مساعدة من زميل',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: onSurface),
         ),
         centerTitle: true,

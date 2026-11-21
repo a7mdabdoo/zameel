@@ -35,10 +35,10 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
   bool _isSending = false;
 
   final List<String> _quickChips = [
-    '📍 أنا في قاعة الاستذكار بالكلية',
-    '💻 معايا اللابتوب ومجهز الشيت',
-    '⏳ 5 دقائق وأكون عندك',
-    '👍 تمام متفقين وفي انتظارك',
+    'أنا في قاعة الاستذكار بالكلية',
+    'معي الحاسوب ومستعد للبدء',
+    'خمس دقائق وأكون متواجداً',
+    'تمام، في انتظارك',
   ];
 
   @override
@@ -69,7 +69,7 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
                   final v = await ref.read(authServiceProvider).reloadUserAndCheckVerified();
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(v ? 'تم التحقق من بريدك بنجاح! يمكنك إرسال الرسائل الآن 🎉' : 'لم يتم التأكيد بعد، يرجى مراجعة بريدك 📩')),
+                      SnackBar(content: Text(v ? 'تم التحقق من البريد الإلكتروني بنجاح.' : 'لم يتم التأكيد بعد، يرجى مراجعة البريد الإلكتروني.')),
                     );
                   }
                 },
@@ -134,7 +134,7 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
 
     final effectiveChips = <String>[..._quickChips];
     if (widget.session.mode == 'online' && widget.session.meetingUrl != null && widget.session.meetingUrl!.isNotEmpty) {
-      effectiveChips.insert(0, '🔗 رابط الاجتماع: ${widget.session.meetingUrl}');
+      effectiveChips.insert(0, 'رابط الاجتماع: ${widget.session.meetingUrl}');
     }
 
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
@@ -173,7 +173,7 @@ class _SessionChatSheetState extends ConsumerState<SessionChatSheet> {
                 Column(
                   children: [
                     Text(
-                      'محادثة تنسيق اللقاء 💬',
+                      'محادثة تنسيق الجلسة',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,

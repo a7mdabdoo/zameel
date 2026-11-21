@@ -72,7 +72,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                   final v = await ref.read(authServiceProvider).reloadUserAndCheckVerified();
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(v ? 'تم التحقق من بريدك بنجاح! يمكنك الآن الحجز 🎉' : 'لم يتم التأكيد بعد، يرجى مراجعة بريدك 📩')),
+                      SnackBar(content: Text(v ? 'تم التحقق من البريد الإلكتروني بنجاح.' : 'لم يتم التأكيد بعد، يرجى مراجعة البريد الإلكتروني.')),
                     );
                   }
                 },
@@ -90,7 +90,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
     final isAlreadyEnrolled = offer.isGroupSession && offer.enrolledLearnerIds.contains(user.uid);
     if (isAlreadyEnrolled) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('أنت مسجل بالفعل في هذه الجلسة الجماعية 👍')),
+        const SnackBar(content: Text('أنت مسجل بالفعل في هذه الجلسة.')),
       );
       return;
     }
@@ -161,7 +161,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('تم حجز الجلسة بنجاح مع ${offer.teacherName}! وحُجزت 1 عملة في الضمان 🚀')),
+          SnackBar(content: Text('تم حجز الجلسة بنجاح وحُجزت عملة الوقت في الضمان.')),
         );
         context.pushReplacement('/my-sessions');
       }
@@ -239,7 +239,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          'تأكيد حجز الجلسة ✍️',
+          'تأكيد حجز الجلسة',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
         ),
         centerTitle: true,
@@ -313,7 +313,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'جلسة شرح جماعية 👥',
+                              'جلسة شرح جماعية',
                               style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary),
                             ),
                             const SizedBox(height: 2),
@@ -354,7 +354,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             const Text(
-                              'موعد مرن للشرح ⏳',
+                              'موعد مرن للشرح',
                               style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 2),
@@ -384,7 +384,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'مدة الجلسة المطلوبة ⏱️',
+                      'مدة الجلسة',
                       style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
                     ),
                     const SizedBox(height: 10),
@@ -442,7 +442,7 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'اختر موعد الجلسة المحدد 📅',
+                          'اختر موعد الجلسة',
                           style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
                         ),
                         Text(
@@ -601,9 +601,9 @@ class _BookingScreenState extends ConsumerState<BookingScreen> {
                   if (_isBooking) {
                     buttonLabel = 'جاري تأكيد الحجز وحفظ الضمان...';
                   } else if (isAlreadyEnrolled) {
-                    buttonLabel = 'أنت مسجل بالفعل في هذه الجلسة ✅';
+                    buttonLabel = 'أنت مسجل بالفعل في هذه الجلسة';
                   } else if (isFull) {
-                    buttonLabel = 'اكتملت جميع مقاعد الجلسة الجماعية ❌';
+                    buttonLabel = 'اكتملت جميع مقاعد الجلسة';
                   } else if (coins < AppConstants.sessionCostCoins) {
                     buttonLabel = 'رصيدك لا يكفي للحجز (تحتاج 1 عملة)';
                   }

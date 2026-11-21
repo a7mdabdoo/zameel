@@ -129,7 +129,7 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
     if (existingLecture != null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('⚠️ لقد قمت بإضافة محاضرة لمادة "${_selectedCourse!.name}" مسبقاً (يوم ${existingLecture.day})! لا يمكن تكرار نفس المادة في جدول الأسبوع.'),
+          content: Text('لقد قمت بإضافة محاضرة لمادة "${_selectedCourse!.name}" مسبقاً (يوم ${existingLecture.day}). لا يمكن تكرار نفس المادة في جدول الأسبوع.'),
           backgroundColor: AppColors.error,
           duration: const Duration(seconds: 3),
         ),
@@ -144,7 +144,7 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
     if (newEndMin <= newStartMin) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('⚠️ وقت انتهاء المحاضرة يجب أن يكون بعد وقت البدء!'),
+          content: Text('وقت انتهاء المحاضرة يجب أن يكون بعد وقت البدء.'),
           backgroundColor: AppColors.warning,
         ),
       );
@@ -161,7 +161,7 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
     if (hasConflict) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('⚠️ يوجد تعارض في التوقيت مع محاضرة أخرى مسجلة في يوم $_selectedDay!'),
+          content: Text('يوجد تعارض في التوقيت مع محاضرة أخرى مسجلة في يوم $_selectedDay.'),
           backgroundColor: AppColors.warning,
         ),
       );
@@ -229,7 +229,7 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('تم حفظ (${_lectures.length}) محاضرات وإعادة ضبط خطة المذاكرة الذكية بنجاح! ⚡'),
+          content: Text('تم حفظ (${_lectures.length}) محاضرات وضبط خطة المذاكرة بنجاح.'),
           backgroundColor: AppColors.success,
         ),
       );
@@ -271,7 +271,7 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          'جدول المحاضرات والمذاكرة 🗓️',
+          'جدول المحاضرات والمذاكرة',
           style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: onSurface),
         ),
         centerTitle: true,
@@ -341,7 +341,7 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                         Icon(Icons.add_circle_outline_rounded, color: primaryColor, size: 20),
                         const SizedBox(width: 6),
                         Text(
-                          'إضافة محاضرة للجدول ➕',
+                          'إضافة محاضرة للجدول',
                           style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: onSurface),
                         ),
                       ],
@@ -654,7 +654,7 @@ class _ScheduleSetupScreenState extends ConsumerState<ScheduleSetupScreen> {
                         )
                       : const Icon(Icons.auto_awesome_rounded, color: Colors.white),
                   label: Text(
-                    _isSaving ? 'جارٍ توليد الخطة الذكية...' : 'حفظ وتوليد جدول المذاكرة الذكي ⚡',
+                    _isSaving ? 'جارٍ توليد الخطة...' : 'حفظ وتوليد خطة المذاكرة',
                     style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                   style: ElevatedButton.styleFrom(

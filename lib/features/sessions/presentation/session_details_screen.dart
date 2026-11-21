@@ -57,7 +57,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
     Clipboard.setData(ClipboardData(text: text));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('تم نسخ رابط الاجتماع للحافظة 📋'),
+        content: Text('تم نسخ رابط الاجتماع.'),
         backgroundColor: AppColors.success,
       ),
     );
@@ -70,7 +70,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
     final result = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('رابط الاجتماع الأونلاين 📹', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        title: const Text('رابط الاجتماع', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
         content: Form(
           key: formKey,
           child: Column(
@@ -146,7 +146,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('تم حفظ رابط الاجتماع بنجاح! 📹🎉'),
+              content: Text('تم حفظ رابط الاجتماع بنجاح.'),
               backgroundColor: AppColors.success,
             ),
           );
@@ -170,7 +170,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('إنهاء الجلسة وصرف العملات 🪙'),
+        title: const Text('إنهاء الجلسة وصرف العملات'),
         content: const Text(
           'هل انتهت جلسة الشرح مع زملائك؟\n'
           'سيتم احتساب أجر الشرح وفقاً لنظام الاقتصاد المتدرج وإيداع العملات في محفظتك فوراً.',
@@ -195,7 +195,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('تم إنهاء الجلسة بنجاح وإيداع $reward عملات في محفظتك! 🎉'),
+            content: Text('تم إنهاء الجلسة بنجاح وإيداع $reward عملات في محفظتك.'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -250,7 +250,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم إلغاء الجلسة بنجاح واسترداد العملة وفق قواعد الضمان 🔄')),
+          const SnackBar(content: Text('تم إلغاء الجلسة بنجاح واسترداد العملة وفق قواعد الضمان.')),
         );
         context.pop();
       }
@@ -299,7 +299,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
         backgroundColor: surfaceColor,
         elevation: 0,
         title: Text(
-          isGroup ? 'تفاصيل الجلسة الجماعية 👥' : 'تفاصيل الجلسة الخاصة 👤',
+          isGroup ? 'تفاصيل الجلسة الجماعية' : 'تفاصيل الجلسة الخاصة',
           style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
         ),
         actions: [
@@ -361,7 +361,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Text(
-                          isGroup ? '👥 جلسة جماعية (Webinar)' : '👤 جلسة خاصة (1-on-1)',
+                          isGroup ? 'جلسة جماعية' : 'جلسة خاصة',
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
@@ -394,11 +394,11 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'الزميل الشارح: $teacherName ${isTeacher ? "👑" : ""}',
+                            isTeacher ? 'الزميل الشارح: $teacherName (أنت)' : 'الزميل الشارح: $teacherName',
                             style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
                           ),
                           const Text(
-                            'جلسة أونلاين 100% • الضمان المالي مفعل 🛡️',
+                            'جلسة عبر الإنترنت • نظام الضمان مفعل',
                             style: TextStyle(fontSize: 10.5, color: AppColors.textSecondary),
                           ),
                         ],
@@ -457,7 +457,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                             ),
                             icon: const Icon(Icons.open_in_new_rounded, size: 18),
                             label: const Text(
-                              'انضم للاجتماع الآن 📹',
+                              'انضم للاجتماع الآن',
                               style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                             ),
                           ),
@@ -493,13 +493,13 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                         ),
                         icon: const Icon(Icons.add_link_rounded, size: 18),
                         label: const Text(
-                          'تعيين رابط الاجتماع (Google Meet / Zoom) 📹',
+                          'تعيين رابط الاجتماع (Google Meet / Zoom)',
                           style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                         ),
                       ),
                     ] else ...[
                       const Text(
-                        'لم يقم الزميل الشارح بتعيين رابط الاجتماع بعد. سيصلك إشعار فور تعيينه ومشاركته في محادثة الجلسة 💬',
+                        'لم يقم الزميل الشارح بتعيين رابط الاجتماع بعد. سيصلك إشعار فور تعيينه ومشاركته في محادثة الجلسة.',
                         style: TextStyle(fontSize: 12, height: 1.4),
                       ),
                     ],
@@ -521,7 +521,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('موعد الجلسة وحالة الحجز 📅', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                  const Text('موعد الجلسة وحالة الحجز', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 12),
                   Row(
                     children: [
@@ -540,7 +540,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          status == 'completed' ? 'مكتملة 🎉' : 'حجز مؤكد ⚡',
+                          status == 'completed' ? 'مكتملة' : 'حجز مؤكد',
                           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.success),
                         ),
                       ),
@@ -566,7 +566,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('قائمة الزملاء المشاركين 👥', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                        const Text('قائمة الزملاء المشاركين', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
                         Text('${attendees.length} من $maxAttendees زميل', style: TextStyle(fontWeight: FontWeight.bold, color: primaryColor)),
                       ],
                     ),
@@ -586,7 +586,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                               child: Text(isMe ? 'أ' : 'ز', style: const TextStyle(fontSize: 9, color: Colors.white)),
                             ),
                             label: Text(
-                              isMe ? 'أنت ✅' : 'زميل منضم',
+                              isMe ? 'أنت' : 'زميل منضم',
                               style: TextStyle(fontSize: 11, fontWeight: isMe ? FontWeight.bold : FontWeight.normal),
                             ),
                             backgroundColor: isMe ? primaryColor.withValues(alpha: isDark ? 0.3 : 0.1) : null,
@@ -607,7 +607,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                 child: OutlinedButton.icon(
                   onPressed: () => context.push('/session-chat', extra: session),
                   icon: const Icon(Icons.chat_bubble_outline_rounded),
-                  label: const Text('فتح المحادثة الفورية مع الزميل 💬', style: TextStyle(fontWeight: FontWeight.bold)),
+                  label: const Text('فتح المحادثة الفورية مع الزميل', style: TextStyle(fontWeight: FontWeight.bold)),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: primaryColor,
                     side: BorderSide(color: primaryColor),
@@ -626,7 +626,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                       ? null
                       : () => _settleSessionAsTeacher(offer?.id ?? session?.id ?? '', teacherId),
                   icon: const Icon(Icons.check_circle_rounded),
-                  label: const Text('إنهاء الجلسة وصرف العملات للمحفظة 🪙', style: TextStyle(fontWeight: FontWeight.bold)),
+                  label: const Text('إنهاء الجلسة وصرف العملات للمحفظة', style: TextStyle(fontWeight: FontWeight.bold)),
                   style: FilledButton.styleFrom(
                     backgroundColor: primaryColor,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -639,7 +639,7 @@ class _SessionDetailsScreenState extends ConsumerState<SessionDetailsScreen> {
                 child: FilledButton.icon(
                   onPressed: () => context.push('/session-rating', extra: session),
                   icon: const Icon(Icons.star_rounded),
-                  label: const Text('تأكيد انتهاء الشرح وتقييم الزميل ⭐', style: TextStyle(fontWeight: FontWeight.bold)),
+                  label: const Text('تأكيد انتهاء الشرح وتقييم الزميل', style: TextStyle(fontWeight: FontWeight.bold)),
                   style: FilledButton.styleFrom(
                     backgroundColor: Colors.amber[700],
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

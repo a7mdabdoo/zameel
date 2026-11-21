@@ -92,7 +92,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         backgroundColor: surfaceColor,
         elevation: 0,
         title: Text(
-          'الملف الشخصي 👤',
+          'الملف الشخصي',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textPrimaryColor),
         ),
       ),
@@ -186,7 +186,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           Text(
                             hasRating
                                 ? 'تقييم كمعلم: ${teacherRating.toStringAsFixed(1)} ($ratingCount تقييم)'
-                                : '⭐ جديد (بدون تقييم كمعلم)',
+                                : 'جديد (بدون تقييم)',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
@@ -235,7 +235,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         OutlinedButton.icon(
                           onPressed: () => _showEditProfileModal(context, userDoc),
                           icon: Icon(Icons.person_outline_rounded, size: 14, color: primaryColor),
-                          label: Text('تعديل الملف ✏️', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryColor)),
+                          label: Text('تعديل الملف الشخصي', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryColor)),
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(color: primaryColor.withValues(alpha: 0.3)),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -246,7 +246,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         OutlinedButton.icon(
                           onPressed: () => context.push('/academic-setup?edit=true'),
                           icon: Icon(Icons.school_outlined, size: 14, color: primaryColor),
-                          label: Text('البيانات الأكاديمية 🎓', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryColor)),
+                          label: Text('البيانات الأكاديمية', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: primaryColor)),
                           style: OutlinedButton.styleFrom(
                             side: BorderSide(color: primaryColor.withValues(alpha: 0.3)),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -305,7 +305,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'محفظة عملات الوقت 🪙',
+                                  'محفظة عملات الوقت',
                                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimaryColor),
                                 ),
                                 const SizedBox(height: 2),
@@ -372,7 +372,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'موادي الدراسية 📚 (${userCourses.length})',
+                                  'المواد الدراسية (${userCourses.length})',
                                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: textPrimaryColor),
                                 ),
                                 const SizedBox(height: 2),
@@ -421,10 +421,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   TextButton.icon(
                     onPressed: () => context.push('/schedule-setup'),
                     icon: Icon(Icons.tune_rounded, size: 16, color: primaryColor),
-                    label: Text('إعداد وتعديل 🗓️', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: primaryColor)),
+                    label: Text('إعداد وتعديل', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: primaryColor)),
                   ),
                   Text(
-                    'جدول محاضراتي 🗓️ (${plannerLectures.length})',
+                    'جدول المحاضرات (${plannerLectures.length})',
                     style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textPrimaryColor),
                   ),
                 ],
@@ -490,7 +490,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
               // Settings List
               Text(
-                'إعدادات التطبيق ⚙️',
+                'إعدادات التطبيق',
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: textPrimaryColor),
               ),
               const SizedBox(height: 10),
@@ -514,7 +514,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ScaffoldMessenger.of(context).hideCurrentSnackBar();
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(val ? 'تم تفعيل الوضع الداكن وحفظ تفضيلك بنجاح 🌙' : 'تم تفعيل الوضع الفاتح وحفظ تفضيلك بنجاح ☀️'),
+                            content: Text(val ? 'تم تفعيل الوضع الداكن بنجاح.' : 'تم تفعيل الوضع الفاتح بنجاح.'),
                             duration: const Duration(seconds: 2),
                             backgroundColor: val ? AppColors.darkSurfaceAlt : AppColors.primary,
                           ),
@@ -598,7 +598,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             const SizedBox(width: 10),
             Text(
-              'المساعدة والدعم الفني 💬',
+              'المساعدة والدعم الفني',
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -645,7 +645,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       Clipboard.setData(const ClipboardData(text: AppConstants.supportEmail));
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('تم نسخ البريد الإلكتروني بنجاح 📋'),
+                          content: Text('تم نسخ البريد الإلكتروني بنجاح.'),
                           backgroundColor: AppColors.success,
                           duration: Duration(seconds: 2),
                         ),
@@ -676,7 +676,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   Clipboard.setData(const ClipboardData(text: AppConstants.supportEmail));
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('تم نسخ البريد الإلكتروني إلى الحافظة لتعذر فتح التطبيق مباشرة 📋'),
+                      content: Text('تم نسخ البريد الإلكتروني إلى الحافظة.'),
                       backgroundColor: AppColors.primary,
                     ),
                   );
@@ -686,7 +686,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('تم نسخ البريد الإلكتروني إلى الحافظة 📋'),
+                      content: Text('تم نسخ البريد الإلكتروني إلى الحافظة.'),
                       backgroundColor: AppColors.primary,
                     ),
                   );
@@ -694,7 +694,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               }
             },
             icon: const Icon(Icons.send_rounded, size: 16),
-            label: const Text('مراسلة الآن ✉️', style: TextStyle(fontWeight: FontWeight.bold)),
+            label: const Text('مراسلة الآن', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -873,7 +873,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'إضافة مادة جديدة لحسابي ➕',
+                        'إضافة مادة جديدة',
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: modalTextPrimary),
                       ),
                       IconButton(
@@ -945,7 +945,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       _buildHourChoice(
                         hours: 3,
                         label: '3 ساعات (3h)',
-                        subtitle: 'أولوية أعلى ⭐',
+                        subtitle: 'أولوية عالية',
                         selected: selectedCreditHours == 3,
                         isDark: isDark,
                         modalPrimary: modalPrimary,
@@ -959,7 +959,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       _buildHourChoice(
                         hours: 4,
                         label: '4 ساعات (4h)',
-                        subtitle: 'أولوية قصوى 🔥',
+                        subtitle: 'أولوية قصوى',
                         selected: selectedCreditHours == 4,
                         isDark: isDark,
                         modalPrimary: modalPrimary,
@@ -1049,7 +1049,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('تمت إضافة مادة "$name" ($selectedCreditHours ساعات) لحسابك وتحديث الخطة بنجاح 🎉'),
+                              content: Text('تمت إضافة مادة "$name" بنجاح.'),
                               backgroundColor: AppColors.success,
                             ),
                           );
@@ -1118,7 +1118,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'تعديل المواد المقررة والتقييمات ✏️',
+                      'تعديل المواد المقررة والتقييمات',
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: modalTextPrimary),
                     ),
                     IconButton(
@@ -1251,7 +1251,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
-                                  content: Text('تم حفظ التعديلات وتحديث جدول المذاكرة بنجاح ✅'),
+                                  content: Text('تم حفظ التعديلات وتحديث الخطة بنجاح.'),
                                   backgroundColor: AppColors.success,
                                 ),
                               );
@@ -1355,7 +1355,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('تسجيل الخروج 🚪'),
+        title: const Text('تسجيل الخروج'),
         content: const Text('هل أنت متأكد من رغبتك في تسجيل الخروج من تطبيق زميل؟'),
         actions: [
           TextButton(
@@ -1430,7 +1430,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           Icon(Icons.menu_book_outlined, color: primaryColor, size: 22),
                           const SizedBox(width: 10),
                           Text(
-                            'موادي الدراسية 📚 (${currentCourses.length})',
+                            'المواد الدراسية (${currentCourses.length})',
                             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textPrimaryColor),
                           ),
                         ],
@@ -1666,7 +1666,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('تم تحديث بيانات الملف الشخصي بنجاح! ✨'),
+            content: Text('تم تحديث بيانات الملف الشخصي بنجاح.'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -1722,7 +1722,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'تعديل الملف الشخصي ✏️',
+                  'تعديل الملف الشخصي',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textPrimaryColor),
                 ),
                 IconButton(
@@ -1775,7 +1775,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      '🔒 متاح التغيير بعد $_nameRemainingDays يوم',
+                      'متاح التغيير بعد $_nameRemainingDays يوم',
                       style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.amber),
                     ),
                   ),
@@ -1810,7 +1810,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      '🔒 متاح التغيير بعد $_usernameRemainingDays يوم',
+                      'متاح التغيير بعد $_usernameRemainingDays يوم',
                       style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.amber),
                     ),
                   ),
@@ -1883,7 +1883,7 @@ class _EditProfileSheetState extends ConsumerState<_EditProfileSheet> {
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
                   : const Text(
-                      'حفظ التغييرات ✨',
+                      'حفظ التغييرات',
                       style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
             ),

@@ -64,7 +64,7 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم إلغاء الجلسة بنجاح وفقاً لقواعد الضمان 🔄')),
+          const SnackBar(content: Text('تم إلغاء الجلسة واسترداد عملة الوقت بنجاح.')),
         );
         context.pop();
       }
@@ -93,7 +93,7 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
           );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم استرداد عملة الوقت إلى محفظتك بنجاح لانتهاء المهلة 🔄')),
+          const SnackBar(content: Text('تم استرداد عملة الوقت إلى محفظتك بنجاح لانتهاء المهلة.')),
         );
         context.pop();
       }
@@ -157,7 +157,7 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
           );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم فتح النزاع بنجاح. العملة محتجزة في أمان الضمان 🛡️')),
+          const SnackBar(content: Text('تم فتح النزاع بنجاح، العملة محتجزة في الضمان.')),
         );
         context.pop();
       }
@@ -204,7 +204,7 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
           onPressed: () => context.pop(),
         ),
         title: Text(
-          'تفاصيل الجلسة وتأكيدها 🎓',
+          'تفاصيل الجلسة',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: onSurface),
         ),
         centerTitle: true,
@@ -274,7 +274,7 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                     Expanded(
                       child: Text(
                         isReleased
-                            ? 'تم إتمام الجلسة وإطلاق العملة بنجاح! تقييمك للشارح: ${session?.rating ?? 5} نجوم ⭐'
+                            ? 'تم إتمام الجلسة وإطلاق العملة بنجاح. تقييمك للشارح: ${session?.rating ?? 5} نجوم.'
                             : (isRefunded
                                 ? 'تم إلغاء هذه الجلسة واسترداد العملة إلى محفظتك.'
                                 : 'الجلسة معلقة بالضمان (1 عملة محجوزة). بعد انتهاء الشرح، اضغط لتأكيد الإتمام وتقييم الزميل.'),
@@ -308,7 +308,7 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                     Divider(height: 20, color: hairline),
                     _RowItem('المدة المقررة', duration),
                     Divider(height: 20, color: hairline),
-                    _RowItem('المكان / طريقة اللقاء', session?.mode == 'online' ? 'أونلاين عن بُعد 💻' : location),
+                    _RowItem('المكان / طريقة اللقاء', session?.mode == 'online' ? 'عبر الإنترنت' : location),
                   ],
                 ),
               ),
@@ -347,7 +347,7 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                           onPressed: () {
                             Clipboard.setData(ClipboardData(text: session.meetingUrl!));
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('تم نسخ رابط الاجتماع بنجاح 📋')),
+                              const SnackBar(content: Text('تم نسخ رابط الاجتماع بنجاح.')),
                             );
                           },
                           icon: const Icon(Icons.copy_rounded, size: 16, color: Colors.white),
@@ -394,7 +394,7 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                     onPressed: () => context.push('/session-chat', extra: session),
                     icon: const Icon(Icons.forum_outlined, color: AppColors.primary),
                     label: Text(
-                      'محادثة لتنسيق اللقاء مع $teacherName 💬',
+                      'محادثة لتنسيق الجلسة مع $teacherName',
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary),
                     ),
                     style: OutlinedButton.styleFrom(
@@ -466,7 +466,7 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                       onPressed: _isCancelling ? null : () => _claimExpiredRefund(session),
                       icon: const Icon(Icons.undo_rounded, color: Colors.white),
                       label: Text(
-                        _isCancelling ? 'جاري الاسترداد...' : 'استرداد العملة (انتهاء مهلة الرد) 🔄',
+                        _isCancelling ? 'جاري الاسترداد...' : 'استرداد العملة (انتهاء المهلة)',
                         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
                       ),
                       style: ElevatedButton.styleFrom(
@@ -503,7 +503,7 @@ class _SessionDetailsLearnerScreenState extends ConsumerState<SessionDetailsLear
                       onPressed: _isCancelling ? null : () => _showDisputeDialog(session),
                       icon: const Icon(Icons.report_problem_outlined, color: AppColors.error),
                       label: const Text(
-                        'فتح نزاع / الشارح لم يقدم الجلسة ⚠️',
+                        'فتح نزاع (الشارح لم يحضر)',
                         style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.error),
                       ),
                       style: OutlinedButton.styleFrom(

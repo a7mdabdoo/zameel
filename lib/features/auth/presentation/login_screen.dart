@@ -100,7 +100,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               children: [
                 const SizedBox(height: 12),
                 Text(
-                  'مرحباً بعودتك 👋',
+                  'مرحباً بعودتك',
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,

@@ -61,7 +61,7 @@ class _RatingScreenState extends ConsumerState<RatingScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('تم إتمام الجلسة وتحويل عملة الوقت إلى ${session.teacherName} بنجاح! شكراً لك 🎉')),
+          SnackBar(content: Text('تم إتمام الجلسة وتحويل عملة الوقت إلى ${session.teacherName} بنجاح.')),
         );
         context.go('/my-sessions');
       }
@@ -95,7 +95,7 @@ class _RatingScreenState extends ConsumerState<RatingScreen> {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          'تقييم الجلسة وإطلاق العملة ⭐',
+          'تقييم الجلسة وإطلاق العملة',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
         ),
         centerTitle: true,
@@ -165,11 +165,11 @@ class _RatingScreenState extends ConsumerState<RatingScreen> {
                     const SizedBox(height: 8),
                     Text(
                       _rating == 5
-                          ? 'ممتاز جداً 🌟'
+                          ? 'ممتاز جداً'
                           : _rating == 4
-                              ? 'جيد جداً 👍'
+                              ? 'جيد جداً'
                               : _rating == 3
-                                  ? 'متوسط 👌'
+                                  ? 'متوسط'
                                   : _rating == 2
                                       ? 'مقبول'
                                       : 'بحاجة لتحسين',

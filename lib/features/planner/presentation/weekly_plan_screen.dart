@@ -52,7 +52,7 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
         backgroundColor: Theme.of(context).cardTheme.color,
         elevation: 0,
         title: Text(
-          'الخطة الأسبوعية 📅',
+          'الخطة الأسبوعية',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
         ),
         actions: [
@@ -162,7 +162,7 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
                       time: '${block.startTime} – ${block.endTime}',
                       location: '${block.room} • ${block.topic}',
                       ribbonColor: block.isCompleted ? AppColors.success : block.ribbonColor,
-                      type: block.isCompleted ? 'مكتملة ✓' : 'مذاكرة ذكية',
+                      type: block.isCompleted ? 'مكتملة' : 'جلسة مذاكرة',
                       isInteractive: true,
                       onTap: () => context.push('/study-block-details', extra: block),
                     );
@@ -173,11 +173,11 @@ class _WeeklyPlanScreenState extends ConsumerState<WeeklyPlanScreen> {
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
                         child: currentDay == 'الجمعة'
-                            ? const Column(
+                            ? Column(
                                 children: [
-                                  Text('🌴', style: TextStyle(fontSize: 48)),
-                                  SizedBox(height: 12),
-                                  Text(
+                                  Icon(Icons.weekend_rounded, size: 48, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
+                                  const SizedBox(height: 12),
+                                  const Text(
                                     'عطلة نهاية الأسبوع • استراحة أسبوعية',
                                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                   ),

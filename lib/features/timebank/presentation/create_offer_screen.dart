@@ -55,7 +55,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
       initialDate: _selectedDate.isBefore(now) ? now : _selectedDate,
       firstDate: now,
       lastDate: now.add(const Duration(days: 60)),
-      helpText: 'اختر يوم الجلسة 📅',
+      helpText: 'اختر يوم الجلسة',
       cancelText: 'إلغاء',
       confirmText: 'تأكيد',
     );
@@ -68,7 +68,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
     final picked = await showTimePicker(
       context: context,
       initialTime: _selectedTime,
-      helpText: 'اختر وقت بدء الجلسة ⏱️',
+      helpText: 'اختر وقت بدء الجلسة',
       cancelText: 'إلغاء',
       confirmText: 'تأكيد',
     );
@@ -88,7 +88,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
       }
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('يرجى ملء موضوع الشرح والتأكد من صحة البيانات أولاً 📝'),
+          content: Text('يرجى ملء موضوع الشرح والتأكد من صحة البيانات.'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -181,7 +181,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('تم نشر عرض الشرح بنجاح في سوق بنك الوقت! 🚀🎉'),
+            content: Text('تم نشر جلسة الشرح بنجاح.'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -243,7 +243,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
         backgroundColor: surfaceColor,
         elevation: 0,
         title: const Text(
-          'طرح جلسة شرح جديدة 🚀',
+          'إنشاء جلسة شرح جديدة',
           style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
         ),
       ),
@@ -282,7 +282,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
               // الخطوة 1: المادة والموضوع
               // ==========================================
               _buildSectionCard(
-                title: '1. المادة والموضوع الدراسي 📚',
+                title: '1. المادة وموضوع الشرح',
                 surfaceColor: surfaceColor,
                 hairlineColor: hairlineColor,
                 children: [
@@ -352,7 +352,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
               // الخطوة 2: نوع الجلسة (فردية vs جماعية)
               // ==========================================
               _buildSectionCard(
-                title: '2. نوع الجلسة وسعة الحضور 👥',
+                title: '2. نوع الجلسة وسعة الحضور',
                 surfaceColor: surfaceColor,
                 hairlineColor: hairlineColor,
                 children: [
@@ -402,7 +402,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                     ),
                     Center(
                       child: Text(
-                        'المكافأة المتوقعة: ${TimeBankPureLogic.calculateTeacherReward(type: _sessionType, attendeeCount: _maxAttendees)} عملات وقت 🪙',
+                        'المكافأة المتوقعة: ${TimeBankPureLogic.calculateTeacherReward(type: _sessionType, attendeeCount: _maxAttendees)} عملات وقت',
                         style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppColors.pointsAmber),
                       ),
                     ),
@@ -416,7 +416,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
               // الخطوة 3: الموعد الدقيق والمدة
               // ==========================================
               _buildSectionCard(
-                title: '3. الموعد المحدد والمدة ⏱️',
+                title: '3. الموعد المحدد والمدة',
                 surfaceColor: surfaceColor,
                 hairlineColor: hairlineColor,
                 children: [
@@ -496,7 +496,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
               // الخطوة 4: رابط الاجتماع الأونلاين
               // ==========================================
               _buildSectionCard(
-                title: '4. رابط الاجتماع (Google Meet / Zoom) 📹',
+                title: '4. رابط الاجتماع (Google Meet / Zoom)',
                 surfaceColor: surfaceColor,
                 hairlineColor: hairlineColor,
                 children: [
@@ -547,7 +547,7 @@ class _CreateOfferScreenState extends ConsumerState<CreateOfferScreen> {
                         )
                       : const Icon(Icons.rocket_launch_rounded),
                   label: Text(
-                    _isPublishing ? 'جاري نشر العرض...' : 'نشر العرض في بنك الوقت 🚀',
+                    _isPublishing ? 'جاري إنشاء الجلسة...' : 'إنشاء جلسة',
                     style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                   ),
                 ),

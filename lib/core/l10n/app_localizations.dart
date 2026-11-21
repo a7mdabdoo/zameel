@@ -97,19 +97,19 @@ abstract class AppLocalizations {
   /// No description provided for @appName.
   ///
   /// In ar, this message translates to:
-  /// **'زَميل'**
+  /// **'زميل'**
   String get appName;
 
   /// No description provided for @appSlogan.
   ///
   /// In ar, this message translates to:
-  /// **'ذاكر بخطة، وعلّم زميلك، وتعلّم من غيرك'**
+  /// **'نظّم مذاكرتك وتبادل الشرح مع زملائك'**
   String get appSlogan;
 
   /// No description provided for @appSubSlogan.
   ///
   /// In ar, this message translates to:
-  /// **'خطة مذاكرة ذكية، وبنك وقت يربطك بزملائك في كلية الحاسبات. مجاني بالكامل.'**
+  /// **'خطة مذاكرة أسبوعية، وجلسات شرح متبادلة بنظام عملات الوقت.'**
   String get appSubSlogan;
 
   /// No description provided for @startNow.
@@ -151,7 +151,7 @@ abstract class AppLocalizations {
   /// No description provided for @loginTitle.
   ///
   /// In ar, this message translates to:
-  /// **'مرحباً بعودتك 👋'**
+  /// **'مرحباً بعودتك'**
   String get loginTitle;
 
   /// No description provided for @loginSubtitle.
@@ -211,13 +211,13 @@ abstract class AppLocalizations {
   /// No description provided for @signupTitle.
   ///
   /// In ar, this message translates to:
-  /// **'انضم إلى زَميل 🎓'**
+  /// **'انضم إلى زميل'**
   String get signupTitle;
 
   /// No description provided for @signupSubtitle.
   ///
   /// In ar, this message translates to:
-  /// **'أنشئ حسابك واحصل على نقطتي وقت ترحيبيتين لبدء التعلّم التشاركي'**
+  /// **'أنشئ حسابك واحصل على عملتي وقت ترحيبيتين لبدء التعلّم التشاركي'**
   String get signupSubtitle;
 
   /// No description provided for @fullNameLabel.
@@ -265,7 +265,7 @@ abstract class AppLocalizations {
   /// No description provided for @academicDataTitle.
   ///
   /// In ar, this message translates to:
-  /// **'بياناتك الأكاديمية 🏫'**
+  /// **'بياناتك الأكاديمية'**
   String get academicDataTitle;
 
   /// No description provided for @academicDataSubtitle.
@@ -301,7 +301,7 @@ abstract class AppLocalizations {
   /// No description provided for @selectCoursesTitle.
   ///
   /// In ar, this message translates to:
-  /// **'اختر مواد الفصل الدراسي 📚'**
+  /// **'اختر مواد الفصل الدراسي'**
   String get selectCoursesTitle;
 
   /// No description provided for @selectCoursesSubtitle.
@@ -319,7 +319,7 @@ abstract class AppLocalizations {
   /// No description provided for @rateLevelTitle.
   ///
   /// In ar, this message translates to:
-  /// **'قيّم مستواك في المواد 🎯'**
+  /// **'قيّم مستواك في المواد'**
   String get rateLevelTitle;
 
   /// No description provided for @rateLevelSubtitle.
@@ -349,7 +349,7 @@ abstract class AppLocalizations {
   /// No description provided for @startJourney.
   ///
   /// In ar, this message translates to:
-  /// **'ابدأ رحلتك في زَميل'**
+  /// **'ابدأ رحلتك في زميل'**
   String get startJourney;
 
   /// No description provided for @navToday.
@@ -385,13 +385,13 @@ abstract class AppLocalizations {
   /// No description provided for @goodMorning.
   ///
   /// In ar, this message translates to:
-  /// **'صباح الخير يا {name} 👋'**
+  /// **'صباح الخير، {name}'**
   String goodMorning(String name);
 
   /// No description provided for @timeCoinsChip.
   ///
   /// In ar, this message translates to:
-  /// **'{count} نقاط وقت'**
+  /// **'{count} عملات وقت'**
   String timeCoinsChip(int count);
 
   /// No description provided for @nextUpCardTitle.

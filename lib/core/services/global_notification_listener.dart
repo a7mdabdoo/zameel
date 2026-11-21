@@ -115,7 +115,7 @@ class _GlobalNotificationListenerState extends ConsumerState<GlobalNotificationL
                 ref.read(notificationServiceProvider).showAnswerNotification(
                       authorName: authorName,
                       questionTitle: title,
-                      answerText: text.isNotEmpty ? text : 'قام بإرفاق صورة للحل 📸',
+                      answerText: text.isNotEmpty ? text : 'قام بإرفاق صورة للحل',
                       questionId: qId,
                     );
               }

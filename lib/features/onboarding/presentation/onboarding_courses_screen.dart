@@ -62,7 +62,7 @@ class _OnboardingCoursesScreenState extends State<OnboardingCoursesScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'إضافة مادة دراسية جديدة ➕',
+                          'إضافة مادة دراسية جديدة',
                           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: modalTextPrimary),
                         ),
                         IconButton(
@@ -127,7 +127,7 @@ class _OnboardingCoursesScreenState extends State<OnboardingCoursesScreen> {
                       _buildHourOption(
                         hours: 3,
                         label: '3 ساعات (3h)',
-                        subtitle: 'أهمية عالية ⭐',
+                        subtitle: 'أهمية عالية',
                         selected: selectedCreditHours == 3,
                         onTap: () => setModalState(() => selectedCreditHours = 3),
                       ),
@@ -135,7 +135,7 @@ class _OnboardingCoursesScreenState extends State<OnboardingCoursesScreen> {
                       _buildHourOption(
                         hours: 4,
                         label: '4 ساعات (4h)',
-                        subtitle: 'أهمية قصوى 🔥',
+                        subtitle: 'أهمية قصوى',
                         selected: selectedCreditHours == 4,
                         onTap: () => setModalState(() => selectedCreditHours = 4),
                       ),
@@ -204,7 +204,7 @@ class _OnboardingCoursesScreenState extends State<OnboardingCoursesScreen> {
 
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('تمت إضافة مادة "$name" ($selectedCreditHours ساعات معتمدة) بنجاح 🎉'),
+                            content: Text('تمت إضافة مادة "$name" ($selectedCreditHours ساعات معتمدة) بنجاح.'),
                           ),
                         );
                       },
@@ -325,7 +325,7 @@ class _OnboardingCoursesScreenState extends State<OnboardingCoursesScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          'اختر مواد الفصل الدراسي 📚',
+                          'اختر مواد الفصل الدراسي',
                           style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textPrimaryColor),
                         ),
                       ),

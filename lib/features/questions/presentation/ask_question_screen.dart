@@ -67,7 +67,7 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'إرفاق صورة توضيحية للمسألة 📸',
+                  'إرفاق صورة توضيحية للمسألة',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -146,7 +146,7 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('تم نشر سؤالك في المنتدى بنجاح! 🎉'),
+            content: Text('تم نشر السؤال في المنتدى بنجاح.'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -213,7 +213,7 @@ class _AskQuestionScreenState extends ConsumerState<AskQuestionScreen> {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          'طرح سؤال أكاديمي ✏️',
+          'طرح سؤال أكاديمي',
           style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: onSurface),
         ),
       ),

@@ -136,7 +136,7 @@ class TodayScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            '$greeting، $displayName 👋',
+                            '$greeting، $displayName',
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -171,11 +171,11 @@ class TodayScreen extends ConsumerWidget {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Streak Chip 🔥
+                        // Streak Chip
                         Tooltip(
                           message: streak > 0
                               ? 'الستريك اليومي: $streak'
-                              : 'أتمم مهام اليوم لبدء الستريك اليومي 🔥',
+                              : 'أتمم مهام اليوم لبدء التتابع اليومي',
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
@@ -192,7 +192,7 @@ class TodayScreen extends ConsumerWidget {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Text('🔥', style: TextStyle(fontSize: 13)),
+                                const Icon(Icons.local_fire_department_rounded, size: 16, color: AppColors.pointsAmber),
                                 const SizedBox(width: 4),
                                 Text(
                                   '$streak',
@@ -209,7 +209,7 @@ class TodayScreen extends ConsumerWidget {
 
                         const SizedBox(width: 8),
 
-                        // Time Coin Chip 🪙
+                        // Time Coin Chip
                         GestureDetector(
                           onTap: () => context.push('/wallet'),
                           child: Container(
@@ -241,9 +241,9 @@ class TodayScreen extends ConsumerWidget {
 
                         const SizedBox(width: 8),
 
-                        // Quick Theme Toggle 🌙 / ☀️
+                        // Quick Theme Toggle
                         Tooltip(
-                          message: isDark ? 'التبديل إلى الوضع النهاري ☀️' : 'التبديل إلى الوضع الليلي 🌙',
+                          message: isDark ? 'التبديل إلى الوضع النهاري' : 'التبديل إلى الوضع الليلي',
                           child: InkWell(
                             onTap: () {
                               ref.read(themeModeProvider.notifier).toggleTheme(!isDark);
@@ -301,7 +301,7 @@ class TodayScreen extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'منتدى الأسئلة والحلول لدفعتك 💡',
+                              'منتدى الأسئلة والحلول لدفعتك',
                               style: TextStyle(
                                 fontSize: 13.5,
                                 fontWeight: FontWeight.bold,
@@ -340,7 +340,7 @@ class TodayScreen extends ConsumerWidget {
                       ),
                     ),
                     Text(
-                      'جلسة تبادل قادمة 🤝',
+                      'جلسة تبادل قادمة',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -386,7 +386,7 @@ class TodayScreen extends ConsumerWidget {
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: const Text(
-                                'مؤكدة ✓',
+                                'مؤكدة',
                                 style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.deepSage),
                               ),
                             ),
@@ -525,7 +525,7 @@ class TodayScreen extends ConsumerWidget {
                           child: todayArabic == 'الجمعة'
                               ? Column(
                                   children: [
-                                    const Text('🌴', style: TextStyle(fontSize: 44)),
+                                    Icon(Icons.weekend_rounded, size: 44, color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
                                     const SizedBox(height: 12),
                                     Text(
                                       'عطلة نهاية الأسبوع • يوم الجمعة المبارك',
@@ -610,7 +610,7 @@ class TodayScreen extends ConsumerWidget {
                                   backgroundColor: AppColors.primary,
                                   duration: Duration(seconds: 2),
                                   content: Text(
-                                    'تم إنجاز هذه المهمة بالفعل ولا يمكن التراجع عنها ✓',
+                                    'تم إنجاز هذه الجلسة مسبقاً.',
                                     style: TextStyle(fontWeight: FontWeight.bold),
                                   ),
                                 ),
@@ -656,11 +656,11 @@ class TodayScreen extends ConsumerWidget {
                                   duration: const Duration(seconds: 4),
                                   content: Row(
                                     children: [
-                                      const Text('🔥', style: TextStyle(fontSize: 26)),
+                                      const Icon(Icons.local_fire_department_rounded, size: 26, color: AppColors.pointsAmber),
                                       const SizedBox(width: 10),
                                       Expanded(
                                         child: Text(
-                                          '🎉 مبروك! أتممت جميع مهام مذاكرة اليوم وحصلت على نقطة الإنجاز ورفعت الستريك (🔥 $currentStreak)! 🌟',
+                                          'أتممت جميع مهام مذاكرة اليوم بنجاح وتقدم تتابعك اليومي ($currentStreak).',
                                           style: const TextStyle(fontWeight: FontWeight.bold),
                                         ),
                                       ),
@@ -675,7 +675,7 @@ class TodayScreen extends ConsumerWidget {
                                   backgroundColor: AppColors.success,
                                   duration: const Duration(seconds: 2),
                                   content: Text(
-                                    'عاش! تم إتمام "${block.courseName}" بنجاح. متبقي $remainingBeforeThis مهام لإكمال هدف اليوم 🎯',
+                                    'تم إنجاز "${block.courseName}" بنجاح. متبقي $remainingBeforeThis مهام لإكمال خطة اليوم.',
                                     style: const TextStyle(fontWeight: FontWeight.bold),
                                   ),
                                 ),
@@ -742,7 +742,7 @@ class TodayScreen extends ConsumerWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'معدل إنجاز اليوم 🎯',
+                            'معدل إنجاز اليوم',
                             style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold, color: primaryColor),
                           ),
                           const SizedBox(height: 3),
@@ -761,8 +761,8 @@ class TodayScreen extends ConsumerWidget {
                             todayBlocksCount == 0
                                 ? 'استمتع بيومك أو أضف محاضراتك لتوليد الخطة'
                                 : (todayRemainingCount == 0
-                                    ? 'أحسنت! أتممت جميع مهام اليوم وحافظت على الستريك (🔥 $streak) 🌟'
-                                    : 'متبقي $todayRemainingCount مهام لتحقيق هدف اليوم وحماية الستريك (🔥 $streak)'),
+                                    ? 'أتممت جميع مهام اليوم وحافظت على التتابع اليومي ($streak يوم).'
+                                    : 'متبقي $todayRemainingCount مهام لتحقيق خطة اليوم ومواصلة التتابع ($streak يوم).'),
                             style: TextStyle(
                               fontSize: 11.5,
                               color: todayRemainingCount == 0 && todayBlocksCount > 0
@@ -887,7 +887,7 @@ class TodayScreen extends ConsumerWidget {
                               ),
                               const SizedBox(width: 5),
                               Text(
-                                isDone ? 'تمت ✓' : 'لم تتم',
+                                isDone ? 'مكتملة' : 'قيد الانتظار',
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,

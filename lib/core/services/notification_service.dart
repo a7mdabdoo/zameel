@@ -131,7 +131,7 @@ class NotificationService {
       channelId: 'zameel_chat_channel',
       channelName: 'محادثات جلسات زَميل',
       channelDescription: 'إشعارات الرسائل الجديدة في جلسات بنك الوقت',
-      title: '💬 رسالة جديدة من $senderName',
+      title: 'رسالة جديدة من $senderName',
       body: messageText,
       payload: 'session:$sessionId',
     );
@@ -150,7 +150,7 @@ class NotificationService {
       channelId: 'zameel_qa_channel',
       channelName: 'منتدى الأسئلة والحلول',
       channelDescription: 'تنبيهات الإجابات والحلول الجديدة على أسئلتك الأكاديمية',
-      title: '💡 إجابة جديدة من $authorName',
+      title: 'إجابة جديدة من $authorName',
       body: 'على سؤالك "$questionTitle": $answerText',
       payload: 'question:$questionId',
     );

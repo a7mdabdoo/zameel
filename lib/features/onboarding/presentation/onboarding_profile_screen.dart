@@ -102,7 +102,7 @@ class _OnboardingProfileScreenState extends ConsumerState<OnboardingProfileScree
               const SizedBox(height: 24),
 
               Text(
-                'بياناتك الأكاديمية 🏫',
+                'بياناتك الأكاديمية',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,

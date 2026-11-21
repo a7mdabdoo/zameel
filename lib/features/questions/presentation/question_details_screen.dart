@@ -111,7 +111,7 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
     try {
       await ref.read(questionRepositoryProvider).postAnswer(
         questionId: widget.question.id,
-        text: text.isNotEmpty ? text : 'مرفق صورة الحل أعلاه 📸',
+        text: text.isNotEmpty ? text : 'مرفق صورة الحل أعلاه',
         authorId: user.uid,
         authorName: authorName,
         imageFile: _answerImage,
@@ -346,7 +346,7 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                                             borderRadius: BorderRadius.circular(8),
                                           ),
                                           child: Text(
-                                            'سؤالك 📌',
+                                            'سؤالك',
                                             style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: primaryColor),
                                           ),
                                         ),
@@ -436,7 +436,7 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'الحلول والمناقشات الأكاديمية 💡',
+                  'الحلول والمناقشات الأكاديمية',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: onSurface),
                 ),
                 answersAsync.maybeWhen(
@@ -528,7 +528,7 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                                     Icon(Icons.check_circle_rounded, color: AppColors.success, size: 14),
                                     SizedBox(width: 4),
                                     Text(
-                                      'حل معتمد من صاحب السؤال ⭐',
+                                      'حل معتمد من صاحب السؤال',
                                       style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.success),
                                     ),
                                   ],
@@ -578,7 +578,7 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                                             borderRadius: BorderRadius.circular(6),
                                           ),
                                           child: Text(
-                                            'إجابتك ✍️',
+                                            'إجابتك',
                                             style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: primaryColor),
                                           ),
                                         ),
@@ -591,7 +591,7 @@ class _QuestionDetailsScreenState extends ConsumerState<QuestionDetailsScreen> {
                                             borderRadius: BorderRadius.circular(6),
                                           ),
                                           child: const Text(
-                                            'صاحب السؤال 👤',
+                                            'صاحب السؤال',
                                             style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.amber),
                                           ),
                                         ),

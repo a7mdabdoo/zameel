@@ -10,14 +10,14 @@ class AppLocalizationsAr extends AppLocalizations {
   AppLocalizationsAr([String locale = 'ar']) : super(locale);
 
   @override
-  String get appName => 'زَميل';
+  String get appName => 'زميل';
 
   @override
-  String get appSlogan => 'ذاكر بخطة، وعلّم زميلك، وتعلّم من غيرك';
+  String get appSlogan => 'نظّم مذاكرتك وتبادل الشرح مع زملائك';
 
   @override
   String get appSubSlogan =>
-      'خطة مذاكرة ذكية، وبنك وقت يربطك بزملائك في كلية الحاسبات. مجاني بالكامل.';
+      'خطة مذاكرة أسبوعية، وجلسات شرح متبادلة بنظام عملات الوقت.';
 
   @override
   String get startNow => 'ابدأ الآن';
@@ -38,7 +38,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get ratioOneToOne => '1:1';
 
   @override
-  String get loginTitle => 'مرحباً بعودتك 👋';
+  String get loginTitle => 'مرحباً بعودتك';
 
   @override
   String get loginSubtitle =>
@@ -69,11 +69,11 @@ class AppLocalizationsAr extends AppLocalizations {
   String get createAccountAction => 'أنشئ حساباً الآن';
 
   @override
-  String get signupTitle => 'انضم إلى زَميل 🎓';
+  String get signupTitle => 'انضم إلى زميل';
 
   @override
   String get signupSubtitle =>
-      'أنشئ حسابك واحصل على نقطتي وقت ترحيبيتين لبدء التعلّم التشاركي';
+      'أنشئ حسابك واحصل على عملتي وقت ترحيبيتين لبدء التعلّم التشاركي';
 
   @override
   String get fullNameLabel => 'الاسم بالكامل';
@@ -97,7 +97,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get onboardingStep3 => 'الخطوة 3 من 3';
 
   @override
-  String get academicDataTitle => 'بياناتك الأكاديمية 🏫';
+  String get academicDataTitle => 'بياناتك الأكاديمية';
 
   @override
   String get academicDataSubtitle =>
@@ -116,7 +116,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get nextCourses => 'التالي: اختيار المواد';
 
   @override
-  String get selectCoursesTitle => 'اختر مواد الفصل الدراسي 📚';
+  String get selectCoursesTitle => 'اختر مواد الفصل الدراسي';
 
   @override
   String get selectCoursesSubtitle =>
@@ -126,7 +126,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get nextRatings => 'التالي: تقييم مستواك';
 
   @override
-  String get rateLevelTitle => 'قيّم مستواك في المواد 🎯';
+  String get rateLevelTitle => 'قيّم مستواك في المواد';
 
   @override
   String get rateLevelSubtitle =>
@@ -142,7 +142,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get levelReadyToTeach => 'مستعد للشرح';
 
   @override
-  String get startJourney => 'ابدأ رحلتك في زَميل';
+  String get startJourney => 'ابدأ رحلتك في زميل';
 
   @override
   String get navToday => 'اليوم';
@@ -161,12 +161,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String goodMorning(String name) {
-    return 'صباح الخير يا $name 👋';
+    return 'صباح الخير، $name';
   }
 
   @override
   String timeCoinsChip(int count) {
-    return '$count نقاط وقت';
+    return '$count عملات وقت';
   }
 
   @override

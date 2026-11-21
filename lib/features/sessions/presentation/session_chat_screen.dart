@@ -27,10 +27,10 @@ class _SessionChatScreenState extends ConsumerState<SessionChatScreen> {
   int _lastMessagesCount = 0;
 
   final List<String> _quickChips = [
-    '📍 أنا في قاعة الاستذكار بالكلية',
-    '💻 معايا اللابتوب ومجهز الشيت',
-    '⏳ 5 دقائق وأكون عندك',
-    '👍 تمام متفقين وفي انتظارك',
+    'أنا في قاعة الاستذكار بالكلية',
+    'معي الحاسوب ومستعد للبدء',
+    'خمس دقائق وأكون متواجداً',
+    'تمام، في انتظارك',
   ];
 
   @override

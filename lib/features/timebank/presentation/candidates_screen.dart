@@ -28,7 +28,7 @@ class CandidatesScreen extends ConsumerWidget {
         title: Text(
           targetCourse != null
               ? 'المرشحون: ${targetCourse!.name}'
-              : 'المرشحون للمساعدة 🎯 (${displayOffers.length})',
+              : 'المرشحون للشرح (${displayOffers.length})',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
         ),
         centerTitle: true,
@@ -138,7 +138,7 @@ class CandidatesScreen extends ConsumerWidget {
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
-                                        isRealPeer ? 'زميل بالدفعة 🌟' : 'مرشح أكاديمي',
+                                        isRealPeer ? 'زميل بالدفعة' : 'مرشح أكاديمي',
                                         style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.bold,
@@ -157,7 +157,7 @@ class CandidatesScreen extends ConsumerWidget {
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Text(
-                                      '💻 أونلاين',
+                                      'عبر الإنترنت',
                                       style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: primaryColor),
                                     ),
                                   ),
@@ -171,7 +171,7 @@ class CandidatesScreen extends ConsumerWidget {
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Text(
-                                      '👥 جماعية (${offer.enrolledLearnerIds.length}/${offer.maxLearners ?? 10})',
+                                      'جماعية (${offer.enrolledLearnerIds.length}/${offer.maxLearners ?? 10})',
                                       style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primary),
                                     ),
                                   ),
@@ -185,7 +185,7 @@ class CandidatesScreen extends ConsumerWidget {
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: const Text(
-                                      '⏳ موعد مرن',
+                                      'موعد مرن',
                                       style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.pointsAmber),
                                     ),
                                   ),
@@ -249,7 +249,7 @@ class CandidatesScreen extends ConsumerWidget {
                               Expanded(
                                 child: Text(
                                   isOnline
-                                      ? 'الموعد: ${offer.day} • ${offer.time} (أونلاين عبر الرابط 💻)'
+                                      ? 'الموعد: ${offer.day} • ${offer.time} (عبر الإنترنت)'
                                       : 'الموعد: ${offer.day} • ${offer.time} (${offer.location})',
                                   style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: primaryColor),
                                 ),

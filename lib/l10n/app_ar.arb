@@ -1,8 +1,8 @@
 {
   "@@locale": "ar",
-  "appName": "زَميل",
-  "appSlogan": "ذاكر بخطة، وعلّم زميلك، وتعلّم من غيرك",
-  "appSubSlogan": "خطة مذاكرة ذكية، وبنك وقت يربطك بزملائك في كلية الحاسبات. مجاني بالكامل.",
+  "appName": "زميل",
+  "appSlogan": "نظّم مذاكرتك وتبادل الشرح مع زملائك",
+  "appSubSlogan": "خطة مذاكرة أسبوعية، وجلسات شرح متبادلة بنظام عملات الوقت.",
 
   "startNow": "ابدأ الآن",
   "alreadyHaveAccount": "لدي حساب بالفعل",
@@ -11,7 +11,7 @@
   "timeBankSubConcept": "كل ساعة شرح تمنحك ساعة تعلّم مجانية",
   "ratioOneToOne": "1:1",
 
-  "loginTitle": "مرحباً بعودتك 👋",
+  "loginTitle": "مرحباً بعودتك",
   "loginSubtitle": "سجّل دخولك للوصول إلى خطتك الدراسية وجلسات بنك الوقت",
   "emailLabel": "البريد الجامعي أو الإلكتروني",
   "emailHint": "student@fci.edu.eg",
@@ -22,8 +22,8 @@
   "noAccount": "ليس لديك حساب؟",
   "createAccountAction": "أنشئ حساباً الآن",
 
-  "signupTitle": "انضم إلى زَميل 🎓",
-  "signupSubtitle": "أنشئ حسابك واحصل على نقطتي وقت ترحيبيتين لبدء التعلّم التشاركي",
+  "signupTitle": "انضم إلى زميل",
+  "signupSubtitle": "أنشئ حسابك واحصل على عملتي وقت ترحيبيتين لبدء التعلّم التشاركي",
   "fullNameLabel": "الاسم بالكامل",
   "fullNameHint": "أحمد محمود",
   "confirmPasswordLabel": "تأكيد كلمة المرور",
@@ -32,23 +32,23 @@
   "onboardingStep1": "الخطوة 1 من 3",
   "onboardingStep2": "الخطوة 2 من 3",
   "onboardingStep3": "الخطوة 3 من 3",
-  "academicDataTitle": "بياناتك الأكاديمية 🏫",
+  "academicDataTitle": "بياناتك الأكاديمية",
   "academicDataSubtitle": "لتخصيص المواد ومطابقة مواعيدك مع زملاء دفعتك",
   "facultyLabel": "الكلية",
   "yearLabel": "السنة الدراسية",
   "departmentLabel": "القسم الأكاديمي",
   "nextCourses": "التالي: اختيار المواد",
 
-  "selectCoursesTitle": "اختر مواد الفصل الدراسي 📚",
+  "selectCoursesTitle": "اختر مواد الفصل الدراسي",
   "selectCoursesSubtitle": "تم تحديد مواد مقترحة لطلاب الفرقة الثانية",
   "nextRatings": "التالي: تقييم مستواك",
 
-  "rateLevelTitle": "قيّم مستواك في المواد 🎯",
+  "rateLevelTitle": "قيّم مستواك في المواد",
   "rateLevelSubtitle": "لتوجيه خوارزمية التوافق الذكي لبنك الوقت بين المتعلمين والشارحين",
   "levelNeedHelp": "أحتاج مساعدة",
   "levelMedium": "متوسط",
   "levelReadyToTeach": "مستعد للشرح",
-  "startJourney": "ابدأ رحلتك في زَميل",
+  "startJourney": "ابدأ رحلتك في زميل",
 
   "navToday": "اليوم",
   "navPlan": "الخطة",
@@ -56,7 +56,7 @@
   "navWallet": "المحفظة",
   "navProfile": "حسابي",
 
-  "goodMorning": "صباح الخير يا {name} 👋",
+  "goodMorning": "صباح الخير، {name}",
   "@goodMorning": {
     "placeholders": {
       "name": {
@@ -64,7 +64,7 @@
       }
     }
   },
-  "timeCoinsChip": "{count} نقاط وقت",
+  "timeCoinsChip": "{count} عملات وقت",
   "@timeCoinsChip": {
     "placeholders": {
       "count": {

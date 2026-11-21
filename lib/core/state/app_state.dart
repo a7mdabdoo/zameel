@@ -491,7 +491,7 @@ final userStudyBlocksCountProvider = Provider<int>((ref) {
 });
 
 // ==========================================
-// 5. مزود الستريك اليومي للمذاكرة (Daily Study Streak Provider 🔥)
+// 5. مزود الستريك اليومي للمذاكرة (Daily Study Streak Provider)
 // ==========================================
 final userStreakProvider = Provider<int>((ref) {
   final userProfileAsync = ref.watch(userProfileStreamProvider);

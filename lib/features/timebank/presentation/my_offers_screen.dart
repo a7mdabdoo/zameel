@@ -98,7 +98,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
             ),
             const SizedBox(width: 10),
             Text(
-              'سوق الجلسات الأكاديمي ⏱️',
+              'سوق الجلسات الأكاديمي',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -123,7 +123,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
         backgroundColor: primaryColor,
         icon: Icon(Icons.add_rounded, color: isDark ? AppColors.darkOnPrimary : Colors.white),
         label: Text(
-          'أضف عرضاً للشرح 🚀',
+          'إنشاء جلسة',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: isDark ? AppColors.darkOnPrimary : Colors.white,
@@ -133,7 +133,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // شريط التبويب العلوي: [ 🌐 استكشف العروض ] | [ 📋 جلساتي وعروضي ]
+            // شريط التبويب العلوي: [ استكشف الجلسات ] | [ جلساتي ]
             Container(
               color: surfaceColor,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -148,14 +148,14 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                   children: [
                     _buildMainTabItem(
                       index: 0,
-                      title: '🌐 استكشف العروض (${allOffers.length})',
+                      title: 'استكشف الجلسات (${allOffers.length})',
                       isSelected: _selectedMainTab == 0,
                       primaryColor: primaryColor,
                       isDark: isDark,
                     ),
                     _buildMainTabItem(
                       index: 1,
-                      title: '📋 جلساتي وعروضي (${learnerSessions.length + myOffers.length})',
+                      title: 'جلساتي (${learnerSessions.length + myOffers.length})',
                       isSelected: _selectedMainTab == 1,
                       primaryColor: primaryColor,
                       isDark: isDark,
@@ -586,7 +586,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                 OutlinedButton.icon(
                   onPressed: () => context.push('/create-offer'),
                   icon: const Icon(Icons.settings_outlined, size: 15),
-                  label: const Text('أنت الشارح 👑', style: TextStyle(fontSize: 11.5)),
+                  label: const Text('أنت الشارح', style: TextStyle(fontSize: 11.5)),
                   style: OutlinedButton.styleFrom(
                     visualDensity: VisualDensity.compact,
                     foregroundColor: primaryColor,
@@ -599,7 +599,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                   onPressed: () => _openMeetingOrSession(offer),
                   icon: const Icon(Icons.check_circle_rounded, size: 16, color: AppColors.success),
                   label: const Text(
-                    'أنت منضم ✅',
+                    'تم الانضمام',
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.success),
                   ),
                   style: FilledButton.styleFrom(
@@ -615,13 +615,13 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                     visualDensity: VisualDensity.compact,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: const Text('مكتملة 🔒', style: TextStyle(fontSize: 12)),
+                  child: const Text('اكتمل العدد', style: TextStyle(fontSize: 12)),
                 ),
               ] else ...[
                 FilledButton.icon(
                   onPressed: _isProcessingAction ? null : () => _confirmAndJoinOffer(offer),
                   icon: const Icon(Icons.bolt_rounded, size: 16),
-                  label: const Text('انضم الآن (1 عملة) ⚡', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  label: const Text('تأكيد الحجز (عملة وقت واحدة)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
                   style: FilledButton.styleFrom(
                     backgroundColor: primaryColor,
                     visualDensity: VisualDensity.compact,
@@ -698,9 +698,9 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
           child: Row(
             children: [
-              _buildSubTabButton(0, '🎓 جلساتي كمتعلّم (${learnerSessions.length})', primaryColor, isDark),
+              _buildSubTabButton(0, 'جلساتي كمتعلّم (${learnerSessions.length})', primaryColor, isDark),
               const SizedBox(width: 10),
-              _buildSubTabButton(1, '👨‍🏫 عروضي كشارح (${myOffers.length})', primaryColor, isDark),
+              _buildSubTabButton(1, 'عروضي كشارح (${myOffers.length})', primaryColor, isDark),
             ],
           ),
         ),
@@ -762,13 +762,13 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
             ),
             const SizedBox(height: 6),
             const Text(
-              'استكشف العروض المتاحة وانضم بمقابل عملة وقت واحدة ⏱️',
+              'استكشف الجلسات المتاحة واحجز جلسة بعملة وقت واحدة.',
               style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
             ),
             const SizedBox(height: 16),
             FilledButton.tonal(
               onPressed: () => setState(() => _selectedMainTab = 0),
-              child: const Text('تصفح سوق الجلسات 🌐'),
+              child: const Text('تصفح الجلسات المتاحة'),
             ),
           ],
         ),
@@ -826,7 +826,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                       child: FilledButton.icon(
                         onPressed: () => _launchMeetingUrl(session.meetingUrl!),
                         icon: const Icon(Icons.videocam_rounded, size: 16),
-                        label: const Text('رابط الاجتماع 📹', style: TextStyle(fontSize: 12)),
+                        label: const Text('رابط الاجتماع', style: TextStyle(fontSize: 12)),
                         style: FilledButton.styleFrom(
                           backgroundColor: AppColors.success,
                           visualDensity: VisualDensity.compact,
@@ -875,7 +875,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
             ),
             const SizedBox(height: 6),
             const Text(
-              'شارك علمك مع زملائك واكسب عملات وقت لمذاكرتك! 🚀',
+              'شارك الشرح مع زملائك واكتسب عملات وقت.',
               style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
             ),
             const SizedBox(height: 16),
@@ -941,7 +941,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                       child: FilledButton.icon(
                         onPressed: () => _confirmSettleSession(offer),
                         icon: const Icon(Icons.check_circle_rounded, size: 16),
-                        label: const Text('إنهاء الجلسة وصرف العملات 🪙', style: TextStyle(fontSize: 11.5)),
+                        label: const Text('إنهاء الجلسة وصرف العملات', style: TextStyle(fontSize: 11.5)),
                         style: FilledButton.styleFrom(
                           backgroundColor: primaryColor,
                           visualDensity: VisualDensity.compact,
@@ -952,7 +952,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                   ] else ...[
                     const Expanded(
                       child: Text(
-                        'تمت تسوية هذه الجلسة واحتساب المكافأة بنجاح 🎉',
+                        'تمت تسوية هذه الجلسة واحتساب المكافأة بنجاح.',
                         style: TextStyle(fontSize: 11.5, color: AppColors.success, fontWeight: FontWeight.bold),
                       ),
                     ),
@@ -982,12 +982,12 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
 
   Widget _buildSessionStatusBadge(String status, bool isDark) {
     Color bg = AppColors.success;
-    String label = 'مؤكدة ✅';
+    String label = 'مؤكدة';
     if (status == 'completed' || status == 'completed_auto') {
-      label = 'مكتملة 🎉';
+      label = 'مكتملة';
       bg = Colors.blue;
     } else if (status.startsWith('cancelled')) {
-      label = 'ملغاة ❌';
+      label = 'ملغاة';
       bg = AppColors.error;
     }
 
@@ -1020,8 +1020,8 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
             const SizedBox(height: 6),
             Text(
               isSearching
-                  ? 'جرب البحث بكلمات أخرى أو اختر مادة دراسية أخرى 🔍'
-                  : 'كن أول من يبادر ويطرح جلسة شرح لزملائه في دفعتك واكسب عملات وقت 💡',
+                  ? 'جرب البحث بكلمات أخرى أو اختر مادة دراسية أخرى.'
+                  : 'كن أول من يبادر بطرح جلسة شرح لزملائك واكتسب عملات وقت.',
               textAlign: TextAlign.center,
               style: TextStyle(color: isDark ? AppColors.darkTextSecondary : AppColors.textSecondary, fontSize: 12.5),
             ),
@@ -1042,7 +1042,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
               FilledButton.icon(
                 onPressed: () => context.push('/create-offer'),
                 icon: const Icon(Icons.add_rounded),
-                label: const Text('نشر عرض شرح جديد 🚀'),
+                label: const Text('إنشاء جلسة'),
                 style: FilledButton.styleFrom(backgroundColor: primaryColor),
               ),
           ],
@@ -1067,7 +1067,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text('تأكيد الانضمام للجلسة ⚡', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: const Text('تأكيد الانضمام للجلسة', style: TextStyle(fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1128,7 +1128,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('تم انضمامك للجلسة بنجاح وحجز العملة في الضمان! 🎉'),
+            content: Text('تم انضمامك للجلسة بنجاح وحُجزت العملة في الضمان.'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -1162,7 +1162,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text('إنهاء الجلسة وتسوية الأجر 🪙'),
+        title: const Text('إنهاء الجلسة وتسوية الرصيد'),
         content: Text(
           'هل تم إنهاء شرح الجلسة لزملائك (${offer.attendeesCount} حضور)؟\n'
           'سيتم احتساب مكافأة الشارح وإيداع العملات فوراً في محفظتك وفقاً لخوارزمية الاقتصاد الذكية.',
@@ -1193,7 +1193,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('مبروك! تم إنهاء الجلسة وإيداع $reward عملة في محفظتك 🪙🎉'),
+            content: Text('تم إنهاء الجلسة وإيداع $reward عملة في محفظتك بنجاح.'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -1233,7 +1233,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
       _launchMeetingUrl(offer.meetingUrl!);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('سيقوم الزميل الشارح بمشاركة الرابط في محادثة الجلسة قبل البدء 💬')),
+        const SnackBar(content: Text('سيقوم الزميل الشارح بمشاركة الرابط في محادثة الجلسة قبل البدء.')),
       );
     }
   }

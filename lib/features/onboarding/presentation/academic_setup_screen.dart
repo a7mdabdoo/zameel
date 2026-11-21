@@ -123,7 +123,7 @@ class _AcademicSetupScreenState extends ConsumerState<AcademicSetupScreen> {
               )
             : null,
         title: Text(
-          widget.isEditMode ? 'تعديل البيانات الأكاديمية ✏️' : 'التهيئة الأكاديمية 🎓',
+          widget.isEditMode ? 'تعديل البيانات الأكاديمية' : 'التهيئة الأكاديمية',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,

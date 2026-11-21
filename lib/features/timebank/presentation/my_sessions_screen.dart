@@ -44,7 +44,7 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
           onPressed: () => context.pop(),
         ),
         title: Text(
-          'جلساتي المحجوزة 📅',
+          'جلساتي',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
         ),
         centerTitle: true,
@@ -136,16 +136,16 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                         final isCancelled = session.status.startsWith('cancelled') || session.status == 'rejected' || session.status == 'expired' || session.escrowStatus == 'refunded_to_learner';
                         final isPending = session.status == 'pending';
                         
-                        String badge = 'مؤكدة (في الضمان) 🔒';
+                        String badge = 'مؤكدة';
                         Color bColor = AppColors.primary;
                         if (isPending) {
-                          badge = 'قيد الانتظار ⏳';
+                          badge = 'بانتظار الموافقة';
                           bColor = AppColors.pointsAmber;
                         } else if (isCompleted) {
-                          badge = 'مكتملة ✓';
+                          badge = 'مكتملة';
                           bColor = AppColors.primary;
                         } else if (isCancelled) {
-                          badge = session.status == 'rejected' ? 'معتذر عنها ✕' : (session.status == 'expired' ? 'منتهية ⏱️' : 'ملغاة ↩️');
+                          badge = session.status == 'rejected' ? 'معتذر عنها' : (session.status == 'expired' ? 'منتهية' : 'ملغاة');
                           bColor = AppColors.error;
                         }
 
@@ -183,13 +183,13 @@ class _MySessionsScreenState extends ConsumerState<MySessionsScreen> {
                         String badge = 'مؤكدة (في الضمان)';
                         Color bColor = AppColors.primary;
                         if (isPending) {
-                          badge = 'طلب جديد ⏳';
+                          badge = 'طلب جديد';
                           bColor = AppColors.pointsAmber;
                         } else if (isCompleted) {
-                          badge = 'مكتملة ✓';
+                          badge = 'مكتملة';
                           bColor = AppColors.primary;
                         } else if (isCancelled) {
-                          badge = session.status == 'rejected' ? 'معتذر عنها ✕' : (session.status == 'expired' ? 'منتهية ⏱️' : 'ملغاة ↩️');
+                          badge = session.status == 'rejected' ? 'معتذر عنها' : (session.status == 'expired' ? 'منتهية' : 'ملغاة');
                           bColor = AppColors.error;
                         }
 

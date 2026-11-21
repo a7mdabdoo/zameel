@@ -93,7 +93,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
         title: Column(
           children: [
             Text(
-              'منتدى الأسئلة والحلول 💬',
+              'منتدى الأسئلة والحلول',
               style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: onSurface),
             ),
             const SizedBox(height: 2),
@@ -104,7 +104,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
-                'أسئلة ومقررات $academicYear 🎓',
+                'أسئلة ومقررات $academicYear',
                 style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: primaryColor),
               ),
             ),
@@ -237,7 +237,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                             ),
                             child: Center(
                               child: Text(
-                                'جميع أسئلة الدفعة 🌐 (${allQuestions.length})',
+                                'جميع أسئلة الدفعة (${allQuestions.length})',
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
@@ -269,7 +269,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
-                                    'أسئلتي الخاصة 👤',
+                                    'أسئلتي الخاصة',
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.bold,
@@ -473,7 +473,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                                               border: Border.all(color: primaryColor.withValues(alpha: 0.3)),
                                             ),
                                             child: Text(
-                                              'سؤالك 📌',
+                                              'سؤالك',
                                               style: TextStyle(
                                                 fontSize: 10,
                                                 fontWeight: FontWeight.bold,

@@ -108,7 +108,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'انضم إلى زَميل 🎓',
+                  'انضم إلى زميل',
                   style: TextStyle(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,

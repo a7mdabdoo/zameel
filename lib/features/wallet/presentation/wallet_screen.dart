@@ -48,7 +48,7 @@ class WalletScreen extends ConsumerWidget {
           },
         ),
         title: Text(
-          'محفظة الوقت 🪙',
+          'محفظة الوقت',
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
         ),
       ),
@@ -280,7 +280,7 @@ class WalletScreen extends ConsumerWidget {
 
               // Transactions history
               Text(
-                'سجل المعاملات (${transactions.length} حركات) 📜',
+                'سجل المعاملات (${transactions.length})',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface),
               ),
               const SizedBox(height: 12),

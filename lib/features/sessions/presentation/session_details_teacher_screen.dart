@@ -35,7 +35,7 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
           );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم قبول جلسة الشرح بنجاح! تم تأكيد الموعد 🤝')),
+          const SnackBar(content: Text('تم قبول جلسة الشرح وتأكيد الموعد بنجاح.')),
         );
         context.pop();
       }
@@ -99,7 +99,7 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
           );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم الاعتذار عن الجلسة وإعادة العملة للمتعلم 🔄')),
+          const SnackBar(content: Text('تم الاعتذار عن الجلسة وإعادة عملة الوقت للمتعلم.')),
         );
         context.pop();
       }
@@ -126,7 +126,7 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
           );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم تحرير العملة بنجاح إلى محفظتك! شكراً لمجهودك 💰')),
+          const SnackBar(content: Text('تم تحرير عملة الوقت إلى محفظتك بنجاح.')),
         );
         context.pop();
       }
@@ -153,7 +153,7 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
           );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم تسجيل "تم الشرح" بنجاح! بانتظار تأكيد الزميل 🎉')),
+          const SnackBar(content: Text('تم تسجيل الجلسة كمنجزة، بانتظار تأكيد المتعلم.')),
         );
         context.pop();
       }
@@ -241,7 +241,7 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
 
     if (updated == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم تحديث رابط اللقاء بنجاح 🎉')),
+        const SnackBar(content: Text('تم تحديث رابط الاجتماع بنجاح.')),
       );
     }
   }
@@ -285,7 +285,7 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('تم إلغاء الجلسة واسترداد العملة للمتعلم بنجاح 🔄')),
+          const SnackBar(content: Text('تم إلغاء الجلسة واسترداد العملة للمتعلم.')),
         );
         context.pop();
       }
@@ -336,7 +336,7 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
           onPressed: () => context.pop(),
         ),
         title: Text(
-          'تفاصيل الجلسة (أنت الشارح) 👨‍🏫',
+          'تفاصيل الجلسة (الشارح)',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: onSurface),
         ),
         centerTitle: true,
@@ -406,7 +406,7 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                     Expanded(
                       child: Text(
                         isReleased
-                            ? 'تم إتمام الشرح وتحرير عملة الوقت إلى محفظتك بنجاح! تقييم الزميل لك: ${session?.rating ?? 5} نجوم ⭐'
+                            ? 'تم إتمام الشرح وتحرير عملة الوقت إلى محفظتك بنجاح. تقييم المتعلم لك: ${session?.rating ?? 5} نجوم.'
                             : (isRefunded
                                 ? 'تم إلغاء هذه الجلسة واسترداد العملة للمتعلم.'
                                 : 'الجلسة مؤكدة ومحجوزة في الضمان. بعد انتهاء الشرح وتأكيد المتعلم، ستضاف 1 عملة وقت إلى محفظتك فوراً.'),
@@ -440,7 +440,7 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                     Divider(height: 20, color: hairline),
                     _RowItem('المدة المقررة', duration),
                     Divider(height: 20, color: hairline),
-                    _RowItem('المكان / طريقة اللقاء', session?.mode == 'online' ? 'أونلاين عن بُعد 💻' : location),
+                    _RowItem('المكان / طريقة اللقاء', session?.mode == 'online' ? 'عبر الإنترنت' : location),
                   ],
                 ),
               ),
@@ -490,7 +490,7 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                           onPressed: () {
                             Clipboard.setData(ClipboardData(text: session.meetingUrl!));
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('تم نسخ رابط الاجتماع بنجاح 📋')),
+                              const SnackBar(content: Text('تم نسخ رابط الاجتماع بنجاح.')),
                             );
                           },
                           icon: const Icon(Icons.copy_rounded, size: 16, color: Colors.white),
@@ -557,7 +557,7 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                     onPressed: () => context.push('/session-chat', extra: session),
                     icon: const Icon(Icons.forum_outlined, color: AppColors.primary),
                     label: Text(
-                      'محادثة لتنسيق اللقاء مع $learnerName 💬',
+                      'محادثة لتنسيق الجلسة مع $learnerName',
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary),
                     ),
                     style: OutlinedButton.styleFrom(
@@ -600,7 +600,7 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                     onPressed: _isProcessingAction ? null : () => _acceptSession(session),
                     icon: const Icon(Icons.check_circle_outline_rounded, color: Colors.white),
                     label: Text(
-                      _isProcessingAction ? 'جاري القبول...' : 'قبول الجلسة وتأكيد الموعد 🤝',
+                      _isProcessingAction ? 'جاري القبول...' : 'قبول الجلسة وتأكيد الموعد',
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                     style: ElevatedButton.styleFrom(
@@ -642,7 +642,7 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'قمت بتسجيل "تم الشرح" بنجاح ✓ بانتظار تأكيد وتقييم الزميل',
+                              'تم تسجيل الجلسة كمنجزة، بانتظار تأكيد وتقييم المتعلم.',
                               style: TextStyle(fontSize: 12, color: AppColors.textPrimary, fontWeight: FontWeight.bold),
                             ),
                           ),
@@ -662,7 +662,7 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                           onPressed: _isProcessingAction ? null : () => _claimAutoRelease(session),
                           icon: const Icon(Icons.monetization_on_outlined, color: Colors.white),
                           label: Text(
-                            _isProcessingAction ? 'جاري تحرير العملة...' : 'المطالبة بالعملة (تحرير تلقائي) 💰',
+                            _isProcessingAction ? 'جاري تحرير العملة...' : 'تحرير عملة الوقت',
                             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
                           ),
                           style: ElevatedButton.styleFrom(
@@ -680,7 +680,7 @@ class _SessionDetailsTeacherScreenState extends ConsumerState<SessionDetailsTeac
                         onPressed: _isProcessingAction ? null : () => _markDone(session),
                         icon: const Icon(Icons.school_rounded, color: Colors.white),
                         label: Text(
-                          _isProcessingAction ? 'جاري التأكيد...' : 'تم الشرح بنجاح 🎓',
+                          _isProcessingAction ? 'جاري التأكيد...' : 'تسجيل إتمام الشرح',
                           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
                         ),
                         style: ElevatedButton.styleFrom(

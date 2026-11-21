@@ -119,7 +119,7 @@ class _OnboardingRateScreenState extends ConsumerState<OnboardingRateScreen> {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    'قيّم مستواك في المواد 🎯',
+                    'قيّم مستواك في المواد',
                     style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textPrimaryColor),
                   ),
                   const SizedBox(height: 6),
