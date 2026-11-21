@@ -157,7 +157,6 @@ class _FirebaseInitErrorAppState extends State<FirebaseInitErrorApp> {
                         textDirection: TextDirection.ltr,
                         style: TextStyle(
                           fontSize: 11,
-                          fontFamily: 'monospace',
                           color: tokens.textMedium,
                         ),
                       ),
