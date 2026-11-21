@@ -221,7 +221,7 @@ class AppTheme {
         style: FilledButton.styleFrom(
           backgroundColor: tokens.brand,
           foregroundColor: tokens.onBrand,
-          minimumSize: const Size.fromHeight(48),
+          minimumSize: const Size(64, 44),
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
           textStyle: TextStyle(
@@ -236,7 +236,7 @@ class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: tokens.brand,
           foregroundColor: tokens.onBrand,
-          minimumSize: const Size.fromHeight(48),
+          minimumSize: const Size(64, 44),
           elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),
           textStyle: TextStyle(
@@ -250,7 +250,7 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: tokens.brand,
-          minimumSize: const Size.fromHeight(48),
+          minimumSize: const Size(64, 44),
           elevation: 0,
           side: BorderSide(color: tokens.brand, width: 1),
           shape: RoundedRectangleBorder(borderRadius: AppRadii.controlRadius),

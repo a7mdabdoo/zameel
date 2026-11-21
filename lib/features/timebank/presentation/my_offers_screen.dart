@@ -59,10 +59,15 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
 
     // استخراج المواد المسجلة للمستخدم للفلترة السريعة
     final rawSelectedCourses = userDoc?['selectedCourses'] as List<dynamic>? ?? [];
-    final List<String> userCoursesNames = rawSelectedCourses
-        .map((c) => (c is Map ? (c['name'] as String? ?? '') : c.toString()))
-        .where((s) => s.isNotEmpty)
-        .toList();
+    final List<String> userCoursesNames = rawSelectedCourses.map((c) {
+      if (c is Map) return (c['name'] as String? ?? '');
+      final idStr = c.toString().trim();
+      final match = AppConstants.seedCourses.cast<CourseSeed?>().firstWhere(
+        (cs) => cs?.id == idStr || cs?.code == idStr,
+        orElse: () => null,
+      );
+      return match?.name ?? idStr;
+    }).where((s) => s.isNotEmpty).toSet().toList();
 
     // العروض المتاحة في السوق الحي
     final availableOffersAsync = ref.watch(availableOffersStreamProvider);
@@ -204,17 +209,9 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 9),
           decoration: BoxDecoration(
-            color: isSelected ? primaryColor : Colors.transparent,
+            color: isSelected ? tokens.brandContainer : Colors.transparent,
             borderRadius: AppRadii.controlRadius,
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: primaryColor.withValues(alpha: 0.3),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ]
-                : null,
+            border: isSelected ? Border.all(color: tokens.brand.withValues(alpha: 0.6)) : null,
           ),
           alignment: Alignment.center,
           child: Text(
@@ -224,7 +221,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.bold,
-              color: isSelected ? tokens.onBrand : tokens.textMedium,
+              color: isSelected ? tokens.brand : tokens.textMedium,
             ),
           ),
         ),
@@ -335,7 +332,11 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
         // قائمة بطاقات العروض
         Expanded(
           child: filteredOffers.isEmpty
-              ? _buildEmptyOffersPlaceholder(primaryColor, isSearching: _searchQuery.isNotEmpty)
+              ? _buildEmptyOffersPlaceholder(
+                  primaryColor,
+                  isSearching: _searchQuery.isNotEmpty,
+                  selectedCourse: _selectedCourseFilter,
+                )
               : ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: filteredOffers.length,
@@ -345,7 +346,7 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
                     return _buildOfferCard(
                       offer: offer,
                       userId: userId,
-                                            primaryColor: primaryColor,
+                      primaryColor: primaryColor,
                       surfaceColor: surfaceColor,
                       hairlineColor: hairlineColor,
                     );
@@ -365,11 +366,11 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
         style: TextStyle(
           fontSize: 12,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-          color: isSelected ? tokens.onBrand : tokens.textHigh,
+          color: isSelected ? tokens.brand : tokens.textHigh,
         ),
       ),
       selected: isSelected,
-      selectedColor: tokens.brand,
+      selectedColor: tokens.brandContainer,
       backgroundColor: tokens.surfaceAlt,
       side: BorderSide(
         color: isSelected ? tokens.brand : tokens.border,
@@ -981,48 +982,70 @@ class _TimeBankFeedScreenState extends ConsumerState<TimeBankFeedScreen> {
     );
   }
 
-  Widget _buildEmptyOffersPlaceholder(Color primaryColor, {bool isSearching = false}) {
+  Widget _buildEmptyOffersPlaceholder(
+    Color primaryColor, {
+    bool isSearching = false,
+    String? selectedCourse,
+  }) {
     final tokens = context.tokens;
+    final isFilteringByCourse = selectedCourse != null && selectedCourse != 'الكل';
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off_rounded, size: 64, color: tokens.textLow),
+            Icon(Icons.search_off_rounded, size: 60, color: tokens.textLow),
             const SizedBox(height: 14),
             Text(
-              isSearching ? 'لم يتم العثور على عروض تطابق بحثك' : 'لا توجد عروض شرح متاحة حالياً',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              isSearching
-                  ? 'جرب البحث بكلمات أخرى أو اختر مادة دراسية أخرى.'
-                  : 'كن أول من يبادر بطرح جلسة شرح لزملائك واكتسب عملات وقت.',
+              isFilteringByCourse
+                  ? 'لا توجد جلسات متاحة لمادة "$selectedCourse" حالياً'
+                  : (isSearching ? 'لم يتم العثور على عروض تطابق بحثك' : 'لا توجد عروض شرح متاحة حالياً'),
               textAlign: TextAlign.center,
-              style: TextStyle(color: tokens.textMedium, fontSize: 12.5),
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: tokens.textHigh),
             ),
-            const SizedBox(height: 18),
-            if (isSearching)
-              OutlinedButton.icon(
-                onPressed: () {
-                  _searchController.clear();
-                  setState(() {
-                    _searchQuery = '';
-                    _selectedCourseFilter = 'الكل';
-                  });
-                },
-                icon: const Icon(Icons.refresh_rounded, size: 16),
-                label: const Text('إعادة ضبط البحث'),
-              )
-            else
-              FilledButton.icon(
-                onPressed: () => context.push('/create-offer'),
-                icon: const Icon(Icons.add_rounded),
-                label: const Text('إنشاء جلسة'),
-                style: FilledButton.styleFrom(backgroundColor: primaryColor),
-              ),
+            const SizedBox(height: 8),
+            Text(
+              isFilteringByCourse
+                  ? 'لم يطرح أحد من الزملاء جلسة لهذه المادة بعد. يمكنك طرح جلسة شرح بنفسك أو العودة لعرض كافة المواد.'
+                  : (isSearching
+                      ? 'جرب البحث بكلمات أخرى أو اختر مادة دراسية أخرى.'
+                      : 'كن أول من يبادر بطرح جلسة شرح لزملائك واكتسب عملات وقت.'),
+              textAlign: TextAlign.center,
+              style: TextStyle(color: tokens.textMedium, fontSize: 13, height: 1.4),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (isSearching || isFilteringByCourse)
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() {
+                        _searchQuery = '';
+                        _selectedCourseFilter = 'الكل';
+                      });
+                    },
+                    icon: const Icon(Icons.refresh_rounded, size: 16),
+                    label: const Text('عرض جميع الجلسات'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: tokens.brand,
+                      side: BorderSide(color: tokens.border),
+                    ),
+                  ),
+                if (isFilteringByCourse) const SizedBox(width: 8),
+                FilledButton.icon(
+                  onPressed: () => context.push('/create-offer'),
+                  icon: const Icon(Icons.add_rounded, size: 16),
+                  label: const Text('طرح جلسة جديدة'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: tokens.brand,
+                    foregroundColor: tokens.onBrand,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),

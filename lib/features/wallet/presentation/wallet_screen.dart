@@ -59,25 +59,16 @@ class WalletScreen extends ConsumerWidget {
               Container(
                 padding: const EdgeInsets.all(22),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [tokens.brand, tokens.brand.withValues(alpha: 0.85)],
-                    begin: Alignment.topRight,
-                    end: Alignment.bottomLeft,
-                  ),
+                  color: tokens.surface,
                   borderRadius: AppRadii.cardRadius,
-                  boxShadow: [
-                    BoxShadow(
-                      color: tokens.brand.withValues(alpha: 0.25),
-                      blurRadius: 16,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
+                  border: Border.all(color: tokens.brand.withValues(alpha: 0.3)),
+                  boxShadow: tokens.floatingShadow,
                 ),
                 child: Column(
                   children: [
                     Text(
                       'إجمالي رصيد محفظة الوقت',
-                      style: TextStyle(fontSize: 13, color: tokens.onBrand.withValues(alpha: 0.8)),
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: tokens.textMedium),
                     ),
                     const SizedBox(height: 10),
                     Row(
@@ -85,20 +76,20 @@ class WalletScreen extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.baseline,
                       textBaseline: TextBaseline.alphabetic,
                       children: [
-                        Icon(Icons.monetization_on_rounded, size: 36, color: tokens.coin),
+                        Icon(Icons.toll_rounded, size: 36, color: tokens.coin),
                         const SizedBox(width: 8),
                         Text(
                           '$totalCoins',
                           style: TextStyle(
                             fontSize: 46,
                             fontWeight: FontWeight.bold,
-                            color: tokens.onBrand,
+                            color: tokens.brand,
                           ),
                         ),
                         const SizedBox(width: 8),
                         Text(
                           'عملات وقت',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: tokens.onBrand),
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: tokens.textHigh),
                         ),
                       ],
                     ),
@@ -108,8 +99,9 @@ class WalletScreen extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       decoration: BoxDecoration(
-                        color: tokens.onBrand.withValues(alpha: 0.12),
-                        borderRadius: AppRadii.cardRadius,
+                        color: tokens.surfaceAlt,
+                        borderRadius: AppRadii.controlRadius,
+                        border: Border.all(color: tokens.border),
                       ),
                       child: Row(
                         children: [
@@ -130,19 +122,19 @@ class WalletScreen extends ConsumerWidget {
                                     const SizedBox(width: 6),
                                     Text(
                                       'الرصيد المتاح',
-                                      style: TextStyle(fontSize: 12, color: tokens.onBrand.withValues(alpha: 0.8), fontWeight: FontWeight.w600),
+                                      style: TextStyle(fontSize: 12, color: tokens.textMedium, fontWeight: FontWeight.w600),
                                     ),
                                   ],
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   '$availableCoins عملة',
-                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: tokens.onBrand),
+                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: tokens.textHigh),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
                                   'جاهز للحجز الفوري',
-                                  style: TextStyle(fontSize: 10, color: tokens.onBrand.withValues(alpha: 0.65)),
+                                  style: TextStyle(fontSize: 10, color: tokens.textLow),
                                 ),
                               ],
                             ),
@@ -150,7 +142,7 @@ class WalletScreen extends ConsumerWidget {
                           Container(
                             width: 1,
                             height: 44,
-                            color: tokens.onBrand.withValues(alpha: 0.2),
+                            color: tokens.border,
                           ),
                           Expanded(
                             child: Column(
@@ -169,19 +161,19 @@ class WalletScreen extends ConsumerWidget {
                                     const SizedBox(width: 6),
                                     Text(
                                       'الرصيد المعلق',
-                                      style: TextStyle(fontSize: 12, color: tokens.onBrand.withValues(alpha: 0.8), fontWeight: FontWeight.w600),
+                                      style: TextStyle(fontSize: 12, color: tokens.textMedium, fontWeight: FontWeight.w600),
                                     ),
                                   ],
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   '$heldCoins عملة',
-                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: tokens.onBrand),
+                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: tokens.textHigh),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
                                   'محتجز في الضمان',
-                                  style: TextStyle(fontSize: 10, color: tokens.onBrand.withValues(alpha: 0.65)),
+                                  style: TextStyle(fontSize: 10, color: tokens.textLow),
                                 ),
                               ],
                             ),
@@ -192,14 +184,14 @@ class WalletScreen extends ConsumerWidget {
 
                     const SizedBox(height: 12),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                       decoration: BoxDecoration(
-                        color: tokens.onBrand.withValues(alpha: 0.15),
+                        color: tokens.brandContainer.withValues(alpha: 0.35),
                         borderRadius: AppRadii.fullRadius,
                       ),
                       child: Text(
                         'الرصيد المتاح يعادل ${(availableCoins * 60 / 60).toStringAsFixed(0)} ساعة تعلّم مجانية مع زملائك',
-                        style: TextStyle(fontSize: 11, color: tokens.onBrand),
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: tokens.brand),
                       ),
                     ),
                   ],

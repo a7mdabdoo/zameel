@@ -481,14 +481,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               const SizedBox(height: 10),
 
-              Container(
-                decoration: BoxDecoration(
-                  color: tokens.surface,
-                  borderRadius: AppRadii.cardRadius,
-                  border: Border.all(color: tokens.border),
-                ),
-                child: Column(
-                  children: [
+              Material(
+                color: tokens.surface,
+                borderRadius: AppRadii.cardRadius,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: AppRadii.cardRadius,
+                    border: Border.all(color: tokens.border),
+                  ),
+                  child: Column(
+                    children: [
                     SwitchListTile(
                       title: Text('الوضع الداكن (Dark Theme)', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: tokens.textHigh)),
                       subtitle: Text('تبديل مظهر الشاشات للألوان الداكنة وحفظ التفضيل', style: TextStyle(fontSize: 12, color: tokens.textMedium)),
@@ -538,6 +540,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   ],
                 ),
               ),
+            ),
 
               const SizedBox(height: 24),
             ],
