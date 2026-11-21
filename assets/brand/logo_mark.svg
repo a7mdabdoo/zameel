@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Zameel Geometric Monogram "ز" (Knowledge Exchange) -->
+  <g fill="none" stroke="currentColor" stroke-width="48" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Arc 1: First peer knowledge arc -->
+    <path d="M 372 176 C 340 176, 260 216, 236 280 C 216 332, 230 380, 264 404" />
+    <!-- Arc 2: Second peer interlocking arc forming the sweeping tail of 'ز' -->
+    <path d="M 308 244 C 280 290, 240 376, 140 388 C 112 391, 92 380, 80 364" />
+  </g>
+  <!-- Dot (Nuqta) representing knowledge essence -->
+  <circle cx="348" cy="100" r="32" fill="currentColor" />
+</svg>

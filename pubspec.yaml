@@ -34,6 +34,8 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   mocktail: ^1.0.5
   fake_cloud_firestore: ^4.5.0
+  flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.4.4
 
 flutter:
   uses-material-design: true
@@ -41,6 +43,27 @@ flutter:
 
   assets:
     - assets/fonts/
+    - assets/brand/
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/brand/app_icon.png"
+  min_sdk_android: 21
+  adaptive_icon_background: "assets/brand/icon_background.png"
+  adaptive_icon_foreground: "assets/brand/icon_foreground.png"
+  adaptive_icon_monochrome: "assets/brand/icon_monochrome.png"
+
+flutter_native_splash:
+  color: "#F8FAFC"
+  color_dark: "#0B131E"
+  image: "assets/brand/icon_foreground.png"
+  image_dark: "assets/brand/icon_foreground.png"
+  android_12:
+    color: "#F8FAFC"
+    color_dark: "#0B131E"
+    image: "assets/brand/icon_foreground.png"
+    image_dark: "assets/brand/icon_foreground.png"
 
   fonts:
     - family: IBMPlexSansArabic
