@@ -20,20 +20,29 @@ class WelcomeScreen extends StatelessWidget {
             children: [
               const Spacer(flex: 2),
 
-              // 1. الشعار الهندسي الموحد (Brand Logo Mark)
+              // 1. الشعار المعتمد للمنظومة (Brand Logo Mark)
               Center(
                 child: Container(
-                  width: 96,
-                  height: 96,
+                  width: 104,
+                  height: 104,
                   decoration: BoxDecoration(
-                    color: tokens.brandContainer.withValues(alpha: 0.35),
+                    color: tokens.surface,
                     shape: BoxShape.circle,
-                    border: Border.all(color: tokens.brand.withValues(alpha: 0.2)),
+                    border: Border.all(
+                      color: tokens.brand.withValues(alpha: 0.15),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: tokens.brand.withValues(alpha: 0.08),
+                        blurRadius: 20,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
                   ),
                   alignment: Alignment.center,
-                  child: ZameelLogo(
-                    size: 56,
-                    color: tokens.brand,
+                  child: const ZameelLogo(
+                    size: 64,
                   ),
                 ),
               ),
