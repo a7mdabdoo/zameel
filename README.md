@@ -1,7 +1,7 @@
 <div align="center">
 
 <p align="center">
-  <img src="assets/brand/app_icon.png" alt="شعار زميل - Zameel Logo" width="130" style="border-radius: 28px; box-shadow: 0 8px 24px rgba(0,0,0,0.12);">
+  <img src="assets/brand/logo_emerald.png" alt="شعار زميل - Zameel Logo" width="140" style="border-radius: 28px; box-shadow: 0 8px 24px rgba(0,0,0,0.12);">
 </p>
 
 # زميل | Zameel
@@ -101,7 +101,7 @@ The platform synthesizes two powerful concepts:
       <td align="center"><img src="Screenshots/05_timebank_marketplace.png" alt="سوق الجلسات الأكاديمي" width="180"></td>
       <td align="center"><img src="Screenshots/06_my_sessions_escrow.png" alt="جلساتي ونظام الضمان" width="180"></td>
       <td align="center"><img src="Screenshots/07_student_profile.png" alt="الملف الشخصي ومحفظة العملات" width="180"></td>
-      <td align="center"><img src="assets/brand/app_icon.png" alt="شعار زميل الهندسي" width="180"></td>
+      <td align="center"><img src="assets/brand/logo_emerald.png" alt="شعار زميل - النسخة الزمردية" width="180" style="border-radius: 20px;"></td>
     </tr>
   </table>
 </div>
