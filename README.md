@@ -95,7 +95,7 @@ The platform synthesizes two powerful concepts:
       <th align="center">سوق الجلسات الأكاديمي</th>
       <th align="center">جلساتي ونظام الضمان</th>
       <th align="center">الملف الشخصي والمحفظة</th>
-      <th align="center">هوية التصميم الهندسية</th>
+      <th align="center">شعار وهوية زميل</th>
     </tr>
     <tr>
       <td align="center"><img src="Screenshots/05_timebank_marketplace.png" alt="سوق الجلسات الأكاديمي" width="180"></td>
